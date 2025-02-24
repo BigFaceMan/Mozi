@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>训练报告</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.0/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        h3 {
+            color: #333;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .chart-container div {
+            width: 45%;
+        }
+        .chart-container canvas {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>训练报告</h1>
+    <h3>训练指标</h3>
+    <ul>
+        <li>Final Loss: 0.25</li>
+        <li>Final Accuracy: 85%</li>
+    </ul>
+
+    <div class="chart-container">
+        <div>
+            <h4>Loss 曲线</h4>
+            <div id="lossChart" style="width: 100%; height: 300px;"></div>
+        </div>
+        <div>
+            <h4>Accuracy 曲线</h4>
+            <div id="accuracyChart" style="width: 100%; height: 300px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 训练数据
+        const epochs = [1, 2, 3, 4, 5];
+        const loss = [0.5, 0.4, 0.35, 0.3, 0.25];
+        const accuracy = [70, 75, 78, 80, 85];
+
+        // 初始化图表
+        const lossChart = echarts.init(document.getElementById('lossChart'));
+        const accuracyChart = echarts.init(document.getElementById('accuracyChart'));
+
+        // 配置 Loss 图表
+        const lossOption = {
+            title: {
+                text: 'Loss 曲线',
+                left: 'center'
+            },
+            xAxis: {
+                type: 'category',
+                data: epochs,
+                name: 'Epochs'
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Loss'
+            },
+            series: [{
+                data: loss,
+                type: 'line',
+                smooth: true,
+                color: 'red'
+            }]
+        };
+
+        // 配置 Accuracy 图表
+        const accuracyOption = {
+            title: {
+                text: 'Accuracy 曲线',
+                left: 'center'
+            },
+            xAxis: {
+                type: 'category',
+                data: epochs,
+                name: 'Epochs'
+            },
+            yAxis: {
+                type: 'value',
+                name: 'Accuracy (%)'
+            },
+            series: [{
+                data: accuracy,
+                type: 'line',
+                smooth: true,
+                color: 'green'
+            }]
+        };
+
+        // 设置图表选项
+        lossChart.setOption(lossOption);
+        accuracyChart.setOption(accuracyOption);
+    </script>
+
+</body>
+</html>

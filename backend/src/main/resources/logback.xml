@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- 控制台日志输出 -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 文件日志输出，使用滚动策略进行日志轮转 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/myapp.log</file> <!-- 当前日志文件 -->
+
+        <!-- 设置日志轮转策略 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 按日期滚动日志文件，格式为 myapp-YYYY-MM-DD.log -->
+            <fileNamePattern>logs/myapp-%d{yyyy-MM-dd}.log</fileNamePattern>
+
+            <!-- 保留最近 30 天的日志 -->
+            <maxHistory>30</maxHistory>
+
+            <!-- 限制日志文件总大小，超过指定大小会触发滚动 -->
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+
+        <!-- 日志内容格式 -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 为特定包添加新的文件日志输出 -->
+    <appender name="MODEL_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/model.log</file> <!-- 模型日志文件 -->
+
+        <!-- 设置日志滚动策略 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/model-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 配置根日志记录器 -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+    <!-- 为特定包（例如 com.example.model）设置日志级别和输出 -->
+    <logger name="org.example.backend.service.impl.pk" level="DEBUG">
+        <appender-ref ref="MODEL_LOG"/> <!-- 使用新配置的日志文件 -->
+    </logger>
+
+</configuration>
