@@ -490,7 +490,7 @@ const stopTraining = (training) => {
             port: training.port,
             processId: training.processid
         },
-        success(resp) {
+        success(resp){
             // Process the raw training log data for replay visualization
             console.log(resp)
             fetchTrainings();
