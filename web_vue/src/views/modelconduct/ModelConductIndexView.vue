@@ -473,7 +473,7 @@ export default {
         const fetchModels = () => {
             // API call to fetch models
             $.ajax({
-                url: "http://10.129.79.55:3000/model/getlist/",
+                url: "http://127.0.0.1:3000/model/getlist/",
                 type: "get",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
@@ -486,7 +486,7 @@ export default {
             });
 
             $.ajax({
-                url: "http://10.129.79.55:3000/situation/getlist/",
+                url: "http://127.0.0.1:3000/situation/getlist/",
                 type: "get",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
@@ -598,7 +598,7 @@ export default {
         const addModel = () => {
             // Define add model logic here
             $.ajax({
-                url: "http://10.129.79.55:3000/model/add/",
+                url: "http://127.0.0.1:3000/model/add/",
                 type: "post",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
@@ -628,7 +628,7 @@ export default {
         const updateModel = () => {
             // Define update model logic here
             $.ajax({
-                url: "http://10.129.79.55:3000/model/update/",
+                url: "http://127.0.0.1:3000/model/update/",
                 type: "post",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
@@ -657,7 +657,7 @@ export default {
             if (confirm('确定要删除这个模型吗？')) {
                 // Define delete model logic here
                 $.ajax({
-                    url: "http://10.129.79.55:3000/model/remove/",
+                    url: "http://127.0.0.1:3000/model/remove/",
                     type: "post",
                     headers: {
                         Authorization: "Bearer " + store.state.user.token,

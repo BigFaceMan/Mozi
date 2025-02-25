@@ -33,6 +33,17 @@
       </select>
     </div>
 
+    <div class="form-group mb-3">
+      <label for="model">选择计算节点:</label>
+      <select id="gamenode" class="form-select" @change="selectGameNode">
+        <option v-for="(gameNode, index) in gameNodes" :key="gameNode.ip + gameNode.port"
+         :value="gameNode.ip+':'+ gameNode.port">
+            <!-- {{ gameNode.ip }} - {{ gameNode.port }} -->
+          {{ '节点 ' + (index + 1) }}
+        </option>
+      </select>
+    </div>
+
     <!-- 选择 PyTorch 版本 -->
     <div class="form-group mb-3">
       <label for="pytorchVersion">选择 PyTorch 版本:</label>
@@ -120,6 +131,7 @@ import $ from 'jquery';
 
 const store = useStore();
 const models = ref([]);
+const gameNodes = ref([]);
 const situations = ref([]);
 const showConfig = ref(false);
 const trainingStatus = ref(null); // 用来存储训练状态
@@ -135,7 +147,7 @@ const filteredModels = computed(() => {
 // 从后端获取模型列表
 const fetchModels = () => {
   $.ajax({
-    url: "http://10.129.79.55:3000/model/getlist/",
+    url: "http://127.0.0.1:3000/model/getlist/",
     type: "get",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -145,7 +157,7 @@ const fetchModels = () => {
     }
   });
   $.ajax({
-    url: "http://10.129.79.55:3000/situation/getlist/",
+    url: "http://127.0.0.1:3000/situation/getlist/",
     type: "get",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -154,8 +166,26 @@ const fetchModels = () => {
       situations.value = resp;
     }
   });
+  $.ajax({
+    url: "http://127.0.0.1:3000/games/get/all/",
+    type: "get",
+    headers: {
+      Authorization: "Bearer " + store.state.user.token,
+    },
+    success(resp) {
+      gameNodes.value = resp;
+      // console.log(resp)
+    }
+  });
 };
-
+const selectGameNode = (event) => {
+  const selectedValue = event.target.value; // 获取 "ip:port" 格式的字符串
+  const [ip, port] = selectedValue.split(':'); // 拆分出 ip 和 port
+  console.log('选择的 IP:', ip);
+  console.log('选择的 Port:', port);
+  form.ip = ip;
+  form.port = port;
+};
 // 保存配置
 const saveConfig = () => {
   // 保存配置到 Vuex
@@ -198,7 +228,7 @@ const startTraining = () => {
 
   // 进行后端请求，开始训练
   $.ajax({
-    url: "http://10.129.79.55:3000/train/add/",
+    url: "http://127.0.0.1:3000/train/add/",
     type: "post",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -208,6 +238,8 @@ const startTraining = () => {
       scene: form.scene,
       model: form.model,
       pytorchVersion: form.pytorchVersion,
+      ip: form.ip,
+      port: form.port,
       modelParams: JSON.stringify(form.modelParams),
     },
     success(resp) {

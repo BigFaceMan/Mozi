@@ -1,7 +1,9 @@
 package com.games.games.consumer;
 
+import com.games.games.pojo.ResourceInfo;
 import org.springframework.beans.factory.annotation.Value;
 import oshi.SystemInfo;
+import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
 import oshi.hardware.NetworkIF;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,7 +17,9 @@ import java.text.SimpleDateFormat;
 
 @Service
 public class SignUpdateGame {
-    private String servicePlatformUrl = "http://127.0.0.1:3000"; // 服务平台的URL
+
+    @Value("${servicePlatformUrl}")
+    private String servicePlatformUrl;// 服务平台的URL
     @Value("${server.port}")
     private int gamePort; // 将端口号注入到变量中
     @Value("${server.ip}")
@@ -29,7 +33,8 @@ public class SignUpdateGame {
     @Scheduled(fixedRate = 60 * 60 * 1000) // 每60分钟执行一次
     public void sendResourceInfo() {
         ResourceInfo resourceInfo = getResourceInfo();
-        String url = servicePlatformUrl + "/games/sign";
+        System.out.println("DI serviceUrl : " + servicePlatformUrl);
+        String url = servicePlatformUrl + "/games/sign/";
         restTemplate.postForObject(url, resourceInfo, String.class);
     }
 
@@ -53,7 +58,20 @@ public class SignUpdateGame {
 
     private double getCpuUsage() {
         SystemInfo systemInfo = new SystemInfo();
-        return systemInfo.getHardware().getProcessor().getSystemLoadAverage(3)[0] * 100;
+        CentralProcessor processor = systemInfo.getHardware().getProcessor();
+        long[] prevTicks = processor.getSystemCpuLoadTicks();
+        try {
+            // Pause briefly and get the new CPU ticks
+            Thread.sleep(100);
+            long[] ticks = processor.getSystemCpuLoadTicks();
+            double cpuLoad = processor.getSystemCpuLoadBetweenTicks(prevTicks);
+//            System.out.println(cpuLoad * 100);
+            return cpuLoad * 100;
+        } catch (InterruptedException e) {
+            System.out.println("exception");
+            System.out.println(0);
+        }
+        return 0.0;
     }
 
     private double getMemoryUsage() {

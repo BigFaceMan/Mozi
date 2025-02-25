@@ -10,6 +10,7 @@ import NotFound from '../views/error/NotFound'
 import UserAccountLoginView from '../views/user/account/UserAccountLoginView'
 import UserAccountRegisterView from '../views/user/account/UserAccountRegisterView'
 import LogConductView from "../views/logconduct/LogConductView"
+import GameNodesView from "../views/gameNodesConduct/GameNodesView"
 import store from '../store/index'
 
 const routes = [
@@ -25,6 +26,14 @@ const routes = [
     path: "/pk/",
     name: "pk_index",
     component: PkIndexView,
+    meta: {
+      requestAuth: true,
+    }
+  },
+  {
+    path: "/gameNodesView/",
+    name: "gameNodes_index",
+    component: GameNodesView,
     meta: {
       requestAuth: true,
     }

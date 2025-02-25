@@ -2,14 +2,19 @@ package org.example.backend.controller.pk;
 
 import org.example.backend.pojo.Train;
 import org.example.backend.pojo.TrainLog;
+import org.example.backend.pojo.User;
+import org.example.backend.service.games.GamesService;
 import org.example.backend.service.pk.ModelTrainingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.example.backend.service.impl.utils.UserDetailsImpl;
 import java.util.List;
 import java.util.Map;
 
@@ -17,10 +22,18 @@ import java.util.Map;
 public class ModeTrainingController {
     @Autowired
     private ModelTrainingService modelTrainingService;
+    @Autowired
+    private GamesService gamesService;
 
     @PostMapping("/train/add/")
     public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) {
-        return modelTrainingService.addTrain(data);
+        UsernamePasswordAuthenticationToken authentication =
+                (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
+        User user = loginUser.getUser();
+        data.add("uId", user.getId().toString());
+        return gamesService.addTrain(data);
+//        return modelTrainingService.addTrain(data);
     }
     @PostMapping("/train/upload/")
     public Map<String, String> uploadTrain(@RequestParam MultiValueMap<String, String> data) {
@@ -34,17 +47,18 @@ public class ModeTrainingController {
     }
     @PostMapping("/train/stop/")
     public Map<String, String> stopTrain(@RequestParam MultiValueMap<String, String> data) {
-        return modelTrainingService.stopTrain(data);
+        return gamesService.stopTrain(data);
     }
 
     @PostMapping("/train/continue/")
     public Map<String, String> continueTrain(@RequestParam MultiValueMap<String, String> data) {
-        return modelTrainingService.continueTrain(data);
+        return gamesService.continueTrain(data);
     }
 
     @PostMapping("/train/kill/")
     public Map<String, String> killTrain(@RequestParam MultiValueMap<String, String> data) {
-        return modelTrainingService.killTrain(data);
+        return gamesService.killTrain(data);
+//        return modelTrainingService.killTrain(data);
     }
 
     @PostMapping("/train/addTensorboard/")

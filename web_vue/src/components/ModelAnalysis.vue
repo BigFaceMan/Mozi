@@ -89,7 +89,7 @@
                             <button class="btn btn-sm ms-2" style="background-color: chocolate;" v-if="training.running == '1'" @click="restartTraining()">训练重启</button>
                             <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '1'" @click="killTraining(training)">终止训练</button>
                             <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button>
-                            <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button>
+                            <!-- <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button> -->
                             <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '2'" @click="killTraining(training)">终止训练</button>
                         </td>
                         </tr>
@@ -354,7 +354,7 @@ const startComparison = () => {
 
 const fetchTrainings = () => {
     $.ajax({
-        url: "http://10.129.79.55:3000/train/getlist/",
+        url: "http://127.0.0.1:3000/train/getlist/",
         type: "get",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -433,7 +433,7 @@ const visualizeReport = (training) => {
         }
 
         $.ajax({
-            url: "http://10.129.79.55:3000/trainlog/getlist/",
+            url: "http://127.0.0.1:3000/trainlog/getlist/",
             type: "get",
             headers: {
                 Authorization: "Bearer " + store.state.user.token,
@@ -479,13 +479,16 @@ const stopTraining = (training) => {
     console.log("training : ", training)
     console.log("hello world")
     $.ajax({
-        url: "http://10.129.79.55:3000/train/stop/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/stop/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
             trainingName: training.trainingname,
+            ip: training.ip, 
+            port: training.port,
+            processId: training.processid
         },
         success(resp) {
             // Process the raw training log data for replay visualization
@@ -502,13 +505,16 @@ const stopTraining = (training) => {
 
 const killTraining = (training) => {
     $.ajax({
-        url: "http://10.129.79.55:3000/train/kill/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/kill/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
             trainingName: training.trainingname,
+            ip: training.ip, 
+            port: training.port,
+            processId: training.processid
         },
         success(resp) {
             // Process the raw training log data for replay visualization
@@ -526,7 +532,7 @@ const addGoodModel = (training) => {
     }
     console.log("upload : ", training)
     $.ajax({
-        url: "http://10.129.79.55:3000/train/upload/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/upload/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -554,7 +560,7 @@ const modelTest = () => {
 const deleteTraining = (training) => {
     if (confirm('确定要删除这个模型吗？')) {
         $.ajax({
-            url: "http://10.129.79.55:3000/train/remove/",  // Use the appropriate endpoint for replay data
+            url: "http://127.0.0.1:3000/train/remove/",  // Use the appropriate endpoint for replay data
             type: "post",
             headers: {
                 Authorization: "Bearer " + store.state.user.token,
@@ -578,13 +584,17 @@ const restartTraining = () => {
 }
 const continueTraining = (training) => {
     $.ajax({
-        url: "http://10.129.79.55:3000/train/continue/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/continue/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
             trainingName: training.trainingname,
+            ip: training.ip,
+            port: training.port,
+            processId: training.processid,
+            tensorboardpath: training.tensorboardpath
         },
         success(resp) {
             // Process the raw training log data for replay visualization
@@ -614,7 +624,7 @@ const viewResourceUsage = (training) => {
     isResourceUsageVisible.value = true;
 
     $.ajax({
-        url: "http://10.129.79.55:3000/trainlog/getlist/",
+        url: "http://127.0.0.1:3000/trainlog/getlist/",
         type: "get",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -656,7 +666,7 @@ const isLoading = ref(false);
 const validModel = (training) => {
     training.isValidating = true;
     $.ajax({
-        url: "http://10.129.79.55:3000/train/validataModel/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/validataModel/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -680,7 +690,7 @@ const viewTrainingReplay = (training) => {
     isLoading.value = false;
 
     $.ajax({
-        url: "http://10.129.79.55:3000/train/addTensorboard/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/addTensorboard/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -709,7 +719,7 @@ const closeTrainingReplay = () => {
     isTrainingReplayVisible.value = false;
     isLoading.value = false;
     $.ajax({
-        url: "http://10.129.79.55:3000/train/deleteTensorboard/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/deleteTensorboard/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,

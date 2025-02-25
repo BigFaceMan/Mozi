@@ -1,0 +1,4 @@
+input: 25
+output: 5
+post: localhost:3030/game/opt
+get: localhost:3030/game/info

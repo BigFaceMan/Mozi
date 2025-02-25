@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2024-11-13 15:06:09
- * @LastEditTime: 2024-12-12 10:40:02
+ * @LastEditTime: 2025-02-25 12:18:25
 -->
 <template>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -24,9 +24,9 @@
         <li class="nav-item">
           <router-link :class="route_name == 'logConduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'logConduct_index'}">日志管理</router-link>
         </li>
-        <!-- <li class="nav-item">
-          <router-link :class="route_name == 'envconduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'envconduct_index'}"> 环境管理</router-link>
-        </li> -->
+        <li class="nav-item">
+          <router-link :class="route_name == 'gameNodes_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'gameNodes_index'}"> 计算节点</router-link>
+        </li>
         <li class="nav-item">
           <router-link :class="route_name == 'help_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'help_index'}"> 帮助</router-link>
         </li>

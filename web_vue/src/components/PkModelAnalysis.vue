@@ -256,7 +256,7 @@ const totalPages = computed(() => Math.ceil(trainings.value.length / itemsPerPag
 
 const fetchTrainings = () => {
     $.ajax({
-        url: "http://10.129.79.55:3000/infer/getlist/",
+        url: "http://127.0.0.1:3000/infer/getlist/",
         type: "get",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -334,7 +334,7 @@ const visualizeReport = (training) => {
         }
 
         $.ajax({
-            url: "http://10.129.79.55:3000/trainlog/getlist/",
+            url: "http://127.0.0.1:3000/trainlog/getlist/",
             type: "get",
             headers: {
                 Authorization: "Bearer " + store.state.user.token,
@@ -406,7 +406,7 @@ const viewResourceUsage = (training) => {
     isResourceUsageVisible.value = true;
 
     $.ajax({
-        url: "http://10.129.79.55:3000/trainlog/getlist/",
+        url: "http://127.0.0.1:3000/trainlog/getlist/",
         type: "get",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -446,7 +446,7 @@ const closeResourceUsage = () => {
 
 const stopTraining = (training) => {
     $.ajax({
-        url: "http://10.129.79.55:3000/infer/stop/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/infer/stop/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -469,7 +469,7 @@ const viewTrainingReplay = (training) => {
     isTrainingReplayVisible.value = true;
 
     $.ajax({
-        url: "http://10.129.79.55:3000/infer/addTensorboard/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/infer/addTensorboard/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -490,7 +490,7 @@ const viewTrainingReplay = (training) => {
 
 const killTraining = (training) => {
     $.ajax({
-        url: "http://10.129.79.55:3000/infer/kill/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/infer/kill/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -511,7 +511,7 @@ const killTraining = (training) => {
 
 const continueTraining = (training) => {
     $.ajax({
-        url: "http://10.129.79.55:3000/infer/continue/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/infer/continue/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -533,7 +533,7 @@ const continueTraining = (training) => {
 const deleteTraining = (training) => {
     if (confirm('确定要删除这个记录吗？')) {
         $.ajax({
-            url: "http://10.129.79.55:3000/infer/remove/",  // Use the appropriate endpoint for replay data
+            url: "http://127.0.0.1:3000/infer/remove/",  // Use the appropriate endpoint for replay data
             type: "post",
             headers: {
                 Authorization: "Bearer " + store.state.user.token,
@@ -556,7 +556,7 @@ const deleteTraining = (training) => {
 const closeTrainingReplay = () => {
     isTrainingReplayVisible.value = false;
     $.ajax({
-        url: "http://10.129.79.55:3000/train/deleteTensorboard/",  // Use the appropriate endpoint for replay data
+        url: "http://127.0.0.1:3000/train/deleteTensorboard/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -602,7 +602,7 @@ const viewSuggestions = (training) => {
     // 将随机选择的建议显示出来
     suggestionsData.value = suggestions.join('\n');
     // $.ajax({
-    //     url: "http://10.129.79.55:3000/trainlog/getlist/",  // Assuming the same endpoint is used to get logs for suggestions
+    //     url: "http://127.0.0.1:3000/trainlog/getlist/",  // Assuming the same endpoint is used to get logs for suggestions
     //     type: "get",
     //     headers: {
     //         Authorization: "Bearer " + store.state.user.token,

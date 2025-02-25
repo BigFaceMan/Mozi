@@ -255,7 +255,7 @@ export default {
         const fetchModels = () => {
             // API call to fetch models
             $.ajax({
-                url: "http://10.129.79.55:3000/situation/getlist/",
+                url: "http://127.0.0.1:3000/situation/getlist/",
                 type: "get",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
@@ -341,7 +341,7 @@ export default {
             // console.log(form.params)
             // Define add model logic here
             $.ajax({
-                url: "http://10.129.79.55:3000/situation/add/",
+                url: "http://127.0.0.1:3000/situation/add/",
                 type: "post",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
@@ -367,7 +367,7 @@ export default {
         const updateModel = () => {
             // Define update model logic here
             $.ajax({
-                url: "http://10.129.79.55:3000/situation/update/",
+                url: "http://127.0.0.1:3000/situation/update/",
                 type: "post",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
@@ -392,7 +392,7 @@ export default {
             if (confirm('确定要删除这个模型吗？')) {
                 // Define delete model logic here
                 $.ajax({
-                    url: "http://10.129.79.55:3000/situation/remove/",
+                    url: "http://127.0.0.1:3000/situation/remove/",
                     type: "post",
                     headers: {
                         Authorization: "Bearer " + store.state.user.token,

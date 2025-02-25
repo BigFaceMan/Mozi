@@ -1,4 +1,4 @@
-package com.games.games.consumer;
+package com.games.games.pojo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

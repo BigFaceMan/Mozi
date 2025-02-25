@@ -80,7 +80,7 @@ public class ModelTrainingServiceImpl implements ModelTrainingService {
         User user = loginUser.getUser();
 
         Map<String, String> result = new HashMap<>();
-        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, user.getId(), 3);
+        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, user.getId(), 3, "1", "1", "1");
         trainMapper.insert(train);
         putTrain(data);
         result.put( "error_message", "success");

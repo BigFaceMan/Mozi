@@ -13,6 +13,8 @@ export default {
       batchSize: 32,
       modelParams: '',
       selectedMetrics: [],
+      ip: '127.0.0.1', 
+      port: '3001',
     },
   },
   getters: {
