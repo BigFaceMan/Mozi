@@ -63,12 +63,12 @@ public class ModeTrainingController {
 
     @PostMapping("/train/addTensorboard/")
     public Map<String, String> addTensorboard(@RequestParam MultiValueMap<String, String> data) {
-        return modelTrainingService.addTensorboard(data);
+        return gamesService.addTensorboard(data);
     }
 
     @PostMapping("/train/deleteTensorboard/")
     public Map<String, String> deleteTensorboard(@RequestParam MultiValueMap<String, String> data) {
-        return modelTrainingService.deleteTensorboard();
+        return gamesService.deleteTensorboard(data);
     }
 
     @PostMapping("/trainlog/add/")

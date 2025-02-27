@@ -139,5 +139,57 @@ public class GamesServiceImpl implements GamesService {
         return response.getBody();
     }
 
+    @Override
+    public Map<String, String> addTensorboard(MultiValueMap<String, String> data) {
+        String ip = data.getFirst("ip");
+        String port = data.getFirst("port");
+        HashMap<String, String> map = new HashMap<>();
+        if (ip == null || port == null) {
+            map.put("status", "error");
+            map.put("msg", "ip or port is null");
+            return map;
+        }
+
+        String url = "http://" + ip + ":" + port + "/train/addTensorboard/";
+//        if (gameNodes.containsKey(gameKey)) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 将 data 封装到 HttpEntity 中
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);
+
+        // 发送 POST 请求，获取响应
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+        // 返回响应结果
+        return response.getBody();
+    }
+
+    @Override
+    public Map<String, String> deleteTensorboard(MultiValueMap<String, String> data) {
+        String ip = data.getFirst("ip");
+        String port = data.getFirst("port");
+        HashMap<String, String> map = new HashMap<>();
+        if (ip == null || port == null) {
+            map.put("status", "error");
+            map.put("msg", "ip or port is null");
+            return map;
+        }
+
+        String url = "http://" + ip + ":" + port + "/train/deleteTensorboard/";
+//        if (gameNodes.containsKey(gameKey)) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 将 data 封装到 HttpEntity 中
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);
+
+        // 发送 POST 请求，获取响应
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+        // 返回响应结果
+        return response.getBody();
+    }
+
 
 }

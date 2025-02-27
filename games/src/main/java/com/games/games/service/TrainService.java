@@ -9,4 +9,8 @@ public interface TrainService {
     public Map<String, String> killTrain(MultiValueMap<String, String> data) throws IOException;
     public Map<String, String> stopTrain(MultiValueMap<String, String> data) throws IOException;
     public Map<String, String> continueTrain(MultiValueMap<String, String> data) throws IOException;
+
+    Map<String, String> addTensorboard(MultiValueMap<String, String> data);
+
+    Map<String, String> deleteTensorboard(MultiValueMap<String, String> data);
 }

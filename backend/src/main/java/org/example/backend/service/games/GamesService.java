@@ -14,4 +14,8 @@ public interface GamesService {
     public Map<String, String> killTrain(MultiValueMap<String, String> data);
     public Map<String, String> stopTrain(MultiValueMap<String, String> data);
     public Map<String, String> continueTrain(MultiValueMap<String, String> data);
+
+    Map<String, String> addTensorboard(MultiValueMap<String, String> data);
+
+    Map<String, String> deleteTensorboard(MultiValueMap<String, String> data);
 }

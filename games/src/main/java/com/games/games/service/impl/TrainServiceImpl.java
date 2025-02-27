@@ -13,10 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
@@ -30,6 +27,7 @@ public class TrainServiceImpl implements TrainService {
     @Autowired
     private TrainMapper trainMapper;
     private int runStatus = 1;
+    private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
 
     private static String getPythonProcessId(String processId) throws IOException {
 //        System.out.println("processId " + processId);
@@ -369,4 +367,122 @@ public class TrainServiceImpl implements TrainService {
         response.put("trainningName", trainingName);
         return response;
     }
+
+    @Override
+    public Map<String, String> addTensorboard(MultiValueMap<String, String> data) {
+        Map<String, String> result = new HashMap<>();
+        String tensorboardpath = data.getFirst("tensorboardpath");
+        System.out.println("tensorboardpath : " + tensorboardpath);
+        int port = 6001;
+        synchronized (this) {
+            for (int i = 0; i < 10; i ++) {
+                if (allowPorts.get(i) == 0) {
+                    port = 6001 + i;
+                    allowPorts.set(i, 1);
+                    break;
+                }
+            }
+        }
+
+        // 启动一个线程来执行 TensorBoard 命令
+
+        int finalPort = port;
+        new Thread(() -> {
+            try {
+                // 构建 TensorBoard 命令
+                String[] command = {
+                        "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
+                        "conda activate ssp && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
+                };
+
+                // 使用 ProcessBuilder 启动 TensorBoard
+                ProcessBuilder processBuilder = new ProcessBuilder(command);
+                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
+
+                Process tensorBoardProcess = processBuilder.start(); // 启动进程
+                int exitCode = tensorBoardProcess.waitFor(); // 等待进程结束并获取退出码
+
+                if (exitCode != 0) {
+                    // 如果退出码不为 0，表示启动失败
+                    result.put("error_message", "failed");
+                } else {
+                    // 正常启动
+                    result.put("error_message", "success");
+                }
+
+            } catch (IOException e) {
+                // 捕获启动时的异常
+                e.printStackTrace();
+                result.put("error_message", "failed: IOException occurred");
+            } catch (InterruptedException e) {
+                // 捕获线程中断异常
+                e.printStackTrace();
+                result.put("error_message", "failed: Process was interrupted");
+            } finally {
+                // 释放端口
+                synchronized (this) {
+                    int index = finalPort - 6001;
+                    allowPorts.set(index, 0);
+                }
+            }
+        }).start();
+
+        // 默认返回 "success"（但启动结果可能需要异步检查）
+        result.put("error_message", "success");
+        result.put("tPort", String.valueOf(port));
+        return result;
+    }
+
+    @Override
+    public Map<String, String> deleteTensorboard(MultiValueMap<String, String> data) {
+        int port = Integer.parseInt(data.getFirst("tPort"));
+        killProcessByPort(port);
+        HashMap<String, String> result = new HashMap<>();
+        result.put("status", "success");
+        return result;
+    }
+
+    public void killProcessByPort(int port) {
+        try {
+            // 查找占用该端口的进程 PID
+            String[] netstatCommand = {
+                    "cmd.exe", "/c", "netstat -ano | findstr :" + port
+            };
+            ProcessBuilder netstatProcessBuilder = new ProcessBuilder(netstatCommand);
+            Process netstatProcess = netstatProcessBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(netstatProcess.getInputStream()));
+
+            String line;
+            String pid = null;
+            while ((line = reader.readLine()) != null) {
+                if (!line.contains("LISTENING")) {
+                    continue;
+                }
+                // netstat 输出格式: TCP    0.0.0.0:6001             0.0.0.0:0              LISTENING       12345
+                // 这里提取 PID
+                System.out.println("line is : " + line);
+                String[] parts = line.trim().split("\\s+");
+                pid = parts[parts.length - 1];
+            }
+            System.out.println("pid is : " + pid);
+
+            if (pid != null) {
+                // 通过 PID 结束进程
+                String[] killCommand = {"cmd.exe", "/c", "taskkill /PID " + pid + " /F"};
+                ProcessBuilder killProcessBuilder = new ProcessBuilder(killCommand);
+                Process killProcess = killProcessBuilder.start();
+                int exitCode = killProcess.waitFor();
+                if (exitCode == 0) {
+                    System.out.println("Successfully killed process with PID " + pid);
+                } else {
+                    System.out.println("Failed to kill process with PID " + pid);
+                }
+            } else {
+                System.out.println("No process found on port " + port);
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

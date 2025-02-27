@@ -268,26 +268,22 @@
             </div>
         </div> -->
         <div v-if="isTrainingReplayVisible" class="modal fade show" tabindex="-1" aria-labelledby="trainingReplayModalLabel" aria-hidden="true" style="display: block;">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
+            <div class="modal-dialog modal-lg" style="max-width: 90%; height: 80vh; margin: auto; margin-top: 5%;">
+                <div class="modal-content" style="height: 100%; border: none;">
                     <div class="modal-header">
                         <h5 class="modal-title">训练回放</h5>
                         <button type="button" class="btn-close" @click="closeTrainingReplay" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="card-body">
-                            <h5 class="title">训练可视化</h5>
-                            <!-- 显示加载中或者iframe -->
-                            <div v-if="isLoading">
-                                正在加载，请稍后...
-                            </div>
-                            <iframe v-else src="http://localhost:6006" width="100%" height="800px" frameborder="0"></iframe>
+                    <div class="modal-body" style="padding: 0;">
+                        <!-- 显示加载中或者iframe -->
+                        <div v-if="isLoading">
+                            正在加载，请稍后...
                         </div>
+                        <iframe v-else :src="tensorboardUrl" style="width: 100%; height: 100%;" frameborder="0"></iframe>
                     </div>
                 </div>
             </div>
         </div>
-
 
 
     </div>
@@ -307,8 +303,12 @@ const paginatedTrainings = ref([]);
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 10;
+const tensorboardTraining = ref(null);
+const tensorboardPort = ref(6001);
 
 const totalPages = computed(() => Math.ceil(trainings.value.length / itemsPerPage));
+const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
+
 
 const isComparing = ref(false);
 const selectedModels = ref([]);
@@ -686,8 +686,8 @@ const validModel = (training) => {
     });
 }
 const viewTrainingReplay = (training) => {
-    isTrainingReplayVisible.value = true;
     isLoading.value = false;
+    tensorboardTraining.value = training;
 
     $.ajax({
         url: "http://127.0.0.1:3000/train/addTensorboard/",  // Use the appropriate endpoint for replay data
@@ -696,14 +696,20 @@ const viewTrainingReplay = (training) => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
-            tensorboardpath: training.tensorboardpath,
+            tensorboardpath: tensorboardTraining.value.tensorboardpath,
+            ip: tensorboardTraining.value.ip,
+            port: tensorboardTraining.value.port,
         },
         success(resp) {
             // Process the raw training log data for replay visualization
             console.log(resp)
+            tensorboardPort.value = resp.tPort;
             if (resp.error_message === 'success') {
                 isLoading.value = false;
                 console.log("success")
+                console.log(tensorboardTraining.value)
+                // console.log(tensorboardTraining.ip + ':' + tensorboardPort.value)
+                isTrainingReplayVisible.value = true;
             } else {
                 isLoading.value = true;
             }
@@ -723,6 +729,12 @@ const closeTrainingReplay = () => {
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            tensorboardpath: tensorboardTraining.value.tensorboardpath,
+            ip: tensorboardTraining.value.ip,
+            port: tensorboardTraining.value.port,
+            tPort: tensorboardPort.value,
         },
         success(resp) {
             // Process the raw training log data for replay visualization

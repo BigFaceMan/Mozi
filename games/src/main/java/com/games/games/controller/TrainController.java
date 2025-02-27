@@ -39,6 +39,16 @@ public class TrainController {
         return trainService.continueTrain(data);
     }
 
+    @PostMapping("/train/addTensorboard/")
+    public Map<String, String> addTensorboard(@RequestParam MultiValueMap<String, String> data) {
+        return trainService.addTensorboard(data);
+    }
+
+    @PostMapping("/train/deleteTensorboard/")
+    public Map<String, String> deleteTensorboard(@RequestParam MultiValueMap<String, String> data) {
+        return trainService.deleteTensorboard(data);
+    }
+
 //    @PostMapping("/train/upload/")
 //    public Map<String, String> uploadTrain(@RequestParam MultiValueMap<String, String> data) {
 //        return modelTrainingService.upLoadModel(data);
@@ -55,13 +65,5 @@ public class TrainController {
 //    }
 //
 
-//    @PostMapping("/train/addTensorboard/")
-//    public Map<String, String> addTensorboard(@RequestParam MultiValueMap<String, String> data) {
-//        return trainService.addTensorboard(data);
-//    }
 
-//    @PostMapping("/train/deleteTensorboard/")
-//    public Map<String, String> deleteTensorboard(@RequestParam MultiValueMap<String, String> data) {
-//        return modelTrainingService.deleteTensorboard();
-//    }
 }
