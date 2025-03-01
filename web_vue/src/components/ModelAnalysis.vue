@@ -276,10 +276,12 @@
                     </div>
                     <div class="modal-body" style="padding: 0;">
                         <!-- 显示加载中或者iframe -->
-                        <div v-if="isLoading">
-                            正在加载，请稍后...
+                        <div v-if="isLoading" class="loading-container">
+                            <div class="spinner"></div>
+                            <p class="loading-text">正在加载，请稍后...</p>
                         </div>
-                        <iframe v-else :src="tensorboardUrl" style="width: 100%; height: 100%;" frameborder="0"></iframe>
+                        <!-- <iframe v-else :src="tensorboardUrl" style="width: 100%; height: 100%;" frameborder="0"></iframe> -->
+                        <iframe v-else src="http://127.0.0.1:6001" style="width: 100%; height: 100%;" frameborder="0"></iframe>
                     </div>
                 </div>
             </div>
@@ -307,7 +309,7 @@ const tensorboardTraining = ref(null);
 const tensorboardPort = ref(6001);
 
 const totalPages = computed(() => Math.ceil(trainings.value.length / itemsPerPage));
-const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
+// const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
 
 
 const isComparing = ref(false);
@@ -686,8 +688,9 @@ const validModel = (training) => {
     });
 }
 const viewTrainingReplay = (training) => {
-    isLoading.value = false;
     tensorboardTraining.value = training;
+    isTrainingReplayVisible.value = true;
+    isLoading.value = true;
 
     $.ajax({
         url: "http://127.0.0.1:3000/train/addTensorboard/",  // Use the appropriate endpoint for replay data
@@ -707,9 +710,9 @@ const viewTrainingReplay = (training) => {
             if (resp.error_message === 'success') {
                 isLoading.value = false;
                 console.log("success")
-                console.log(tensorboardTraining.value)
-                // console.log(tensorboardTraining.ip + ':' + tensorboardPort.value)
-                isTrainingReplayVisible.value = true;
+                // console.log(tensorboardTraining.value)
+                console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
+                isLoading.value = false;
             } else {
                 isLoading.value = true;
             }
@@ -865,6 +868,40 @@ onMounted(fetchTrainings);
 .btn-cancel-comparison:hover {
     background-color: #d32f2f; /* 深红色，悬停时的颜色 */
 }
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    margin-top: 10px;
+    font-size: 16px;
+    color: #555;
+    font-weight: bold;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 
 
 </style>

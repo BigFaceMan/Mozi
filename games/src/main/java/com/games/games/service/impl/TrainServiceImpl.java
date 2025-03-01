@@ -407,6 +407,7 @@ public class TrainServiceImpl implements TrainService {
         // 启动一个线程来执行 TensorBoard 命令
 
         int finalPort = port;
+        System.out.println("tensorboard port : " + finalPort);
         new Thread(() -> {
             try {
                 // 构建 TensorBoard 命令
@@ -446,7 +447,13 @@ public class TrainServiceImpl implements TrainService {
                 }
             }
         }).start();
-
+        // 让当前线程休眠 0.5 秒
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // 恢复中断状态
+            e.printStackTrace();
+        }
         // 默认返回 "success"（但启动结果可能需要异步检查）
         result.put("error_message", "success");
         result.put("tPort", String.valueOf(port));
