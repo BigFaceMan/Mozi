@@ -80,7 +80,7 @@ public class ModelOptServiceImpl implements ModelOptService {
 //            map.put("error_message", "代码不能为空");
 //            return map;
 //        }
-        if (code == null || modelstruct != null) {
+        if (code == null) {
             System.out.println("using modelstruct generate code !!!");
             code =
                     "import torch\n" +

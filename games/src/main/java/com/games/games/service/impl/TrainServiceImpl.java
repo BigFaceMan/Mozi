@@ -1,17 +1,17 @@
 package com.games.games.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.games.games.mapper.ModelMapper;
 import com.games.games.mapper.TrainMapper;
+import com.games.games.pojo.Model;
 import com.games.games.pojo.Train;
 import com.games.games.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +26,8 @@ public class TrainServiceImpl implements TrainService {
     private final Lock lock = new ReentrantLock();
     @Autowired
     private TrainMapper trainMapper;
+    @Autowired
+    private ModelMapper modelMapper;
     private int runStatus = 1;
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
 
@@ -76,17 +78,33 @@ public class TrainServiceImpl implements TrainService {
         String port = data.getFirst("port");
         Integer uId = Integer.parseInt(data.getFirst("uId"));
 
+        QueryWrapper<Model> queryWrapper = new QueryWrapper<Model>();
+        Model modelTrain = modelMapper.selectOne(queryWrapper.eq("name", model));
         String processId = UUID.randomUUID().toString();
+        String code = modelTrain.getCode();
+        // 创建训练脚本保存路径
+        File trainFile = new File(projectPath, "train.py");
+
+        // 将代码写入 train.py 文件
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(trainFile))) {
+            writer.write(code);
+        } catch (IOException e) {
+            // 处理写入文件时的异常
+            Map<String, String> errorMap = new HashMap<>();
+            errorMap.put("error_message", "保存代码文件失败: " + e.getMessage());
+            return errorMap;
+        }
+
 
         Map<String, String> result = new HashMap<>();
-        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, uId, 3, ip, port, processId);
+        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, uId, 3, ip, port, processId, trainFile.getPath());
         trainMapper.insert(train);
 
         Thread trainingThread = new Thread(() -> {
             try {
                 String[] command = {
                     "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                    "conda activate ssp &&python D:\\research\\kaifa\\mozi\\games\\src\\main\\python\\train.py --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                    "conda activate ssp &&python " + trainFile.getPath() + " --process_id " + processId + " --tensorboardpath " + tensorboardpath
                 };
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
@@ -277,6 +295,8 @@ public class TrainServiceImpl implements TrainService {
         String processId = data.getFirst("processId");
         String trainingName = data.getFirst("trainingName");
         String tensorboardpath = data.getFirst("tensorboardpath");
+        Train train = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", trainingName));
+        String trainPyPath = train.getTrainpypath();
 //        long currentTimeMillis = System.currentTimeMillis(); // 获取当前的时间戳
 //        Date currentDate = new Date(currentTimeMillis); // 将时间戳转换为Date对象
 //        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss"); // 定义日期格式
@@ -311,7 +331,7 @@ public class TrainServiceImpl implements TrainService {
             try {
                 String[] command = {
                         "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                        "conda activate ssp &&python D:\\research\\kaifa\\mozi\\games\\src\\main\\python\\train.py --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                        "conda activate ssp &&python " + trainPyPath + " --process_id " + processId + " --tensorboardpath " + tensorboardpath
                 };
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
