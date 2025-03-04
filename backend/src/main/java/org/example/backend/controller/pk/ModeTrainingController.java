@@ -32,6 +32,7 @@ public class ModeTrainingController {
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
         User user = loginUser.getUser();
         data.add("uId", user.getId().toString());
+        data.add("userName", user.getUsername());
         return gamesService.addTrain(data);
 //        return modelTrainingService.addTrain(data);
     }

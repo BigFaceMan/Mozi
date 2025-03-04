@@ -1,4 +1,4 @@
-package org.example.backend.pojo;
+package com.games.games.pojo;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,11 +12,10 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrainLog {
+public class ExceptionLog {
     @TableId(type = IdType.AUTO)
     private Integer id;
     private String username;
-    private String trainname;
     private String log;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private Date timestamp;

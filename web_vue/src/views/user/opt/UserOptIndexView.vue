@@ -165,7 +165,7 @@ const totalPages = computed(() => Math.ceil(filteredUsers.value.length / itemsPe
 
 const fetchUsers = () => {
     $.ajax({
-        url: "http://127.0.0.1:3000/user/getlist/",
+        url: "http://localhost:3000/user/getlist/",
         type: "get",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -249,7 +249,7 @@ const addUser = () => {
         // console.log("urank is : ", urank)
 
     $.ajax({
-        url: "http://127.0.0.1:3000/user/addbyname/",
+        url: "http://localhost:3000/user/addbyname/",
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -285,7 +285,7 @@ const updateUser = () => {
         // console.log("urank is : ", urank)
 
     $.ajax({
-        url: "http://127.0.0.1:3000/user/updatabyname/",
+        url: "http://localhost:3000/user/updatabyname/",
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -313,7 +313,7 @@ const deleteUser = (user_id) => {
     if (confirm('确定要删除这个用户吗？')) {
         // console.log("delete : " + userid);
         $.ajax({
-            url: "http://127.0.0.1:3000/user/deletebyid/",
+            url: "http://localhost:3000/user/deletebyid/",
             type: "post",
             headers: {
                 Authorization: "Bearer " + store.state.user.token,
@@ -337,7 +337,7 @@ const deleteUser = (user_id) => {
 const fetchTrainingsForUser = (userId) => {
     console.log("userId : ", userId)
     $.ajax({
-        url: "http://127.0.0.1:3000/train/getlist/",
+        url: "http://localhost:3000/train/getlist/",
         type: "get",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -370,7 +370,7 @@ const closeAuditSection = () => {
 const approveTraining = (training) => {
     console.log("uid : ", training.uid)
     $.ajax({
-        url: "http://127.0.0.1:3000/user/ansAsk/",
+        url: "http://localhost:3000/user/ansAsk/",
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
@@ -393,7 +393,7 @@ const approveTraining = (training) => {
 // 拒绝审计
 const rejectTraining = (training) => {
     $.ajax({
-        url: "http://127.0.0.1:3000/user/ansAsk/",
+        url: "http://localhost:3000/user/ansAsk/",
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,

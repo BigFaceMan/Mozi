@@ -12,11 +12,10 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TrainLog {
+public class UserLog {
     @TableId(type = IdType.AUTO)
     private Integer id;
     private String username;
-    private String trainname;
     private String log;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private Date timestamp;

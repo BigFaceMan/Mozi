@@ -362,21 +362,21 @@ public class ModelTrainingServiceImpl implements ModelTrainingService {
     @Override
     public Map<String, String> addTrainLog(MultiValueMap<String, String> data) {
         Map<String, String> result = new HashMap<>();
-        TrainLog trainLog = new TrainLog();
-        trainLog.setTrainingname(data.getFirst("trainingname"));
-        trainLog.setProgress(Integer.parseInt(data.getFirst("progress")));
-        trainLog.setLoss(Float.parseFloat(data.getFirst("loss")));
-        trainLog.setCpuUsage(Float.parseFloat(data.getFirst("cpu_usage")));
-        trainLog.setGpuUsage(Float.parseFloat(data.getFirst("gpu_usage")));
-        trainLog.setMemoryUsage(Float.parseFloat(data.getFirst("memory_usage")));
-        trainLog.setVramUsage(Float.parseFloat(data.getFirst("vram_usage")));
-        trainLog.setNetworkBandwidth(Float.parseFloat(data.getFirst("network_bandwidth")));
+//        TrainLog trainLog = new TrainLog();
+//        trainLog.setTrainingname(data.getFirst("trainingname"));
+//        trainLog.setProgress(Integer.parseInt(data.getFirst("progress")));
+//        trainLog.setLoss(Float.parseFloat(data.getFirst("loss")));
+//        trainLog.setCpuUsage(Float.parseFloat(data.getFirst("cpu_usage")));
+//        trainLog.setGpuUsage(Float.parseFloat(data.getFirst("gpu_usage")));
+//        trainLog.setMemoryUsage(Float.parseFloat(data.getFirst("memory_usage")));
+//        trainLog.setVramUsage(Float.parseFloat(data.getFirst("vram_usage")));
+//        trainLog.setNetworkBandwidth(Float.parseFloat(data.getFirst("network_bandwidth")));
 
-        Date now = new Date();
-        trainLog.setTimestamp(now);
-
-        int rows = trainLogMapper.insert(trainLog);
-        result.put("status", rows > 0 ? "success" : "failure");
+//        Date now = new Date();
+//        trainLog.setTimestamp(now);
+//
+//        int rows = trainLogMapper.insert(trainLog);
+//        result.put("status", rows > 0 ? "success" : "failure");
         return result;
     }
 

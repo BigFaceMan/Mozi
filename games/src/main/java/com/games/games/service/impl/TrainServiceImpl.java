@@ -2,10 +2,14 @@ package com.games.games.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.games.games.mapper.ExceptionLogMapper;
 import com.games.games.mapper.ModelMapper;
+import com.games.games.mapper.TrainLogMapper;
 import com.games.games.mapper.TrainMapper;
+import com.games.games.pojo.ExceptionLog;
 import com.games.games.pojo.Model;
 import com.games.games.pojo.Train;
+import com.games.games.pojo.TrainLog;
 import com.games.games.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,10 @@ public class TrainServiceImpl implements TrainService {
     private TrainMapper trainMapper;
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private TrainLogMapper trainLogMapper;
+    @Autowired
+    private ExceptionLogMapper exceptionLogMapper;
     private int runStatus = 1;
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
 
@@ -77,6 +85,7 @@ public class TrainServiceImpl implements TrainService {
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
         Integer uId = Integer.parseInt(data.getFirst("uId"));
+        String userName = data.getFirst("userName");
 
         QueryWrapper<Model> queryWrapper = new QueryWrapper<Model>();
         Model modelTrain = modelMapper.selectOne(queryWrapper.eq("name", model));
@@ -104,14 +113,51 @@ public class TrainServiceImpl implements TrainService {
             try {
                 String[] command = {
                     "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                    "conda activate ssp &&python " + trainFile.getPath() + " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                    "conda activate ssp &&python " + " -u " + trainFile.getPath() +  " --process_id " + processId + " --tensorboardpath " + tensorboardpath
                 };
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
-                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
+//                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
                 Process pythonProcess = processBuilder.start();
+
+                System.out.println("运行python程序 processId : " + processId);
+
+                new Thread(() -> {
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            System.out.println("Python 输出: " + line); // 仅用于调试
+//                            System.out.println("read test ");
+                            TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
+                            trainLogMapper.insert(trainLog);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+
+                new Thread(() -> {
+                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
+                        String line;
+                        while ((line = errorReader.readLine()) != null) {
+                            System.out.println("Python 错误: " + line); // 仅用于调试
+//                            System.out.println("插入数据库");
+                            try {
+                                // 插入数据库操作
+                                ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
+                                exceptionLogMapper.insert(exceptionLog);
+//                                System.out.println("插入数据库成功");
+                            } catch (Exception e) {
+                                System.err.println("插入数据库失败: " + e.getMessage());
+                                e.printStackTrace(); // 打印具体的异常
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+
                 try {
-                    System.out.println("运行python程序 processId : " + processId);
                     // 等待 Python 进程结束
                     int exitCode = pythonProcess.waitFor(); // 阻塞直到进程结束
                     // 进程结束后执行数据库操作
@@ -161,29 +207,6 @@ public class TrainServiceImpl implements TrainService {
         response.put("status", "success");
         response.put("processId", processId);
         response.put("trainningName", trainingName);
-//        try {
-//            // 生成唯一的进程ID
-//            String processId = UUID.randomUUID().toString();
-//
-//            // 构造Python脚本命令和参数
-//            String[] command = {
-//                    "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-//                    "conda activate ssp &&python D:\\research\\kaifa\\mozi\\games\\src\\main\\python\\train.py --process_id " + processId + " --tensorboardpath  D:\\Vscode\\games\\src\\main\\python\\logs"
-//            };
-//            ProcessBuilder processBuilder = new ProcessBuilder(command);
-//            processBuilder.redirectErrorStream(true); // 合并错误输出到标准输出
-//
-//            // 启动进程
-//            Process process = processBuilder.start();
-//            // 将进程存储到map中
-//            processMap.put(processId, process);
-//            response.put("status", "success");
-//            response.put("processId", processId);
-//        } catch (IOException e) {
-//            response.put("status", "error");
-//        } catch (Exception e) {
-//            throw new RuntimeException(e);
-//        }
         return response;
     }
 

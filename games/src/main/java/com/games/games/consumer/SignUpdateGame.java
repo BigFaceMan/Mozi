@@ -30,7 +30,7 @@ public class SignUpdateGame {
         this.restTemplate = restTemplate;
     }
 
-    @Scheduled(fixedRate = 60 * 60 * 1000) // 每60分钟执行一次
+    @Scheduled(fixedRate = 60 * 1000) // 每 1分钟执行一次
     public void sendResourceInfo() {
         ResourceInfo resourceInfo = getResourceInfo();
         System.out.println("DI serviceUrl : " + servicePlatformUrl);
