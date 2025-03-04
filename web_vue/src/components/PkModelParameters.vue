@@ -33,6 +33,17 @@
       </select>
     </div>
 
+    <div class="form-group mb-3">
+      <label for="model">选择计算节点:</label>
+      <select id="gamenode" class="form-select" @change="selectGameNode">
+        <option v-for="(gameNode, index) in gameNodes" :key="gameNode.ip + gameNode.port"
+         :value="gameNode.ip+':'+ gameNode.port">
+            <!-- {{ gameNode.ip }} - {{ gameNode.port }} -->
+          {{ '节点 ' + (index + 1) }}
+        </option>
+      </select>
+    </div>
+
     <!-- 提交按钮 -->
     <button @click="saveConfig" class="btn btn-primary me-2">保存配置</button>
     <button @click="startTraining" class="btn btn-primary">开始对战</button>
@@ -54,6 +65,7 @@ const store = useStore();
 const situations = ref([]);
 const trainings = ref([]);
 const showConfig = ref(false);
+const gameNodes = ref([]);
 
 // 从 Vuex 获取表单数据
 const form = reactive({ ...store.state.pk.form });
@@ -81,6 +93,27 @@ const fetchModels = () => {
       trainings.value = resp;
     }
   });
+
+  $.ajax({
+    url: "http://localhost:3000/games/get/all/",
+    type: "get",
+    headers: {
+      Authorization: "Bearer " + store.state.user.token,
+    },
+    success(resp) {
+      gameNodes.value = resp;
+      // console.log(resp)
+    }
+  });
+};
+
+const selectGameNode = (event) => {
+  const selectedValue = event.target.value; // 获取 "ip:port" 格式的字符串
+  const [ip, port] = selectedValue.split(':'); // 拆分出 ip 和 port
+  console.log('选择的 IP:', ip);
+  console.log('选择的 Port:', port);
+  form.ip = ip;
+  form.port = port;
 };
 
 // 保存配置
@@ -104,6 +137,8 @@ const startTraining = () => {
             inferName: form.trainingName,
             scene: form.scene,
             model: form.model,
+            ip: form.ip,
+            port: form.port
         },
         success(resp) {
             console.log(resp)

@@ -3,11 +3,8 @@ package com.games.games.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.games.games.mapper.*;
-import com.games.games.pojo.ExceptionLog;
-import com.games.games.pojo.Model;
-import com.games.games.pojo.Train;
-import com.games.games.pojo.TrainLog;
-import com.games.games.service.TrainService;
+import com.games.games.pojo.*;
+import com.games.games.service.InferServcie;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
@@ -21,21 +18,21 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
-public class TrainServiceImpl implements TrainService {
+public class InferServcieImpl implements InferServcie {
     // 用于存储子线程的映射
     private final ConcurrentHashMap<String, Thread> processMap = new ConcurrentHashMap<>();
     private final Lock lock = new ReentrantLock();
     @Autowired
-    private TrainMapper trainMapper;
-    @Autowired
     private ModelMapper modelMapper;
     @Autowired
-    private TrainLogMapper trainLogMapper;
+    private TrainMapper trainMapper;
     @Autowired
     private ExceptionLogMapper exceptionLogMapper;
-    private int runStatus = 1;
-    private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
-
+    @Autowired
+    private InferMapper inferMapper;
+    @Autowired
+    private InferLogMapper inferLogMapper;
+    private int runStatus = 0;
     private static String getPythonProcessId(String processId) throws IOException {
 //        System.out.println("processId " + processId);
         String pid = null;
@@ -62,37 +59,36 @@ public class TrainServiceImpl implements TrainService {
         return pid;
     }
     @Override
-    public Map<String, String> addTrain(MultiValueMap<String, String> data) {
-        String trainingName_pre = data.getFirst("trainingName");
+    public Map<String, String> addInfer(MultiValueMap<String, String> data) {
+        String inferNamePre = data.getFirst("inferName");
         long currentTimeMillis = System.currentTimeMillis(); // 获取当前的时间戳
         Date currentDate = new Date(currentTimeMillis); // 将时间戳转换为Date对象
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss"); // 定义日期格式
         String formattedDate = dateFormat.format(currentDate); // 格式化日期
-        String trainingName = trainingName_pre + "_" + formattedDate;
-        String model = data.getFirst("model");
-        String pytorchVersion = data.getFirst("pytorchVersion");
-        String modelParams = data.getFirst("modelParams");
+        String inferName = inferNamePre + "_" + formattedDate;
+        String trainName = data.getFirst("model");
         String scene = data.getFirst("scene");
-        File projectPath = new File(System.getProperty("user.dir"), "src/main/python");
-        File checkpointpathcls = new File(projectPath, "checkpoint/" + trainingName + "_" + scene + ".pth");
-        File tensorboardpathcls = new File(projectPath, "logs/" + trainingName + "_" + scene);
-        // 如果需要字符串形式的路径，可以调用 getPath()
-        String checkpointpath = checkpointpathcls.getPath();
-        String tensorboardpath = tensorboardpathcls.getPath();
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
         Integer uId = Integer.parseInt(data.getFirst("uId"));
         String userName = data.getFirst("userName");
+        File projectPath = new File(System.getProperty("user.dir"), "src/main/python");
+        File tensorboardpathcls = new File(projectPath, "logs/" + inferName + "_" + scene);
 
-        QueryWrapper<Model> queryWrapper = new QueryWrapper<Model>();
-        Model modelTrain = modelMapper.selectOne(queryWrapper.eq("name", model));
+        QueryWrapper<Train> queryWrapper = new QueryWrapper<Train>();
+        Train train = trainMapper.selectOne(queryWrapper.eq("trainingname", trainName));
+        String checkPointPath = train.getCheckpointpath();
+        String algName = train.getModel();
+        QueryWrapper<Model> queryModelWrapper = new QueryWrapper<Model>();
+        Model modelTrain = modelMapper.selectOne(queryModelWrapper.eq("name", algName));
         String processId = UUID.randomUUID().toString();
         String code = modelTrain.getCode();
         // 创建训练脚本保存路径
-        File trainFile = new File(projectPath, "train.py");
+        File inferFile = new File(projectPath, "infer.py");
 
         // 将代码写入 train.py 文件
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(trainFile))) {
+        File trainFile;
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(inferFile))) {
             writer.write(code);
         } catch (IOException e) {
             // 处理写入文件时的异常
@@ -101,32 +97,33 @@ public class TrainServiceImpl implements TrainService {
             return errorMap;
         }
 
-
         Map<String, String> result = new HashMap<>();
-        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, uId, 3, ip, port, processId, trainFile.getPath());
-        trainMapper.insert(train);
+        Infer infer = new Infer(null, inferName, scene, trainName, 1, tensorboardpathcls.getPath(), uId, ip, port, processId, inferFile.getPath(), checkPointPath);
+        inferMapper.insert(infer);
 
-        Thread trainingThread = new Thread(() -> {
+        Thread inferThread = new Thread(() -> {
             try {
                 String[] command = {
-                    "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                    "conda activate ssp &&python " + " -u " + trainFile.getPath() +  " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                        "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
+                        "conda activate ssp &&python " + " -u " + inferFile.getPath() +  " --process_id " + processId + " --tensorboardpath " + tensorboardpathcls.getPath() + " --checkpointpath " + checkPointPath
                 };
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
 //                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
                 Process pythonProcess = processBuilder.start();
 
-                System.out.println("运行python程序 processId : " + processId);
+                System.out.println("运行python infer程序 processId : " + processId);
 
                 new Thread(() -> {
                     try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
                         String line;
                         while ((line = reader.readLine()) != null) {
-                            System.out.println("Python 输出: " + line); // 仅用于调试
+                            System.out.println("Python Infer 输出: " + line); // 仅用于调试
 //                            System.out.println("read test ");
-                            TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
-                            trainLogMapper.insert(trainLog);
+//                            TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
+//                            trainLogMapper.insert(trainLog);
+                            InferLog inferLog = new InferLog(null, userName, inferName, line, new Date());
+                            inferLogMapper.insert(inferLog);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -143,7 +140,6 @@ public class TrainServiceImpl implements TrainService {
                                 // 插入数据库操作
                                 ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
                                 exceptionLogMapper.insert(exceptionLog);
-//                                System.out.println("插入数据库成功");
                             } catch (Exception e) {
                                 System.err.println("插入数据库失败: " + e.getMessage());
                                 e.printStackTrace(); // 打印具体的异常
@@ -161,9 +157,9 @@ public class TrainServiceImpl implements TrainService {
                     if (exitCode == 0) {
                         // 成功执行 Python 进程
                         System.out.println("Python 进程成功结束，开始执行数据库操作...");
-                        UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
-                        updateWrapper.eq("trainingname", trainingName).set("running", 0);
-                        boolean isUpdated = trainMapper.update(null, updateWrapper) > 0;
+                        UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
+                        updateWrapper.eq("infername", inferName).set("running", 0);
+                        boolean isUpdated = inferMapper.update(null, updateWrapper) > 0;
                         if (isUpdated) {
                             System.out.println("成功更新训练进程状态");
                         } else {
@@ -174,9 +170,9 @@ public class TrainServiceImpl implements TrainService {
                         System.out.println("Python 进程异常结束，退出代码: " + exitCode);
                         System.out.println("执行数据库操作");
 
-                        UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
-                        updateWrapper.eq("trainingname", trainingName).set("running", runStatus);
-                        boolean isUpdated = trainMapper.update(null, updateWrapper) > 0;
+                        UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
+                        updateWrapper.eq("infername", inferName).set("running", runStatus);
+                        boolean isUpdated = inferMapper.update(null, updateWrapper) > 0;
                         if (isUpdated) {
                             System.out.println("Exception : 成功更新训练进程状态");
                         } else {
@@ -196,26 +192,26 @@ public class TrainServiceImpl implements TrainService {
             }
         });
 
-        processMap.put(processId, trainingThread);
-        trainingThread.start();
+        processMap.put(processId, inferThread);
+        inferThread.start();
 
         Map<String, String> response = new HashMap<>();
 
         response.put("status", "success");
         response.put("processId", processId);
-        response.put("trainningName", trainingName);
+        response.put("inferName", inferName);
         return response;
     }
 
     @Override
-    public Map<String, String> killTrain(MultiValueMap<String, String> data) throws IOException {
+    public Map<String, String> killInfer(MultiValueMap<String, String> data) throws IOException {
         Map<String, String> response = new HashMap<>();
         String processId = data.getFirst("processId");
-        String trainingName = data.getFirst("trainingName");;
+        String inferName = data.getFirst("inferName");;
         if (processId == null || !processMap.containsKey(processId)) {
-            UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
-            updateWrapper.eq("trainingname", trainingName).set("running", 0);
-            boolean isUpdated = trainMapper.update(null, updateWrapper) > 0;
+            UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("infername", inferName).set("running", 0);
+            boolean isUpdated = inferMapper.update(null, updateWrapper) > 0;
             if (isUpdated) {
                 System.out.println("Exception : 成功更新训练进程状态");
             } else {
@@ -264,10 +260,10 @@ public class TrainServiceImpl implements TrainService {
     }
 
     @Override
-    public Map<String, String> stopTrain(MultiValueMap<String, String> data) throws IOException {
+    public Map<String, String> stopInfer(MultiValueMap<String, String> data) throws IOException {
         Map<String, String> response = new HashMap<>();
         String processId = data.getFirst("processId");
-        String trainingName = data.getFirst("trainingName");;
+        String inferName = data.getFirst("inferName");;
         if (processId == null || !processMap.containsKey(processId)) {
             response.put("status", "error");
             response.put("message", "Invalid processId");
@@ -310,64 +306,81 @@ public class TrainServiceImpl implements TrainService {
     }
 
     @Override
-    public Map<String, String> continueTrain(MultiValueMap<String, String> data) throws IOException {
+    public Map<String, String> continueInfer(MultiValueMap<String, String> data) throws IOException {
         Map<String, String> response = new HashMap<>();
         String processId = data.getFirst("processId");
-        String trainingName = data.getFirst("trainingName");
-        String tensorboardpath = data.getFirst("tensorboardpath");
-        Train train = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", trainingName));
-        String trainPyPath = train.getTrainpypath();
-//        long currentTimeMillis = System.currentTimeMillis(); // 获取当前的时间戳
-//        Date currentDate = new Date(currentTimeMillis); // 将时间戳转换为Date对象
-//        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss"); // 定义日期格式
-//        String formattedDate = dateFormat.format(currentDate); // 格式化日期
-//        String model = data.getFirst("model");
-//        String pytorchVersion = data.getFirst("pytorchVersion");
-//        String modelParams = data.getFirst("modelParams");
-//        String scene = data.getFirst("scene");
-//        File projectPath = new File(System.getProperty("user.dir"), "src/main/python");
-//        File checkpointpathcls = new File(projectPath, "checkpoint/" + trainingName + "_" + scene + ".pth");
-//        File tensorboardpathcls = new File(projectPath, "logs/" + trainingName + "_" + scene);
-//        // 如果需要字符串形式的路径，可以调用 getPath()
-//        String checkpointpath = checkpointpathcls.getPath();
-//        String tensorboardpath = tensorboardpathcls.getPath();
-//        String ip = data.getFirst("ip");
-//        String port = data.getFirst("port");
-//        Integer uId = Integer.parseInt(data.getFirst("uId"));
+        String inferName = data.getFirst("inferName");;
+        String tensorBoardPath = data.getFirst("tensorboardpath");
+        String checkPointPath = data.getFirst("checkpointpath");
+        String userName = data.getFirst("userName");
+        Infer infer = inferMapper.selectOne(new QueryWrapper<Infer>().eq("infername", inferName));
+        String inferPyPath = infer.getInferpypath();
 
-
-        UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("trainingname", trainingName).set("running", 1);
-        AtomicBoolean isUpdated = new AtomicBoolean(trainMapper.update(null, updateWrapper) > 0);
+        UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("infername", inferName).set("running", 1);
+        AtomicBoolean isUpdated = new AtomicBoolean(inferMapper.update(null, updateWrapper) > 0);
         if (isUpdated.get()) {
             System.out.println("Exception : 成功更新训练进程状态");
         } else {
             System.out.println("Exception : 未成功更新训练进程状态");
         }
-//        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, uId, 3, ip, port, processId);
-//        trainMapper.insert(train);
 
-        Thread trainingThread = new Thread(() -> {
+        Thread inferThread = new Thread(() -> {
             try {
                 String[] command = {
                         "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                        "conda activate ssp &&python " + trainPyPath + " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                        "conda activate ssp &&python " + inferPyPath + " --process_id " + processId + " --tensorboardpath " + tensorBoardPath + " --checkpointpath" + checkPointPath
                 };
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
-                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
                 Process pythonProcess = processBuilder.start();
+                new Thread(() -> {
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            System.out.println("Python Infer 输出: " + line); // 仅用于调试
+//                            System.out.println("read test ");
+//                            TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
+//                            trainLogMapper.insert(trainLog);
+                            InferLog inferLog = new InferLog(null, userName, inferName, line, new Date());
+                            inferLogMapper.insert(inferLog);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+
+                new Thread(() -> {
+                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
+                        String line;
+                        while ((line = errorReader.readLine()) != null) {
+                            System.out.println("Python 错误: " + line); // 仅用于调试
+//                            System.out.println("插入数据库");
+                            try {
+                                // 插入数据库操作
+                                ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
+                                exceptionLogMapper.insert(exceptionLog);
+                            } catch (Exception e) {
+                                System.err.println("插入数据库失败: " + e.getMessage());
+                                e.printStackTrace(); // 打印具体的异常
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
+
                 try {
-                    System.out.println("运行python程序 processId : " + processId);
                     // 等待 Python 进程结束
                     int exitCode = pythonProcess.waitFor(); // 阻塞直到进程结束
                     // 进程结束后执行数据库操作
                     if (exitCode == 0) {
                         // 成功执行 Python 进程
                         System.out.println("Python 进程成功结束，开始执行数据库操作...");
-                        updateWrapper.eq("trainingname", trainingName).set("running", 0);
-                        isUpdated.set(trainMapper.update(null, updateWrapper) > 0);
-                        if (isUpdated.get()) {
+//                        UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
+                        updateWrapper.eq("infername", inferName).set("running", 0);
+                        boolean isUpdatedThread = inferMapper.update(null, updateWrapper) > 0;
+                        if (isUpdatedThread) {
                             System.out.println("成功更新训练进程状态");
                         } else {
                             System.out.println("未成功更新训练进程状态");
@@ -377,9 +390,10 @@ public class TrainServiceImpl implements TrainService {
                         System.out.println("Python 进程异常结束，退出代码: " + exitCode);
                         System.out.println("执行数据库操作");
 
-                        updateWrapper.eq("trainingname", trainingName).set("running", runStatus);
-                        isUpdated.set(trainMapper.update(null, updateWrapper) > 0);
-                        if (isUpdated.get()) {
+//                        UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
+                        updateWrapper.eq("infername", inferName).set("running", runStatus);
+                        boolean isUpdatedThread = inferMapper.update(null, updateWrapper) > 0;
+                        if (isUpdatedThread) {
                             System.out.println("Exception : 成功更新训练进程状态");
                         } else {
                             System.out.println("Exception : 未成功更新训练进程状态");
@@ -398,138 +412,13 @@ public class TrainServiceImpl implements TrainService {
             }
         });
 
-        processMap.put(processId, trainingThread);
-        trainingThread.start();
+        processMap.put(processId, inferThread);
+        inferThread.start();
 
 
         response.put("status", "success");
         response.put("processId", processId);
-        response.put("trainningName", trainingName);
+        response.put("inferName", inferName);
         return response;
     }
-
-    @Override
-    public Map<String, String> addTensorboard(MultiValueMap<String, String> data) {
-        Map<String, String> result = new HashMap<>();
-        String tensorboardpath = data.getFirst("tensorboardpath");
-        System.out.println("tensorboardpath : " + tensorboardpath);
-        int port = 6001;
-        synchronized (this) {
-            for (int i = 0; i < 10; i ++) {
-                if (allowPorts.get(i) == 0) {
-                    port = 6001 + i;
-                    allowPorts.set(i, 1);
-                    break;
-                }
-            }
-        }
-
-        // 启动一个线程来执行 TensorBoard 命令
-
-        int finalPort = port;
-        System.out.println("tensorboard port : " + finalPort);
-        new Thread(() -> {
-            try {
-                // 构建 TensorBoard 命令
-                String[] command = {
-                        "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                        "conda activate ssp && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
-                };
-
-                // 使用 ProcessBuilder 启动 TensorBoard
-                ProcessBuilder processBuilder = new ProcessBuilder(command);
-                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
-
-                Process tensorBoardProcess = processBuilder.start(); // 启动进程
-                int exitCode = tensorBoardProcess.waitFor(); // 等待进程结束并获取退出码
-
-                if (exitCode != 0) {
-                    // 如果退出码不为 0，表示启动失败
-                    result.put("error_message", "failed");
-                } else {
-                    // 正常启动
-                    result.put("error_message", "success");
-                }
-
-            } catch (IOException e) {
-                // 捕获启动时的异常
-                e.printStackTrace();
-                result.put("error_message", "failed: IOException occurred");
-            } catch (InterruptedException e) {
-                // 捕获线程中断异常
-                e.printStackTrace();
-                result.put("error_message", "failed: Process was interrupted");
-            } finally {
-                // 释放端口
-                synchronized (this) {
-                    int index = finalPort - 6001;
-                    allowPorts.set(index, 0);
-                }
-            }
-        }).start();
-        // 让当前线程休眠 0.5 秒
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // 恢复中断状态
-            e.printStackTrace();
-        }
-        // 默认返回 "success"（但启动结果可能需要异步检查）
-        result.put("error_message", "success");
-        result.put("tPort", String.valueOf(port));
-        return result;
-    }
-
-    @Override
-    public Map<String, String> deleteTensorboard(MultiValueMap<String, String> data) {
-        int port = Integer.parseInt(data.getFirst("tPort"));
-        killProcessByPort(port);
-        HashMap<String, String> result = new HashMap<>();
-        result.put("status", "success");
-        return result;
-    }
-
-    public void killProcessByPort(int port) {
-        try {
-            // 查找占用该端口的进程 PID
-            String[] netstatCommand = {
-                    "cmd.exe", "/c", "netstat -ano | findstr :" + port
-            };
-            ProcessBuilder netstatProcessBuilder = new ProcessBuilder(netstatCommand);
-            Process netstatProcess = netstatProcessBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(netstatProcess.getInputStream()));
-
-            String line;
-            String pid = null;
-            while ((line = reader.readLine()) != null) {
-                if (!line.contains("LISTENING")) {
-                    continue;
-                }
-                // netstat 输出格式: TCP    0.0.0.0:6001             0.0.0.0:0              LISTENING       12345
-                // 这里提取 PID
-                System.out.println("line is : " + line);
-                String[] parts = line.trim().split("\\s+");
-                pid = parts[parts.length - 1];
-            }
-            System.out.println("pid is : " + pid);
-
-            if (pid != null) {
-                // 通过 PID 结束进程
-                String[] killCommand = {"cmd.exe", "/c", "taskkill /PID " + pid + " /F"};
-                ProcessBuilder killProcessBuilder = new ProcessBuilder(killCommand);
-                Process killProcess = killProcessBuilder.start();
-                int exitCode = killProcess.waitFor();
-                if (exitCode == 0) {
-                    System.out.println("Successfully killed process with PID " + pid);
-                } else {
-                    System.out.println("Failed to kill process with PID " + pid);
-                }
-            } else {
-                System.out.println("No process found on port " + port);
-            }
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
 }

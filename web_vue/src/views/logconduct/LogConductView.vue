@@ -113,7 +113,7 @@ const fetchLogs = () => {
   });
 
   $.ajax({
-    url: "http://127.0.0.1:3000/logs/battle/",
+    url: "http://127.0.0.1:3000/logs/infer/",
     type: "post",
     headers: {
       Authorization: "Bearer " + store.state.user.token,

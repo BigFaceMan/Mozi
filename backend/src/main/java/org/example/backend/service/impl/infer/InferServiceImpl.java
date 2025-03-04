@@ -45,8 +45,8 @@ public class InferServiceImpl implements InferService {
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
         User user = loginUser.getUser();
 
-        Infer infer = new Infer(null, inferName, scene, model, 1, tensorboardpath, user.getId());
-        inferMapper.insert(infer);
+//        Infer infer = new Infer(null, inferName, scene, model, 1, tensorboardpath, user.getId());
+//        inferMapper.insert(infer);
         putInfer(data);
         result.put( "error_message", "success");
         return result;

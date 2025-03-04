@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 parser = argparse.ArgumentParser(description="Record iterations using TensorBoard.")
 parser.add_argument('--process_id', type=str, required=True, help="Path to save TensorBoard logs.")
 parser.add_argument('--tensorboardpath', type=str, required=True, help="Path to save TensorBoard logs.")
+parser.add_argument('--checkpointpath', type=str, help="Path to save TensorBoard logs.")
 args = parser.parse_args()
 print(f"Running process with ID: {args.process_id}")
 

@@ -140,6 +140,111 @@ public class GamesServiceImpl implements GamesService {
     }
 
     @Override
+    public Map<String, String> addInfer(MultiValueMap<String, String> data) {
+        String ip = data.getFirst("ip");
+        String port = data.getFirst("port");
+        HashMap<String, String> map = new HashMap<>();
+        if (ip == null || port == null) {
+            map.put("status", "error");
+            map.put("msg", "ip or port is null");
+            return map;
+        }
+
+        String url = "http://" + ip + ":" + port + "/infer/add/";
+//        if (gameNodes.containsKey(gameKey)) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 将 data 封装到 HttpEntity 中
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);
+
+        // 发送 POST 请求，获取响应
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+        // 返回响应结果
+        return response.getBody();
+    }
+
+    @Override
+    public Map<String, String> killInfer(MultiValueMap<String, String> data) {
+//        System.out.println("data is : \n" + data);
+        String ip = data.getFirst("ip");
+        String port = data.getFirst("port");
+        HashMap<String, String> map = new HashMap<>();
+        if (ip == null || port == null) {
+            map.put("status", "error");
+            map.put("msg", "ip or port is null");
+            return map;
+        }
+
+        String url = "http://" + ip + ":" + port + "/infer/kill/";
+//        if (gameNodes.containsKey(gameKey)) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 将 data 封装到 HttpEntity 中
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);
+
+        // 发送 POST 请求，获取响应
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+        // 返回响应结果
+        return response.getBody();
+    }
+
+    @Override
+    public Map<String, String> stopInfer(MultiValueMap<String, String> data) {
+        String ip = data.getFirst("ip");
+        String port = data.getFirst("port");
+        HashMap<String, String> map = new HashMap<>();
+        if (ip == null || port == null) {
+            map.put("status", "error");
+            map.put("msg", "ip or port is null");
+            return map;
+        }
+
+        String url = "http://" + ip + ":" + port + "/infer/stop/";
+//        if (gameNodes.containsKey(gameKey)) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 将 data 封装到 HttpEntity 中
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);
+
+        // 发送 POST 请求，获取响应
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+        // 返回响应结果
+        return response.getBody();
+    }
+
+    @Override
+    public Map<String, String> continueInfer(MultiValueMap<String, String> data) {
+        String ip = data.getFirst("ip");
+        String port = data.getFirst("port");
+        HashMap<String, String> map = new HashMap<>();
+        if (ip == null || port == null) {
+            map.put("status", "error");
+            map.put("msg", "ip or port is null");
+            return map;
+        }
+
+        String url = "http://" + ip + ":" + port + "/infer/continue/";
+//        if (gameNodes.containsKey(gameKey)) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 将 data 封装到 HttpEntity 中
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);
+
+        // 发送 POST 请求，获取响应
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+        // 返回响应结果
+        return response.getBody();
+    }
+
+    @Override
     public Map<String, String> addTensorboard(MultiValueMap<String, String> data) {
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");

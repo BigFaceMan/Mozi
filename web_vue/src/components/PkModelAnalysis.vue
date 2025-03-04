@@ -453,6 +453,9 @@ const stopTraining = (training) => {
         },
         data: {
             inferName: training.infername,
+            ip: training.ip, 
+            port: training.port,
+            processId: training.processid
         },
         success(resp) {
             // Process the raw training log data for replay visualization
@@ -489,6 +492,7 @@ const viewTrainingReplay = (training) => {
 
 
 const killTraining = (training) => {
+    console.log(training)
     $.ajax({
         url: "http://localhost:3000/infer/kill/",  // Use the appropriate endpoint for replay data
         type: "post",
@@ -497,6 +501,9 @@ const killTraining = (training) => {
         },
         data: {
             inferName: training.infername,
+            ip: training.ip, 
+            port: training.port,
+            processId: training.processid
         },
         success(resp) {
             // Process the raw training log data for replay visualization
@@ -518,6 +525,9 @@ const continueTraining = (training) => {
         },
         data: {
             inferName: training.infername,
+            ip: training.ip, 
+            port: training.port,
+            processId: training.processid
         },
         success(resp) {
             // Process the raw training log data for replay visualization
