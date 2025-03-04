@@ -402,13 +402,14 @@ public class ModelTrainingServiceImpl implements ModelTrainingService {
 
     @Override
     public List<TrainLog> getLogList(Map<String, String> data) {
-        String trainingname = data.get("trainingname");
-
-        QueryWrapper<TrainLog> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("trainingname", trainingname)  // 根据 trainingname 筛选
-                .orderByAsc("timestamp");         // 按 timestamp 从小到大排序
-
-        return trainLogMapper.selectList(queryWrapper);
+//        String trainingname = data.get("trainingname");
+//
+//        QueryWrapper<TrainLog> queryWrapper = new QueryWrapper<>();
+//        queryWrapper.eq("trainingname", trainingname)  // 根据 trainingname 筛选
+//                .orderByAsc("timestamp");         // 按 timestamp 从小到大排序
+        List<TrainLog> list = new ArrayList<>();
+//        return trainLogMapper.selectList(queryWrapper);
+        return list;
     }
 
     @Override

@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2024-11-13 15:06:09
- * @LastEditTime: 2025-02-25 12:18:25
+ * @LastEditTime: 2025-03-04 17:26:49
 -->
 <template>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -20,6 +20,9 @@
         </li>
         <li class="nav-item">
           <router-link :class="route_name == 'pk_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'pk_index'}">对战调度</router-link>
+        </li>
+        <li class="nav-item">
+          <router-link :class="route_name == 'dataAnalysis_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'dataAnalysis_index'}">数据分析</router-link>
         </li>
         <li class="nav-item">
           <router-link :class="route_name == 'logConduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'logConduct_index'}">日志管理</router-link>

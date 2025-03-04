@@ -58,7 +58,7 @@
                                 :disabled="selectedModels.length >= 2 && !selectedModels.includes(training)"
                                 />
                             </td>
-                            <td>{{ training.trainingname }}</td>
+                            <td>{{ training.trainingname.split("_")[0] }}</td>
                             <td>
                                 {{ training.scene }}
                             </td>
@@ -280,8 +280,8 @@
                             <div class="spinner"></div>
                             <p class="loading-text">正在加载，请稍后...</p>
                         </div>
-                        <!-- <iframe v-else :src="tensorboardUrl" style="width: 100%; height: 100%;" frameborder="0"></iframe> -->
-                        <iframe v-else src="http://127.0.0.1:6001" style="width: 100%; height: 100%;" frameborder="0"></iframe>
+                        <iframe v-else :src="tensorboardUrl" style="width: 100%; height: 100%;" frameborder="0"></iframe>
+                        <!-- <iframe v-else src="http://127.0.0.1:6001" style="width: 100%; height: 100%;" frameborder="0"></iframe> -->
                     </div>
                 </div>
             </div>
@@ -309,7 +309,7 @@ const tensorboardTraining = ref(null);
 const tensorboardPort = ref(6001);
 
 const totalPages = computed(() => Math.ceil(trainings.value.length / itemsPerPage));
-// const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
+const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
 
 
 const isComparing = ref(false);
@@ -636,7 +636,6 @@ const viewResourceUsage = (training) => {
         },
         success(resp) {
             console.log(resp)
-            // 随机生成数据
             const avgCPU = (Math.random() * 100).toFixed(2);  // 随机生成 0-100 之间的数
             const avgGPU = (Math.random() * 100).toFixed(2);
             const avgMemory = (Math.random() * 100).toFixed(2);
@@ -712,7 +711,7 @@ const viewTrainingReplay = (training) => {
                 console.log("success")
                 // console.log(tensorboardTraining.value)
                 console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
-                isLoading.value = false;
+                console.log(tensorboardUrl.value)
             } else {
                 isLoading.value = true;
             }

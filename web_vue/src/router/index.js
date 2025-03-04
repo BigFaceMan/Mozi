@@ -11,6 +11,7 @@ import UserAccountLoginView from '../views/user/account/UserAccountLoginView'
 import UserAccountRegisterView from '../views/user/account/UserAccountRegisterView'
 import LogConductView from "../views/logconduct/LogConductView"
 import GameNodesView from "../views/gameNodesConduct/GameNodesView"
+import DataAnalysisView from "../views/dataAnalysis/DataAnalysisView"
 import store from '../store/index'
 
 const routes = [
@@ -26,6 +27,14 @@ const routes = [
     path: "/pk/",
     name: "pk_index",
     component: PkIndexView,
+    meta: {
+      requestAuth: true,
+    }
+  },
+  {
+    path: "/dataAnalysis/",
+    name: "dataAnalysis_index",
+    component: DataAnalysisView,
     meta: {
       requestAuth: true,
     }

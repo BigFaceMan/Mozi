@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2024-11-12 11:01:55
- * @LastEditTime: 2024-12-08 16:42:59
+ * @LastEditTime: 2025-03-04 17:49:41
 -->
 <template>
         <div class="d-flex">
@@ -9,7 +9,7 @@
             <div class="sidebar p-3">
                 <div class="menu-background">
                     <button @click="right_states = 'parameters'" class="btn btn-primary custom-btn">参数配置</button>
-                    <button @click="right_states = 'training'" class="btn btn-primary custom-btn">推理结果</button>
+                    <button @click="right_states = 'training'" class="btn btn-primary custom-btn">对战列表</button>
                 </div>
             </div>
 

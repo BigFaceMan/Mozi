@@ -18,35 +18,35 @@
                             <th scope="col">对战名</th>
                             <th scope="col">想定</th>
                             <th scope="col">模型</th>
-                            <th scope="col">推理状态</th>
+                            <th scope="col">对战状态</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-for="training in paginatedTrainings" :key="training.id">
-                            <td>{{ training.infername }}</td>
+                            <td>{{ training.infername.split("_")[0] }}</td>
                             <td>
                                 {{ training.scene }}
                             </td>
-                            <td>{{ training.model }}</td>
+                            <td>{{ training.model.split("_")[0] }}</td>
                             <td>
                                 <span v-if="training.running == '0'">已完成</span>
-                                <span v-else-if="training.running == '1'">正在推理</span>
+                                <span v-else-if="training.running == '1'">正在对战</span>
                                 <span v-else-if="training.running == '2'">已暂停</span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-info" v-if="training.running == '0'" @click="visualizeReport(training)">推理日志</button>
+                                <button class="btn btn-sm btn-info" v-if="training.running == '0'" @click="visualizeReport(training)">对战日志</button>
                                 <button class="btn btn-sm btn-secondary ms-2" v-if="training.running == '0'" @click="viewResourceUsage(training)">资源使用报告</button>
                                 <button class="btn btn-sm btn-success ms-2" v-if="training.running == '0'" @click="viewSuggestions(training)">智能建议</button>
-                                <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '0'" @click="viewTrainingReplay(training)">训练回放</button>
+                                <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '0'" @click="viewTrainingReplay(training)">对战回放</button>
                                 <button class="btn btn-sm btn-success ms-2" v-if="training.running == '1'" @click="viewTrainingReplay(training)">实时监控</button>
-                                <button class="btn btn-sm btn-info ms-2" v-if="training.running == '1'" @click="visualizeReport(training)">推理日志</button>
+                                <button class="btn btn-sm btn-info ms-2" v-if="training.running == '1'" @click="visualizeReport(training)">对战日志</button>
                                 <button class="btn btn-sm ms-2" style="background-color: darkgray;" @click="visualizaSituationInstrc(training)">态势日志</button>
                                 <button class="btn btn-sm ms-2" style="background-color:coral;" @click="visualizaInstrc(training)">指令日志</button>
                                 <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '0'" @click="deleteTraining(training)">删除记录</button>
-                                <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '1'" @click="stopTraining(training)">暂停推理</button>
-                                <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '1'" @click="killTraining(training)">终止推理</button>
-                                <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续推理</button>
-                                <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '2'" @click="killTraining(training)">终止推理</button>
+                                <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '1'" @click="stopTraining(training)">暂停对战</button>
+                                <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '1'" @click="killTraining(training)">终止对战</button>
+                                <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续对战</button>
+                                <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '2'" @click="killTraining(training)">终止对战</button>
                             </td>
                         </tr>
                     </tbody>
@@ -219,22 +219,26 @@
 
         <!-- Training Replay Modal -->
         <div v-if="isTrainingReplayVisible" class="modal fade show" tabindex="-1" aria-labelledby="trainingReplayModalLabel" aria-hidden="true" style="display: block;">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
+            <div class="modal-dialog modal-lg" style="max-width: 90%; height: 80vh; margin: auto; margin-top: 5%;">
+                <div class="modal-content" style="height: 100%; border: none;">
                     <div class="modal-header">
                         <h5 class="modal-title">训练回放</h5>
                         <button type="button" class="btn-close" @click="closeTrainingReplay" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <div class="card-body">
-                            <!-- 使标题居中并美化 -->
-                            <h5 class="title">训练可视化</h5>
-                            <iframe src="http://localhost:6006" width="100%" height="800px" frameborder="0"></iframe>
+                    <div class="modal-body" style="padding: 0;">
+                        <!-- 显示加载中或者iframe -->
+                        <div v-if="isLoading" class="loading-container">
+                            <div class="spinner"></div>
+                            <p class="loading-text">正在加载，请稍后...</p>
                         </div>
+                        <iframe v-else :src="tensorboardUrl" style="width: 100%; height: 100%;" frameborder="0"></iframe>
+                        <!-- <iframe v-else src="http://127.0.0.1:6001" style="width: 100%; height: 100%;" frameborder="0"></iframe> -->
                     </div>
                 </div>
             </div>
         </div>
+
+
 
     </div>
 </template>
@@ -251,8 +255,11 @@ const paginatedTrainings = ref([]);
 const searchQuery = ref('');
 const currentPage = ref(1);
 const itemsPerPage = 10;
-
+const tensorboardTraining = ref(null);
+const tensorboardPort = ref(6001);
+const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
 const totalPages = computed(() => Math.ceil(trainings.value.length / itemsPerPage));
+const isLoading = ref(false);
 
 const fetchTrainings = () => {
     $.ajax({
@@ -412,7 +419,7 @@ const viewResourceUsage = (training) => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
-            trainingname: training.trainingname,
+            trainingname: training.infername,
         },
         success(resp) {
             console.log(resp)
@@ -470,6 +477,8 @@ const stopTraining = (training) => {
 
 const viewTrainingReplay = (training) => {
     isTrainingReplayVisible.value = true;
+    tensorboardTraining.value = training;
+    isLoading.value = true;
 
     $.ajax({
         url: "http://localhost:3000/infer/addTensorboard/",  // Use the appropriate endpoint for replay data
@@ -479,10 +488,21 @@ const viewTrainingReplay = (training) => {
         },
         data: {
             tensorboardpath: training.tensorboardpath,
+            ip: tensorboardTraining.value.ip,
+            port: tensorboardTraining.value.port,
         },
         success(resp) {
-            // Process the raw training log data for replay visualization
             console.log(resp)
+            tensorboardPort.value = resp.tPort;
+            if (resp.error_message === 'success') {
+                isLoading.value = false;
+                console.log("success")
+                // console.log(tensorboardTraining.value)
+                console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
+                console.log(tensorboardUrl.value)
+            } else {
+                isLoading.value = true;
+            }
         },
         error(err) {
             console.error("Error fetching replay data:", err);
@@ -565,11 +585,18 @@ const deleteTraining = (training) => {
 
 const closeTrainingReplay = () => {
     isTrainingReplayVisible.value = false;
+    isLoading.value = false;
     $.ajax({
         url: "http://localhost:3000/train/deleteTensorboard/",  // Use the appropriate endpoint for replay data
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            tensorboardpath: tensorboardTraining.value.tensorboardpath,
+            ip: tensorboardTraining.value.ip,
+            port: tensorboardTraining.value.port,
+            tPort: tensorboardPort.value,
         },
         success(resp) {
             // Process the raw training log data for replay visualization
