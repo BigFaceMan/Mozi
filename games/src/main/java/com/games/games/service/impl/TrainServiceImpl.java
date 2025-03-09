@@ -37,30 +37,48 @@ public class TrainServiceImpl implements TrainService {
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
 
     private static String getPythonProcessId(String processId) throws IOException {
-//        System.out.println("processId " + processId);
+        String os = System.getProperty("os.name").toLowerCase();
         String pid = null;
         String line;
-        // 使用 wmic 获取进程命令行信息
-        ProcessBuilder builder = new ProcessBuilder("wmic", "process", "where", "\"commandline like 'python%'\"", "get", "ProcessId,CommandLine");
-        Process wmicProcess = builder.start();
+        ProcessBuilder processBuilder;
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(wmicProcess.getInputStream()))) {
+        if (os.contains("win")) {
+            // Windows: 使用 WMIC 查询 Python 进程
+            processBuilder = new ProcessBuilder("wmic", "process", "where", "\"commandline like 'python%'\"", "get", "ProcessId,CommandLine");
+        } else {
+            // Linux: 使用 ps aux 查询 Python 进程
+            processBuilder = new ProcessBuilder("/bin/bash", "-c", "ps aux | grep '[p]ython'");
+        }
+
+        Process process = processBuilder.start();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             while ((line = reader.readLine()) != null) {
                 System.out.println(line);
-                // 检查是否包含传递的 processId
+                // 检查是否包含 processId
                 if (line.contains(processId)) {
                     System.out.println(line);
-                    // 处理 wmic 输出，获取 PID
-                    String[] columns = line.split("\\s+");
-                    if (columns.length > 1) {
-                        pid = columns[columns.length-1]; // 获取 ProcessId
-                        break;
+                    // Windows: WMIC 输出格式 -> 获取最后一列的 PID
+                    if (os.contains("win")) {
+                        String[] columns = line.trim().split("\\s+");
+                        if (columns.length > 1) {
+                            pid = columns[columns.length - 1]; // 获取 ProcessId
+                            break;
+                        }
+                    } else {
+                        // Linux: `ps aux` 输出格式 -> 第二列是 PID
+                        String[] columns = line.trim().split("\\s+");
+                        if (columns.length > 2) {
+                            pid = columns[1]; // 进程 ID 在 `ps aux` 的第二列
+                            break;
+                        }
                     }
                 }
             }
         }
         return pid;
     }
+
     @Override
     public Map<String, String> addTrain(MultiValueMap<String, String> data) {
         String trainingName_pre = data.getFirst("trainingName");
@@ -108,10 +126,22 @@ public class TrainServiceImpl implements TrainService {
 
         Thread trainingThread = new Thread(() -> {
             try {
-                String[] command = {
-                    "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                    "conda activate ssp &&python " + " -u " + trainFile.getPath() +  " --process_id " + processId + " --tensorboardpath " + tensorboardpath
-                };
+                String[] command;
+                if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    // Windows 平台
+                    command = new String[]{
+                            "cmd.exe", "/c",
+                            "conda activate ssp && python -u " + trainFile.getPath() +
+                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                    };
+                } else {
+                    // Linux 平台
+                    command = new String[]{
+                            "/bin/bash", "-c",
+                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate ssp && python -u " + trainFile.getPath() +
+                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                    };
+                }
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
 //                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
@@ -349,10 +379,22 @@ public class TrainServiceImpl implements TrainService {
 
         Thread trainingThread = new Thread(() -> {
             try {
-                String[] command = {
-                        "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                        "conda activate ssp &&python " + trainPyPath + " --process_id " + processId + " --tensorboardpath " + tensorboardpath
-                };
+                String[] command;
+                if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    // Windows 平台
+                    command = new String[]{
+                            "cmd.exe", "/c",
+                            "conda activate ssp && python -u " + trainPyPath +
+                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                    };
+                } else {
+                    // Linux 平台
+                    command = new String[]{
+                            "/bin/bash", "-c",
+                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate ssp && python -u " + trainPyPath +
+                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                    };
+                }
 
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
                 processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
@@ -431,11 +473,20 @@ public class TrainServiceImpl implements TrainService {
         new Thread(() -> {
             try {
                 // 构建 TensorBoard 命令
-                String[] command = {
-                        "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                        "conda activate ssp && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
-                };
-
+                String[] command;
+                if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                    // Windows 下使用 cmd.exe
+                    command = new String[]{
+                            "cmd.exe", "/c",
+                            "conda activate ssp && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
+                    };
+                } else {
+                    // Linux 下使用 /bin/bash
+                    command = new String[]{
+                            "/bin/bash", "-c",
+                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate ssp && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
+                    };
+                }
                 // 使用 ProcessBuilder 启动 TensorBoard
                 ProcessBuilder processBuilder = new ProcessBuilder(command);
                 processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
@@ -491,32 +542,38 @@ public class TrainServiceImpl implements TrainService {
 
     public void killProcessByPort(int port) {
         try {
-            // 查找占用该端口的进程 PID
-            String[] netstatCommand = {
-                    "cmd.exe", "/c", "netstat -ano | findstr :" + port
-            };
-            ProcessBuilder netstatProcessBuilder = new ProcessBuilder(netstatCommand);
+            String os = System.getProperty("os.name").toLowerCase();
+            String pid = null;
+            ProcessBuilder netstatProcessBuilder;
+
+            if (os.contains("win")) {
+                // Windows 使用 netstat 获取 PID
+                netstatProcessBuilder = new ProcessBuilder("cmd.exe", "/c", "netstat -ano | findstr :" + port);
+            } else {
+                // Linux 使用 lsof 获取 PID
+                netstatProcessBuilder = new ProcessBuilder("/bin/bash", "-c", "lsof -i :" + port + " -t");
+            }
+
             Process netstatProcess = netstatProcessBuilder.start();
             BufferedReader reader = new BufferedReader(new InputStreamReader(netstatProcess.getInputStream()));
 
             String line;
-            String pid = null;
             while ((line = reader.readLine()) != null) {
-                if (!line.contains("LISTENING")) {
-                    continue;
-                }
-                // netstat 输出格式: TCP    0.0.0.0:6001             0.0.0.0:0              LISTENING       12345
-                // 这里提取 PID
-                System.out.println("line is : " + line);
-                String[] parts = line.trim().split("\\s+");
-                pid = parts[parts.length - 1];
+                System.out.println("line is: " + line);
+                pid = line.trim().split("\\s+")[0]; // 提取 PID
             }
-            System.out.println("pid is : " + pid);
+            System.out.println("pid is: " + pid);
 
-            if (pid != null) {
-                // 通过 PID 结束进程
-                String[] killCommand = {"cmd.exe", "/c", "taskkill /PID " + pid + " /F"};
-                ProcessBuilder killProcessBuilder = new ProcessBuilder(killCommand);
+            if (pid != null && !pid.isEmpty()) {
+                ProcessBuilder killProcessBuilder;
+                if (os.contains("win")) {
+                    // Windows 使用 taskkill 杀死进程
+                    killProcessBuilder = new ProcessBuilder("cmd.exe", "/c", "taskkill /PID " + pid + " /F");
+                } else {
+                    // Linux 使用 kill 命令
+                    killProcessBuilder = new ProcessBuilder("/bin/bash", "-c", "kill -9 " + pid);
+                }
+
                 Process killProcess = killProcessBuilder.start();
                 int exitCode = killProcess.waitFor();
                 if (exitCode == 0) {
