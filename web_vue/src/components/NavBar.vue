@@ -1,12 +1,12 @@
 <!--
  * @Author: ssp
  * @Date: 2024-11-13 15:06:09
- * @LastEditTime: 2025-03-04 17:26:49
+ * @LastEditTime: 2025-03-08 00:25:02
 -->
 <template>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
-    <router-link class="navbar-brand" :to="{name: 'home'}">墨子智能体训练与仿真平台</router-link>
+    <router-link class="navbar-brand" :to="{name: 'home'}">智能体训练与仿真平台</router-link>
     <div class="collapse navbar-collapse" id="navbarText">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">

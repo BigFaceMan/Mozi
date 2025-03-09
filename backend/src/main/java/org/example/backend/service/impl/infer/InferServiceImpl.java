@@ -3,9 +3,7 @@ package org.example.backend.service.impl.infer;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import org.example.backend.mapper.InferMapper;
-import org.example.backend.mapper.TrainMapper;
 import org.example.backend.pojo.Infer;
-import org.example.backend.pojo.Train;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.infer.InferService;
@@ -17,7 +15,6 @@ import org.springframework.util.MultiValueMap;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;

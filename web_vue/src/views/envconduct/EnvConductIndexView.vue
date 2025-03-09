@@ -1,483 +1,432 @@
 <template>
-    <div class="container mt-4">
-        <!-- Search and Add Model Button -->
-        <div class="d-flex justify-content-between mb-3">
-            <div class="input-group" style="width: 300px;">
-                <input type="text" class="form-control" placeholder="查找想定..." v-model="searchQuery" @input="filterModels">
-                <button class="btn btn-outline-secondary" type="button" @click="resetSearch">重置</button>
+    <ContentField>
+        <div class="container mt-4">
+            <!-- 第一部分：实例管理 -->
+            <div class="d-flex justify-content-between align-items-center">
+                <h4>态势实例管理</h4>
+                <button class="btn btn-primary" @click="showCreateModal = true">➕ 新增实例</button>
             </div>
-            <button class="btn btn-primary" @click="openAddModelModal">新增想定</button>
-        </div>
+            
+            <!-- 搜索框 -->
+        <!-- 搜索框 -->
+            <div class="d-flex mt-3">
+                <input type="text" class="form-control w-25" v-model="searchQuery" placeholder="搜索实例..." @input="searchRExamples">
+            </div>
 
-        <!-- Model Table -->
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">想定列表</h5>
+            
+            <div class="table-responsive mt-3">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th scope="col">想定名</th>
-                            <th scope="col">想定简介</th>
+                            <th>ID</th>
+                            <th>环境名</th>
+                            <th>实例名</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="model in paginatedModels" :key="model.id">
-                            <td>{{ model.name }}</td>
-                            <td>{{ model.summary }}</td>
+                        <tr v-for="rexample in pagedRExamples" :key="rexample.id">
+                            <td>{{ rexample.exampleid }}</td>
+                            <td>{{ rexample.projectname }}</td>
+                            <td>{{ rexample.examplename }}</td>
+                            <td>{{ rexample.createtime }}</td>
                             <td>
-                                <button class="btn btn-sm btn-secondary" @click="openEditModelModal(model)">编辑</button>
-                                <button class="btn btn-sm btn-danger ms-2" @click="deleteModel(model.id)">删除</button>
+                                <button class="btn btn-danger btn-sm" @click="deleteRExample(rexample.id)">🗑 删除</button>
                             </td>
                         </tr>
                     </tbody>
                 </table>
-
-                <!-- Pagination Controls -->
-                <nav>
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item" :class="{ disabled: currentPage.value === 1 }">
-                            <button class="page-link" @click="goToPage(currentPage - 1)">上一页</button>
-                        </li>
-                        <li class="page-item" :class="{ disabled: currentPage.value === totalPages }">
-                            <button class="page-link" @click="goToPage(currentPage + 1)">下一页</button>
-                        </li>
-                    </ul>
-                </nav>
             </div>
+
+            <!-- 分页 -->
+            <div class="d-flex justify-content-center mt-3">
+                <button class="btn btn-secondary" :disabled="currentPage === 1" @click="currentPage--">‹ 上一页</button>
+                <span class="mx-3">第 {{ currentPage }} 页</span>
+                <button class="btn btn-secondary" :disabled="currentPage === totalPages" @click="currentPage++">下一页 ›</button>
+            </div>
+
+<div v-if="showCreateModal" class="modal-overlay">
+    <div class="modal-content">
+        <!-- 右上角关闭按钮 -->
+        <button class="close-btn" @click="showCreateModal = false">✖</button>
+
+        <!-- 美观的项目名称输入框 -->
+        <div class="form-group mt-3 text-center">
+            <label for="projectName" class="font-weight-bold text-primary">项目名称：</label>
+            <input type="text" id="projectName" v-model="projectName" 
+                   class="form-control stylish-input mx-auto" 
+                   placeholder="请输入项目名称">
         </div>
 
-        <!-- Add/Edit Model Modal -->
-        <div v-if="isModalVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="modelModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 v-if="isEditing" class="modal-title" id="modelModalLabel">编辑想定</h5>
-                        <h5 v-else class="modal-title" id="modelModalLabel">新增想定</h5>
-                        <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+        <div class="row mt-5">
+            <!-- 第一列：想定列表 -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">选择想定</h5>
                     </div>
-                    <div class="modal-body">
-                        <form>
-                            <div class="mb-3">
-                                <label for="name" class="form-label">想定名</label>
-                                <input type="text" class="form-control" id="name" v-model="form.name">
-                            </div>
-                            <!-- <div class="mb-3">
-                                <label for="summary" class="form-label">想定简介</label>
-                                <input type="text" class="form-control" id="summary" v-model="form.summary">
-                            </div> -->
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">选择想定配置文件</label>
-                                <input type="file" class="form-control" id="envSelection" @change="handleFileChange" />
-                            </div>
-                            <!-- <div class="mb-3">
-                                <label for="environment" class="form-label">想定选择</label>
-                                <select class="form-control" id="envSelection" v-model="form.envSelection">
-                                    <option v-for="env in envOptions" :key="env.value" :value="env.value">
-                                        {{ env.label }}
-                                    </option>
-                                </select>
-                            </div> -->
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">想定描述</label>
-                                <textarea class="form-control" id="environment" v-model="form.summary" rows="4"></textarea>
-                            </div>
-                        </form>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>想定名</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="situation in situations" :key="situation.id"
+                                    :class="{ 'table-active': selectedSituationId === situation.id }"
+                                    @click="selectSituation(situation.id)">
+                                    <td>{{ situation.id }}</td>
+                                    <td>{{ situation.taskName }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @click="closeModal">取消</button>
-                        <button v-if="isEditing" type="button" class="btn btn-primary" @click="saveModel">保存更改</button>
-                        <button v-else type="button" class="btn btn-primary" @click="saveModel">新增想定</button>
+                </div>
+            </div>
+
+            <!-- 第二列：方案列表 -->
+            <div class="col-md-4" v-if="selectedSituationId">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">选择方案</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>方案名</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="solution in solutions" :key="solution.id"
+                                    :class="{ 'table-active': selectedSolutionId === solution.id }"
+                                    @click="selectSolution(solution.id)">
+                                    <td>{{ solution.id }}</td>
+                                    <td>{{ solution.missionName }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第三列：实例列表 -->
+            <div class="col-md-4" v-if="selectedSolutionId">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">选择实例</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>实例名</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="example in examples" :key="example.id"
+                                    :class="{ 'table-active': selectedExampleId === example.id }"
+                                    @click="selectedExample(example)">
+                                    <td>{{ example.id }}</td>
+                                    <td>{{ example.name }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Visualization Modal -->
-        <div v-if="isVisualizationVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="visualizationModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">模型可视化</h5>
-                        <button type="button" class="btn-close" @click="closeVisualization" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body d-flex justify-content-center">
-                        <img :src="visualizationPath" alt="Model Visualization" style="max-width: 100%; max-height: 100%;">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-        <!-- 添加MLP层 Modal -->
-        <div v-if="isLayerVisualizationVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="layerVisualizationModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">添加MLP层</h5>
-                        <button type="button" class="btn-close" @click="closeLayerVisualization" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div v-for="(layer, index) in newLayers" :key="index" class="mb-3 d-flex align-items-center">
-                            <!-- 层类型 -->
-                            <select class="form-select me-2" v-model="layer.type" style="width: 150px;">
-                                <option value="Dense">Dense</option>
-                                <option value="Activation">Activation</option>
-                                <option value="Dropout">Dropout</option>
-                            </select>
-
-                            <!-- Dense层参数 -->
-                            <div v-if="layer.type === 'Dense'" class="me-2" style="width: 150px;">
-                                <input type="number" class="form-control" v-model="layer.units" placeholder="神经元数量">
-                            </div>
-
-                            <!-- Activation层参数 -->
-                            <div v-if="layer.type === 'Activation'" class="me-2" style="width: 150px;">
-                                <input type="text" class="form-control" v-model="layer.activationFunction" placeholder="激活函数">
-                            </div>
-
-                            <!-- Dropout层参数 -->
-                            <div v-if="layer.type === 'Dropout'" class="me-2" style="width: 150px;">
-                                <input type="number" class="form-control" v-model="layer.dropoutRate" placeholder="Dropout比率">
-                            </div>
-
-                            <!-- 删除按钮 -->
-                            <button class="btn btn-danger btn-sm" @click="removeLayer(index)">删除</button>
-                        </div>
-
-                        <!-- 添加层按钮 -->
-                        <button class="btn btn-success mt-3" @click="addLayerRow">添加层</button>
-                    </div>
-                    <div class="modal-footer">
-                        <!-- 保存结构按钮 -->
-                        <button class="btn btn-primary" @click="saveLayerStructure">保存结构</button>
-                        <button class="btn btn-secondary" @click="closeLayerVisualization">关闭</button>
-                    </div>
-                </div>
-            </div>
+        <!-- 确认按钮 -->
+        <div class="text-center mt-4" v-if="selectedExampleId">
+            <button class="btn btn-lg btn-primary" @click="submitSelection">✅ 确定选择</button>
         </div>
     </div>
+</div>
+
+        </div>
+    </ContentField>
 </template>
 
-<script>
-import { ref, reactive, computed, onMounted } from 'vue';
-import ace from 'ace-builds';
-import $ from 'jquery';
-import store from '@/store';
+<script setup>
+import { ref, onMounted, computed } from "vue";
+import ContentField from '../../components/ContentField.vue';
+import $ from "jquery";
+import store from "../../store";
 
-export default {
-    components: {
-    },
-    setup() {
-        ace.config.set(
-            "basePath", 
-            "https://cdn.jsdelivr.net/npm/ace-builds@" + require('ace-builds').version + "/src-noconflict/");
+// 数据存储
+const examples = ref([]);
+const RExamples = ref([]);
+const situations = ref([]);
+const solutions = ref([]);
+const projectName = ref(null);
 
-        const models = ref([]);
-        const filteredModels = ref([]);
-        const paginatedModels = ref([]);
-        const searchQuery = ref('');
-        const form = reactive({
-            id: null,
-            name: '',
-            summary: '',
-            envSelection: '',
-            params: '',
-        });
-        // paginatedModels.value = [form];
-        const isEditing = ref(false);
-        const currentPage = ref(1);
-        const itemsPerPage = 10;
-        const isModalVisible = ref(false);
-        const isVisualizationVisible = ref(false);
-        const visualizationPath = ref('');
-        const isLayerVisualizationVisible = ref(false);  // 控制层级可视化的显示
+const selectedSituationId = ref(null);
+const selectedSolutionId = ref(null);
+const selectedExampleId = ref(null);
+const selectedExampleName = ref(null);
+const showCreateModal = ref(false);
+const searchQuery = ref(""); // 搜索框的输入
 
-        const totalPages = computed(() => Math.ceil(filteredModels.value.length / itemsPerPage));
+// 分页相关数据
+const currentPage = ref(1);
+const pageSize = 10; // 每页显示10条数据
 
-        const openLayerVisualizationModal = () => {
-            isLayerVisualizationVisible.value = true;
-        };
+// 获取 RExample 列表
+const fetchRExamples = () => {
+    $.ajax({
+        url: "http://localhost:3000/remote/getRExamples/",
+        type: "POST",
+        success(resp) {
+            RExamples.value = resp.data;
+            console.log(resp);
+        },
+        error(resp) {
+            console.error("获取 RExamples 失败:", resp);
+        }
+    });
+};
 
-        const closeLayerVisualization = () => {
-            isLayerVisualizationVisible.value = false;
-        };
-        const handleFileChange = (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                
-                // 当文件读取完成时触发
-                reader.onload = () => {
-                    // 将文件的内容存储到 form.params 中
-                    form.params = reader.result; // reader.result 是文件的内容
-                };
-
-                // 读取文件内容
-                reader.readAsText(file); // 读取文件为文本，如果是二进制文件，可以使用 readAsDataURL
-            }
-        };
-
-        const envOptions = ref([
-             { value: '1', label: '墨子1' },
-            { value: '2', label: '墨子2' },
-            { value: '3', label: '墨子3' }
-        ]);
-
-        // const newLayer = reactive({
-        //     type: 'Dense',  // 默认层类型
-        //     units: 0,
-        //     activationFunction: '',
-        //     dropoutRate: 0
-        // });
-        const newLayers = ref([]); // 存储多个层信息
-        // 添加一个新的层行
-        const addLayerRow = () => {
-            newLayers.value.push({
-                type: "Dense", // 默认类型
-                units: 0, // 默认神经元数量
-                activationFunction: "", // 默认激活函数
-                dropoutRate: 0 // 默认Dropout比率
-            });
-        };
-
-        // 删除一个层
-        const removeLayer = (index) => {
-            newLayers.value.splice(index, 1);
-        };
-
-        // 保存层结构
-        const saveLayerStructure = () => {
-            console.log("保存的层结构:", newLayers.value);
-            // TODO: 将层结构保存到模型表单或其他地方
-            closeLayerVisualization();
-        };
-
-        const fetchModels = () => {
-            // API call to fetch models
-            $.ajax({
-                url: "http://localhost:3000/situation/getlist/",
-                type: "get",
-                headers: {
-                    Authorization: "Bearer " + store.state.user.token,
-                },
-                success(resp) {
-                    models.value = resp;
-                    filteredModels.value = resp;
-                    updatePaginatedModels();
-                }
-            });
-        };
-
-        const filterModels = () => {
-            const query = searchQuery.value.trim().toLowerCase();
-            filteredModels.value = models.value.filter(model =>
-                model.name.toLowerCase().includes(query)
-            );
-            currentPage.value = 1;
-            updatePaginatedModels();
-        };
-
-        const updatePaginatedModels = () => {
-            const start = (currentPage.value - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
-            paginatedModels.value = filteredModels.value.slice(start, end);
-        };
-
-        const resetSearch = () => {
-            searchQuery.value = '';
-            filteredModels.value = models.value;
-            currentPage.value = 1;
-            updatePaginatedModels();
-        };
-
-        const goToPage = (page) => {
-            if (page > 0 && page <= totalPages.value) {
-                currentPage.value = page;
-                updatePaginatedModels();
-            }
-        };
-
-        const openAddModelModal = () => {
-            isEditing.value = false;
-            resetForm();
-            isModalVisible.value = true;
-        };
-
-        const openEditModelModal = (model) => {
-            isEditing.value = true;
-            Object.assign(form, model);
-            isModalVisible.value = true;
-        };
-
-        const resetForm = () => {
-            form.id = null;
-            form.name = '';
-            form.summary = '';
-            form.params = '';
-        };
-
-        const saveModel = () => {
-            if (isEditing.value) {
-                updateModel();
+// 删除 RExample
+const deleteRExample = (exampleId) => {
+    if (!confirm("确定要删除此实例吗？")) return;
+    
+    $.ajax({
+        url: "http://localhost:3000/remote/deleteRExample/",
+        type: "POST",
+        headers: { Authorization: "Bearer " + store.state.user.token },
+        data: { exampleId },
+        success(resp) {
+            if (resp.code === 200) {
+                alert("删除成功！");
+                fetchRExamples();
             } else {
-                addModel();
+                alert("删除失败: " + resp.message);
             }
-        };
+        },
+        error(resp) {
+            console.error("删除失败:", resp);
+            alert("删除失败 ❌");
+        }
+    });
+};
 
-        const addModel = () => {
-            if (form.params === '') {
-                alert('请上传配置文件');
-                return;
-            } 
-            // 定义正则表达式，检查格式
-            const paramsPattern = /input:\s*\d+\s*output:\s*\d+\s*post:\s*localhost:\d+\/\S+\s*get:\s*localhost:\d+\/\S+/;
-
-            // 使用正则表达式检查 form.params 是否符合要求
-            if (!paramsPattern.test(form.params)) {
-                alert('指令不合法，请重新配置');
-                return;
+// 获取想定列表
+const fetchSituations = () => {
+    $.ajax({
+        url: "http://localhost:3000/remote/getSituations/",
+        type: "post",
+        success(resp) {
+            if (resp.code === 200) {
+                situations.value = resp.data;
             }
-            // console.log("params is : ")
-            // console.log(form.params)
-            // Define add model logic here
-            $.ajax({
-                url: "http://localhost:3000/situation/add/",
-                type: "post",
-                headers: {
-                    Authorization: "Bearer " + store.state.user.token,
-                },
-                data: {
-                    "name": form.name,
-                    "summary": form.summary,
-                    "params": form.params,
-                    "situationSelection": form.envSelection
-                },
-                success(resp) {
-                    console.log(resp)
-                    alert('指令有效，已发送管理指令');
-                    fetchModels()
-                },
-                error(resp) {
-                    console.log(resp)
-                }
-            });
-            isModalVisible.value = false
-        };
+        },
+        error(resp) {
+            console.error("获取想定失败:", resp);
+        }
+    });
+};
 
-        const updateModel = () => {
-            // Define update model logic here
-            $.ajax({
-                url: "http://localhost:3000/situation/update/",
-                type: "post",
-                headers: {
-                    Authorization: "Bearer " + store.state.user.token,
-                },
-                data: {
-                    "name": form.name,
-                    "summary": form.summary,
-                    "situation": form.situation,
-                },
-                success(resp) {
-                    console.log(resp)
-                    fetchModels()
-                },
-                error(resp) {
-                    console.log(resp)
-                }
-            });
-            isModalVisible.value = false
-        };
+// 选择想定，获取方案
+const selectSituation = (situationId) => {
+    selectedSituationId.value = situationId;
+    selectedSolutionId.value = null; // 清空方案
+    selectedExampleId.value = null; // 清空实例
+    solutions.value = [];
+    examples.value = [];
 
-        const deleteModel = (model_id) => {
-            if (confirm('确定要删除这个模型吗？')) {
-                // Define delete model logic here
-                $.ajax({
-                    url: "http://localhost:3000/situation/remove/",
-                    type: "post",
-                    headers: {
-                        Authorization: "Bearer " + store.state.user.token,
-                    },
-                    data: {
-                        id: model_id,
-                    },
-                    success(resp) {
-                        console.log(resp)
-                        fetchModels()
-                    },
-                    error(resp) {
-                        console.log(resp)
-                    }
-                });
+    $.ajax({
+        url: `http://localhost:3000/remote/getSolutions/?id=${situationId}`,
+        type: "post",
+        success(resp) {
+            if (resp.code === 200) {
+                solutions.value = resp.data;
             }
-        };
+        },
+        error(resp) {
+            console.error("获取方案失败:", resp);
+        }
+    });
+};
 
-        const visualizeModel = (model) => {
-            visualizationPath.value = model.structureimage; // Assuming structureimage is a property in model data
-            isVisualizationVisible.value = true;
-        };
+// 选择方案，获取实例
+const selectSolution = (solutionId) => {
+    selectedSolutionId.value = solutionId;
+    selectedExampleId.value = null; // 清空实例
+    examples.value = [];
 
-        const closeModal = () => {
-            isModalVisible.value = false;
-        };
-
-        const closeVisualization = () => {
-            isVisualizationVisible.value = false;
-        };
-
-        const editorInit = () => {
-            // Optional: Set editor configurations or content here
-        };
-
-        // Handle image upload (file selection)
-        const handleImageUpload = (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    form.structureimage = reader.result; // Store the image as a Base64 string
-                };
-                reader.readAsDataURL(file); // Convert file to Base64
+    $.ajax({
+        url: `http://localhost:3000/remote/getExamples/?id=${solutionId}`,
+        type: "post",
+        success(resp) {
+            if (resp.code === 200) {
+                examples.value = resp.data;
             }
-        };
+        },
+        error(resp) {
+            console.error("获取实例失败:", resp);
+        }
+    });
+};
 
-        onMounted(() => {
-            fetchModels();
-        });
+const selectedExample = (example) => {
+    selectedExampleId.value = example.id;
+    selectedExampleName.value = example.name;
+};
 
-        return {
-            models,
-            searchQuery,
-            filteredModels,
-            paginatedModels,
-            form,
-            isEditing,
-            currentPage,
-            totalPages,
-            isModalVisible,
-            isVisualizationVisible,
-            visualizationPath,
-            filterModels,
-            resetSearch,
-            goToPage,
-            openAddModelModal,
-            openEditModelModal,
-            closeModal,
-            saveModel,
-            deleteModel,
-            visualizeModel,
-            closeVisualization,
-            editorInit,
-            handleImageUpload,
-            openLayerVisualizationModal,
-            closeLayerVisualization,
-            isLayerVisualizationVisible,
-            newLayers,
-            addLayerRow,
-            removeLayer,
-            saveLayerStructure,
-            envOptions,
-            handleFileChange
-        };
+// 提交最终选择的想定、方案、实例
+const submitSelection = () => {
+    if (!selectedSituationId.value || !selectedSolutionId.value || !selectedExampleId.value) {
+        alert("请完整选择想定、方案和实例");
+        showCreateModal.value = false;
+        return;
+    }
+
+    $.ajax({
+        url: "http://localhost:3000/remote/saveRExample/",
+        type: "POST",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            situationId: selectedSituationId.value,
+            solutionId: selectedSolutionId.value,
+            exampleId: selectedExampleId.value,
+            exampleName: selectedExampleName.value,
+            projectName: projectName.value
+        },
+        success(resp) {
+            console.log("提交成功:", resp);
+            alert("提交成功！ 🎉");
+            showCreateModal.value = false;
+            fetchRExamples()
+        },
+        error(resp) {
+            console.error("提交失败:", resp);
+            alert("提交失败 ❌");
+            showCreateModal.value = false;
+        }
+    });
+};
+
+// 搜索过滤 RExample
+const searchRExamples = () => {
+    currentPage.value = 1; // 重置为第一页
+    // 根据搜索框输入进行过滤
+    const query = searchQuery.value.trim().toLowerCase();
+    if (query) {
+        RExamples.value = RExamples.value.filter(rexample =>
+            rexample.projectname.toLowerCase().includes(query)
+        );
+    } else {
+        fetchRExamples(); // 如果搜索框为空，则重新加载全部实例
     }
 };
+
+
+// 计算分页后的 RExamples
+const pagedRExamples = computed(() => {
+    const start = (currentPage.value - 1) * pageSize;
+    const end = currentPage.value * pageSize;
+    return RExamples.value.slice(start, end);
+});
+
+// 计算总页数
+const totalPages = computed(() => {
+    return Math.ceil(RExamples.value.length / pageSize);
+});
+
+// 页面加载时获取想定列表和实例列表
+onMounted(() => {
+    fetchSituations();
+    fetchRExamples();
+});
 </script>
+
+<style scoped>
+/* 模态框背景 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+}
+
+/* 模态框内容 */
+.modal-content {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    width: 80%;
+    max-width: 1000px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+/* 右上角关闭按钮 */
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #333;
+    transition: 0.3s;
+}
+
+.close-btn:hover {
+    color: #ff0000;
+}
+
+/* 卡片样式 */
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+/* 表格行悬停效果 */
+.table-hover tbody tr {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* 选中的表格行 */
+.table-active {
+    background-color: #007bff !important;
+    color: white !important;
+    font-weight: bold;
+}
+.stylish-input {
+    width: 60%; /* 让输入框更宽 */
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 8px; /* 圆角 */
+    border: 1px solid #ccc;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
+    transition: all 0.3s ease-in-out;
+}
+
+.stylish-input:focus {
+    border-color: #007bff; /* 聚焦时边框变蓝 */
+    box-shadow: 0px 3px 7px rgba(0, 123, 255, 0.3);
+    outline: none;
+}
+
+</style>

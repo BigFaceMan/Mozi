@@ -1,3 +1,8 @@
+<!--
+ * @Author: ssp
+ * @Date: 2025-01-06 21:58:24
+ * @LastEditTime: 2025-03-09 09:24:20
+-->
 <template>
     <div class="container mt-4">
         <!-- Search and Add Model Button -->
@@ -98,7 +103,7 @@
                                 <input type="text" class="form-control" id="environment" v-model="form.environment">
                             </div>
                             <div class="mb-3">
-                                <label for="methodSelection" class="form-label">想定选择</label>
+                                <label for="methodSelection" class="form-label">想定实例选择</label>
                                 <select class="form-control" id="situationSelection" v-model="form.situationSelection">
                                     <option v-for="situation in situations" :key="situation.id" :value="situation.name">
                                         {{ situation.name }}
@@ -486,7 +491,7 @@ export default {
             });
 
             $.ajax({
-                url: "http://localhost:3000/situation/getlist/",
+                url: "http://localhost:3000/remote/getRExamples/",
                 type: "get",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,

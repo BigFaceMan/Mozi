@@ -6,7 +6,7 @@ export default {
     form: {
       trainingName: 'CNNTrain',
       scene: "墨子1",
-      model: 'DDPG',
+      model: 'ddpg',
       pytorchVersion: '1.8',
       trainIterations: 1000,
       learningRate: 0.001,

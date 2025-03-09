@@ -1,14 +1,13 @@
 package org.example.backend.service.impl.pk;
 
 import java.io.File;
-import com.alibaba.fastjson.JSONObject;
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import org.example.backend.mapper.LogmessageMapper;
 import org.example.backend.mapper.TrainLogMapper;
 import org.example.backend.mapper.TrainMapper;
 import org.example.backend.mapper.UserMapper;
-import org.example.backend.pojo.Model;
 import org.example.backend.pojo.Train;
 import org.example.backend.pojo.TrainLog;
 import org.example.backend.pojo.User;
@@ -20,18 +19,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-
-import static org.example.backend.consumer.WebSocketServer.userMapper;
 
 @Service
 public class ModelTrainingServiceImpl implements ModelTrainingService {

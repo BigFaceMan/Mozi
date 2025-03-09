@@ -1,13 +1,10 @@
 package org.example.backend.controller.infer;
 
 import org.example.backend.pojo.Infer;
-import org.example.backend.pojo.Train;
-import org.example.backend.pojo.TrainLog;
 import org.example.backend.pojo.User;
 import org.example.backend.service.games.GamesService;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.infer.InferService;
-import org.example.backend.service.pk.ModelTrainingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;

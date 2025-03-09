@@ -4,7 +4,6 @@ import org.example.backend.pojo.User;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 public interface InfoService {
     public Map<String, String> getinfo();

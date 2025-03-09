@@ -4,14 +4,9 @@
     </ContentField>
 </template>
 
-<script>
+<script setup>
 import ContentField from '../../components/ContentField.vue'
 
-export default {
-    components: {
-        ContentField
-    }
-}
 </script>
 
 <style scoped>
