@@ -10,7 +10,7 @@
     <div class="collapse navbar-collapse" id="navbarText">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <router-link :class="route_name == 'envconduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'envconduct_index'}">环境管理</router-link>
+          <router-link :class="route_name == 'envconduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'envconduct_index'}">场景管理</router-link>
         </li>
         <li class="nav-item">
           <router-link :class="route_name == 'modelconduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'modelconduct_index'}">方法管理</router-link>

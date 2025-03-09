@@ -3,14 +3,14 @@
         <div class="container mt-4">
             <!-- 第一部分：实例管理 -->
             <div class="d-flex justify-content-between align-items-center">
-                <h4>态势实例管理</h4>
-                <button class="btn btn-primary" @click="showCreateModal = true">➕ 新增实例</button>
+                <h4>场景管理</h4>
+                <button class="btn btn-primary" @click="showCreateModal = true">➕ 新增场景</button>
             </div>
             
             <!-- 搜索框 -->
         <!-- 搜索框 -->
             <div class="d-flex mt-3">
-                <input type="text" class="form-control w-25" v-model="searchQuery" placeholder="搜索实例..." @input="searchRExamples">
+                <input type="text" class="form-control w-25" v-model="searchQuery" placeholder="搜索场景..." @input="searchRExamples">
             </div>
 
             
@@ -19,7 +19,7 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>环境名</th>
+                            <th>场景名</th>
                             <th>实例名</th>
                             <th>创建时间</th>
                             <th>操作</th>

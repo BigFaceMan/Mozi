@@ -15,10 +15,10 @@
     </div>
     <!-- 选择场景 -->
     <div class="form-group mb-3">
-      <label for="pytorchVersion">选择想定</label>
+      <label for="pytorchVersion">选择场景</label>
       <select v-model="form.scene" id="scene" class="form-select">
-        <option v-for="situation in situations" :key="situation.id" :value="situation.name">
-          {{ situation.name }}
+        <option v-for="situation in situations" :key="situation.id" :value="situation.projectname">
+          {{ situation.projectname }}
         </option>
       </select>
     </div>
@@ -73,13 +73,13 @@ const form = reactive({ ...store.state.pk.form });
 // 从后端获取模型列表
 const fetchModels = () => {
   $.ajax({
-    url: "http://localhost:3000/situation/getlist/",
-    type: "get",
+    url: "http://localhost:3000/remote/getRExamples/",
+    type: "post",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
     },
     success(resp) {
-      situations.value = resp;
+      situations.value = resp.data;
     }
   });
   $.ajax({

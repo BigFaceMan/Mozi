@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-03-09 09:24:20
+ * @LastEditTime: 2025-03-09 10:11:09
 -->
 <template>
     <div class="container mt-4">
@@ -29,7 +29,7 @@
                         <tr>
                             <th scope="col">方法名</th>
                             <th scope="col">方法简介</th>
-                            <th scope="col">运行想定</th>
+                            <th scope="col">运行场景</th>
                             <th scope="col">深度学习环境</th>
                             <th scope="col">方法能力</th>
                             <th scope="col">操作</th>
@@ -106,7 +106,7 @@
                                 <label for="methodSelection" class="form-label">想定实例选择</label>
                                 <select class="form-control" id="situationSelection" v-model="form.situationSelection">
                                     <option v-for="situation in situations" :key="situation.id" :value="situation.name">
-                                        {{ situation.name }}
+                                        {{ situation.projectname }}
                                     </option>
                                 </select>
                             </div>
@@ -218,8 +218,8 @@
                             <div class="mb-3">
                                 <label for="methodSelection" class="form-label">想定选择</label>
                                 <select class="form-control" id="situationSelection" v-model="form.situationSelection">
-                                    <option v-for="situation in situations" :key="situation.id" :value="situation.name">
-                                        {{ situation.name }}
+                                    <option v-for="situation in situations" :key="situation.id" :value="situation.projectname">
+                                        {{ situation.projectname }}
                                     </option>
                                 </select>
                             </div>
@@ -492,12 +492,16 @@ export default {
 
             $.ajax({
                 url: "http://localhost:3000/remote/getRExamples/",
-                type: "get",
+                type: "post",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
                 },
                 success(resp) {
-                    situations.value = resp;
+                    situations.value = resp.data;
+                    console.log(resp.data)
+                }, error(resp) {
+                    console.log(resp)
+                    console.log("提取环境错误")
                 }
             });
         };

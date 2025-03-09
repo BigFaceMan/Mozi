@@ -16,7 +16,7 @@
                     <thead>
                         <tr>
                             <th scope="col">对战名</th>
-                            <th scope="col">想定</th>
+                            <th scope="col">场景</th>
                             <th scope="col">模型</th>
                             <th scope="col">对战状态</th>
                         </tr>

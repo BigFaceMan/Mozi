@@ -235,4 +235,31 @@ public class RemoteSituationController {
         return response;
     }
 
+    @PostMapping("/remote/getEntitys/")
+    public Map<String, Object> getEntitys(@RequestParam Map<String, String> data) {
+        String exampleId = data.get("exampleId");
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("code", 200);
+        map.put("success", true);
+        map.put("message", "success");
+        List<Object> dataList = new ArrayList<>();
+        for (int i = 0; i < 10; i ++) {
+            HashMap<String, Object> dataMap = new HashMap<>();
+            dataMap.put("id", "511111111" + Integer.toString(i));
+            dataMap.put("name", "实体" + Integer.toString(i));
+            if (i % 2 == 0) {
+                dataMap.put("country", "美国");
+            } else {
+                dataMap.put("country", "中国");
+            }
+            dataMap.put("location", "121.514.31.910.0.000");
+            dataMap.put("type", "具体指挥所");
+            dataMap.put("modelName", "指挥所");
+            dataMap.put("children", new ArrayList<>());
+            dataMap.put("entity", new ArrayList<>());
+            dataList.add(dataMap);
+        }
+        map.put("data", dataList);
+        return map;
+    }
 }

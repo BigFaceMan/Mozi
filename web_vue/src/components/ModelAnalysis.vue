@@ -42,9 +42,9 @@
                         <tr>
                             <th scope="col" v-if="isComparing">选择</th> <!-- 选择列 -->
                             <th scope="col">模型名</th>
-                            <th scope="col">想定</th>
+                            <th scope="col">场景</th>
                             <th scope="col">方法</th>
-                            <th scope="col">想定</th>
+                            <th scope="col">强化学习环境</th>
                             <th scope="col">训练状态</th>
                         </tr>
                     </thead>

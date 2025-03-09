@@ -33,31 +33,6 @@
       </select>
     </div>
 
-<!-- 选择奖励目标（按钮弹窗） -->
-    <!-- 选择奖励目标 -->
-  <!-- 选择奖励目标的模态框 -->
-  <div v-if="showRewardModal" class="modal-overlay" @click.self="closeModal">
-    <div class="modal-content">
-      <h4 class="modal-title">配置奖励目标</h4>
-      <div class="modal-body">
-        <div v-if="entities.length > 0" class="reward-list">
-          <div v-for="entity in entities" :key="entity.id" class="reward-item">
-            <label class="reward-label">
-              <input type="checkbox" v-model="selectedRewards" :value="entity.id" class="form-check-input" />
-              {{ entity.name }}
-            </label>
-            <input v-model="rewardWeights[entity.id]" type="number" class="form-control weight-input" placeholder="权重" min="1" />
-          </div>
-        </div>
-        <p v-else class="text-muted text-center">请先选择场景</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" @click="closeModal">取消</button>
-        <button class="btn btn-primary" @click="saveRewards">确定</button>
-      </div>
-    </div>
-  </div>
-
     <div class="form-group mb-3">
       <label for="model">选择计算节点:</label>
       <select id="gamenode" class="form-select" @change="selectGameNode">
@@ -132,13 +107,14 @@
       </div>
     </div>
 
-
-  <div class="d-flex align-items-center gap-3 mt-3">
-    <button class="btn btn-secondary" @click="showRewardModal = true">配置奖励目标</button>
-    <button @click="saveConfig" class="btn btn-primary">保存配置</button>
+    <!-- 提交按钮 -->
+    <button @click="saveConfig" class="btn btn-primary me-2">保存配置</button>
     <button @click="startTraining" class="btn btn-primary">开始训练</button>
-  </div>
 
+    <!-- 显示训练进度 -->
+    <div v-if="trainingStatus" class="mt-3">
+      <p>{{ trainingStatus }}</p>
+    </div>
 
     <!-- 输出保存的配置信息 -->
     <div v-if="showConfig" class="alert alert-success mt-3">
@@ -149,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch} from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useStore } from 'vuex';
 import $ from 'jquery';
 
@@ -159,7 +135,6 @@ const gameNodes = ref([]);
 const situations = ref([]);
 const showConfig = ref(false);
 const trainingStatus = ref(null); // 用来存储训练状态
-const showRewardModal = ref(false);
 
 // 从 Vuex 获取表单数据
 const form = reactive({ ...store.state.train.form });
@@ -249,13 +224,11 @@ const startTraining = () => {
   trainingStatus.value = "正在为您分配计算资源...";
 
   // 延时1.5秒后更新为“已为您分配 GPU 和 GPU”
-
   setTimeout(() => {
     trainingStatus.value = "已为您分配 GPU 和 GPU, 通过gRPC连接到服务器...";
   }, 1500);
 
   // 进行后端请求，开始训练
-
   $.ajax({
     url: "http://localhost:3000/train/add/",
     type: "post",
@@ -281,129 +254,10 @@ const startTraining = () => {
   });
 };
 
-const entities = ref([]); // 存储当前场景的实体
-const selectedRewards = ref([]); // 选中的奖励目标（实体 ID）
-const rewardWeights = reactive({}); // 记录每个实体的权重
-
-const fetchEntities = (exampleId) => {
-  if (!exampleId) return;
-
-  $.ajax({
-    url: `http://localhost:3000/remote/getEntitys/?exampleId=${exampleId}`,
-    type: "post",
-    headers: {
-      Authorization: "Bearer " + store.state.user.token,
-    },
-    success(resp) {
-      if (resp.success) {
-        entities.value = resp.data;
-        // 初始化权重
-        entities.value.forEach(entity => {
-          rewardWeights[entity.id] = 1; // 默认权重设为 1
-        });
-      }
-    },
-    error(err) {
-      console.error("获取实体失败:", err);
-    }
-  });
-};
-const closeModal = () => {
-  showRewardModal.value = false
-} 
-const saveRewards = () => {
-  showRewardModal.value = false
-}
-
-// 监听场景变化，获取实体
-watch(() => form.scene, (newScene) => {
-  const example = situations.value.find(s => s.projectname === newScene);
-  if (example) {
-    fetchEntities(example.exampleid); // 通过 exampleId 获取实体信息
-  }
-});
-
-// // 更新 Vuex 数据
-// const saveConfig = () => {
-//   form.selectedRewards = selectedRewards.value.map(id => ({
-//     id,
-//     weight: rewardWeights[id] || 1, // 如果权重未设置，默认使用 1
-//   }));
-
-//   // 其他 saveConfig 逻辑...
-// };
-
-
 // 页面加载时获取模型列表
 onMounted(fetchModels);
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  width: 400px;
-  max-width: 90%;
-}
-
-.modal-title {
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.modal-body {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.reward-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.reward-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f8f9fa;
-  padding: 8px;
-  border-radius: 5px;
-}
-
-.reward-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 1rem;
-}
-
-.weight-input {
-  width: 70px;
-  text-align: center;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 15px;
-  gap: 10px;
-}
 /* 可选自定义样式 */
 </style>
