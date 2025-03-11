@@ -1,15 +1,23 @@
 package org.example.backend.controller.situation;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.mapper.ExamplesMapper;
 import org.example.backend.pojo.Examples;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
@@ -17,33 +25,57 @@ import java.util.*;
 public class RemoteSituationController {
     @Autowired
     private ExamplesMapper examplesMapper;
+    @Autowired
+    private RestTemplate restTemplate;
     @PostMapping("/remote/getSituations/")
     public Map<String, Object> getSituations(@RequestParam Map<String, String> data) {
-        /*
-        code:
-        success
-        message
-        data[list]
-         */
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("code", 200);
-        map.put("success", true);
-        map.put("message", "success");
-        List<Object> dataList = new ArrayList<>();
-        for (int i = 0; i < 5; i ++) {
-            HashMap<String, Object> dataMap = new HashMap<>();
-            dataMap.put("ver", 38);
-            dataMap.put("task_message", "真正的网电对抗");
-            dataMap.put("utime", "2025-03-08T06:39:03.000+00:00");
-            dataMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
-            dataMap.put("taskName", "西工大中部场景其他");
-            dataMap.put("run_state", 1);
-            dataMap.put("id", "111111111" + Integer.toString(i));
-            dataMap.put("status", 1);
-            dataList.add(dataMap);
+//        True
+//        String url = "http://192.1.116.100:7210/www/task/page";
+//        Fake
+        String url = "http://127.0.0.1:4001/www/task/page?pageIndex=1";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+
+        try {
+            // 尝试发送请求并获取响应
+            String situationJson = restTemplate.getForObject(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> map = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> dataMap = (Map<String, Object>) map.get("data");
+            List<Object> records = (List<Object>) dataMap.get("records");
+
+            Map<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("success", true);
+            resMap.put("message", "success");
+            resMap.put("data", records);
+            return resMap;
+        } catch (Exception e) {
+            // 如果请求失败，返回自定义数据
+            e.printStackTrace();
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("code", 200);
+            map.put("success", true);
+            map.put("message", "success");
+            List<Object> dataList = new ArrayList<>();
+            for (int i = 0; i < 30; i++) {
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("ver", 38);
+                dataMap.put("task_message", "真正的网电对抗");
+                dataMap.put("utime", "2025-03-08T06:39:03.000+00:00");
+                dataMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
+                dataMap.put("taskName", "西工大中部场景其他");
+                dataMap.put("run_state", 1);
+                dataMap.put("id", "111111111" + Integer.toString(i));
+                dataMap.put("status", 1);
+                dataList.add(dataMap);
+            }
+            map.put("data", dataList);
+            return map;
         }
-        map.put("data", dataList);
-        return map;
     }
 
     @PostMapping("/remote/getSolutions/")
@@ -54,7 +86,7 @@ public class RemoteSituationController {
         map.put("success", true);
         map.put("message", "success");
         List<Object> dataList = new ArrayList<>();
-        for (int i = 0; i < 5; i ++) {
+        for (int i = 0; i < 30; i ++) {
             HashMap<String, Object> dataMap = new HashMap<>();
             dataMap.put("ver", 38);
             dataMap.put("task_message", "真正的网电对抗");
@@ -65,7 +97,7 @@ public class RemoteSituationController {
             dataMap.put("id", "211111111" + Integer.toString(i));
             //  想定id
             int index = 0;
-            if (i > 2) {
+            if (i > 15) {
                 index = i;
             }
             dataMap.put("taskUID", "111111111" + Integer.toString(index));
@@ -111,7 +143,7 @@ public class RemoteSituationController {
         map.put("success", true);
         map.put("message", "success");
         List<Object> dataList = new ArrayList<>();
-        for (int i = 0; i < 5; i ++) {
+        for (int i = 0; i < 30; i ++) {
             HashMap<String, Object> dataMap = new HashMap<>();
             dataMap.put("ver", 38);
             dataMap.put("utime", "2025-03-08T06:39:03.000+00:00");
@@ -119,7 +151,7 @@ public class RemoteSituationController {
             dataMap.put("name", "实例" + Integer.toString(i));
             dataMap.put("run_state", 1);
             int index = 0;
-            if (i > 2) {
+            if (i > 15) {
                 index = i;
             }
             dataMap.put("taskId", "111111111" + Integer.toString(index));

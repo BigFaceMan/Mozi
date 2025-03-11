@@ -46,108 +46,124 @@
                 <button class="btn btn-secondary" :disabled="currentPage === totalPages" @click="currentPage++">下一页 ›</button>
             </div>
 
-<div v-if="showCreateModal" class="modal-overlay">
-    <div class="modal-content">
-        <!-- 右上角关闭按钮 -->
-        <button class="close-btn" @click="showCreateModal = false">✖</button>
+        <div v-if="showCreateModal" class="modal-overlay">
+            <div class="modal-content">
+                <!-- 右上角关闭按钮 -->
+                <button class="close-btn" @click="showCreateModal = false">✖</button>
 
-        <!-- 美观的项目名称输入框 -->
-        <div class="form-group mt-3 text-center">
-            <label for="projectName" class="font-weight-bold text-primary">项目名称：</label>
-            <input type="text" id="projectName" v-model="projectName" 
-                   class="form-control stylish-input mx-auto" 
-                   placeholder="请输入项目名称">
-        </div>
+                <!-- 美观的项目名称输入框 -->
+                <div class="form-group mt-3 text-center">
+                    <label for="projectName" class="font-weight-bold text-primary">场景名称：</label>
+                    <input type="text" id="projectName" v-model="projectName" 
+                        class="form-control stylish-input mx-auto" 
+                        placeholder="请输入场景名称">
+                </div>
 
-        <div class="row mt-5">
-            <!-- 第一列：想定列表 -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">选择想定</h5>
+                <div class="row mt-5">
+                    <!-- 第一列：想定列表 -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">选择想定</h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>想定名</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="situation in pagedSituations" :key="situation.id"
+                                            :class="{ 'table-active': selectedSituationId === situation.id }"
+                                            @click="selectSituation(situation.id)">
+                                            <td>{{ situation.id }}</td>
+                                            <td>{{ situation.taskName }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="d-flex justify-content-center mt-3" style="margin-bottom: 5%">
+                                    <button class="btn btn-secondary" :disabled="currentPageSituation === 1" @click="currentPageSituation--">‹ 上一页</button>
+                                    <span class="mx-3">第 {{ currentPageSituation }} 页</span>
+                                    <button class="btn btn-secondary" :disabled="currentPageSituation === totalPagesSituation" @click="currentPageSituation++">下一页 ›</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>想定名</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="situation in situations" :key="situation.id"
-                                    :class="{ 'table-active': selectedSituationId === situation.id }"
-                                    @click="selectSituation(situation.id)">
-                                    <td>{{ situation.id }}</td>
-                                    <td>{{ situation.taskName }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+
+                    <!-- 第二列：方案列表 -->
+                    <div class="col-md-4" v-if="selectedSituationId">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">选择方案</h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>方案名</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="solution in pagedSolution" :key="solution.id"
+                                            :class="{ 'table-active': selectedSolutionId === solution.id }"
+                                            @click="selectSolution(solution.id)">
+                                            <td>{{ solution.id }}</td>
+                                            <td>{{ solution.missionName }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <div class="d-flex justify-content-center mt-3" style="margin-bottom: 5%">
+                                    <button class="btn btn-secondary" :disabled="currentPageSolution === 1" @click="currentPageSolution--">‹ 上一页</button>
+                                    <span class="mx-3">第 {{ currentPageSolution }} 页</span>
+                                    <button class="btn btn-secondary" :disabled="currentPageSolution === totalPagesSolution" @click="currentPageSolution++">下一页 ›</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 第三列：实例列表 -->
+                    <div class="col-md-4" v-if="selectedSolutionId">
+                        <div class="card">
+                            <div class="card-header bg-warning text-dark">
+                                <h5 class="mb-0">选择实例</h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>实例名</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="example in pagedExamples" :key="example.id"
+                                            :class="{ 'table-active': selectedExampleId === example.id }"
+                                            @click="selectedExample(example)">
+                                            <td>{{ example.id }}</td>
+                                            <td>{{ example.name }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <div class="d-flex justify-content-center mt-3" style="margin-bottom: 5%">
+                                    <button class="btn btn-secondary" :disabled="currentPageExample === 1" @click="currentPageExample--">‹ 上一页</button>
+                                    <span class="mx-3">第 {{ currentPageExample }} 页</span>
+                                    <button class="btn btn-secondary" :disabled="currentPageExample === totalPagesExample" @click="currentPageExample++">下一页 ›</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- 第二列：方案列表 -->
-            <div class="col-md-4" v-if="selectedSituationId">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">选择方案</h5>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>方案名</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="solution in solutions" :key="solution.id"
-                                    :class="{ 'table-active': selectedSolutionId === solution.id }"
-                                    @click="selectSolution(solution.id)">
-                                    <td>{{ solution.id }}</td>
-                                    <td>{{ solution.missionName }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 第三列：实例列表 -->
-            <div class="col-md-4" v-if="selectedSolutionId">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">选择实例</h5>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>实例名</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="example in examples" :key="example.id"
-                                    :class="{ 'table-active': selectedExampleId === example.id }"
-                                    @click="selectedExample(example)">
-                                    <td>{{ example.id }}</td>
-                                    <td>{{ example.name }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <!-- 确认按钮 -->
+                <div class="text-center mt-4" v-if="selectedExampleId">
+                    <button class="btn btn-lg btn-primary" @click="submitSelection">✅ 确定选择</button>
                 </div>
             </div>
         </div>
-
-        <!-- 确认按钮 -->
-        <div class="text-center mt-4" v-if="selectedExampleId">
-            <button class="btn btn-lg btn-primary" @click="submitSelection">✅ 确定选择</button>
-        </div>
-    </div>
-</div>
 
         </div>
     </ContentField>
@@ -173,9 +189,63 @@ const selectedExampleName = ref(null);
 const showCreateModal = ref(false);
 const searchQuery = ref(""); // 搜索框的输入
 
-// 分页相关数据
+
+//  RExample
+// 当前第几页
 const currentPage = ref(1);
-const pageSize = 10; // 每页显示10条数据
+// 每页多少个数据
+const pageSize = 5; // 每页显示10条数据
+// 当前页所有的数据
+const pagedRExamples = computed(() => {
+    const start = (currentPage.value - 1) * pageSize;
+    const end = currentPage.value * pageSize;
+    return RExamples.value.slice(start, end);
+});
+// 总共多少页
+const totalPages = computed(() => {
+    return Math.ceil(RExamples.value.length / pageSize);
+});
+
+// Situation
+const currentPageSituation = ref(1);
+const pageSizeSituation = 5; // 每页显示10条数据
+const pagedSituations = computed(() => {
+    const start = (currentPageSituation.value - 1) * pageSizeSituation;
+    const end = currentPageSituation.value * pageSizeSituation;
+    return situations.value.slice(start, end);
+});
+const totalPagesSituation = computed(() => {
+    return Math.ceil(situations.value.length / pageSizeSituation);
+});
+
+// Solution
+const currentPageSolution = ref(1);
+const pageSizeSolution = 5; // 每页显示10条数据
+const pagedSolution = computed(() => {
+    const start = (currentPageSolution.value - 1) * pageSizeSolution;
+    const end = currentPageSolution.value * pageSizeSolution;
+    return solutions.value.slice(start, end);
+});
+const totalPagesSolution = computed(() => {
+    return Math.ceil(solutions.value.length / pageSizeSolution);
+});
+
+
+//  Example
+// 当前第几页
+const currentPageExample = ref(1);
+// 每页多少个数据
+const pageSizeExample = 5; // 每页显示10条数据
+// 当前页所有的数据
+const pagedExamples = computed(() => {
+    const start = (currentPageExample.value - 1) * pageSizeExample;
+    const end = currentPageExample.value * pageSizeExample;
+    return examples.value.slice(start, end);
+});
+// 总共多少页
+const totalPagesExample = computed(() => {
+    return Math.ceil(examples.value.length / pageSizeExample);
+});
 
 // 获取 RExample 列表
 const fetchRExamples = () => {
@@ -224,6 +294,9 @@ const fetchSituations = () => {
         success(resp) {
             if (resp.code === 200) {
                 situations.value = resp.data;
+                console.log("get situations : ", situations.value)
+            } else {
+                console.log("get situations erro : ", resp)
             }
         },
         error(resp) {
@@ -329,18 +402,6 @@ const searchRExamples = () => {
 };
 
 
-// 计算分页后的 RExamples
-const pagedRExamples = computed(() => {
-    const start = (currentPage.value - 1) * pageSize;
-    const end = currentPage.value * pageSize;
-    return RExamples.value.slice(start, end);
-});
-
-// 计算总页数
-const totalPages = computed(() => {
-    return Math.ceil(RExamples.value.length / pageSize);
-});
-
 // 页面加载时获取想定列表和实例列表
 onMounted(() => {
     fetchSituations();
@@ -356,12 +417,25 @@ onMounted(() => {
     left: 0;
     width: 100%;
     height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto; /* 允许在模态框内滚动 */
+}
+
+/* .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1050;
-}
+} */
 
 /* 模态框内容 */
 .modal-content {
