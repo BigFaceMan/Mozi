@@ -53,10 +53,10 @@
 
                 <!-- 美观的项目名称输入框 -->
                 <div class="form-group mt-3 text-center">
-                    <label for="projectName" class="font-weight-bold text-primary">场景名称：</label>
+                    <label for="projectName" class="font-weight-bold text-primary">名称：</label>
                     <input type="text" id="projectName" v-model="projectName" 
                         class="form-control stylish-input mx-auto" 
-                        placeholder="请输入场景名称">
+                        placeholder="请输入项目名称">
                 </div>
 
                 <div class="row mt-5">
@@ -85,7 +85,7 @@
                                 </table>
                                 <div class="d-flex justify-content-center mt-3" style="margin-bottom: 5%">
                                     <button class="btn btn-secondary" :disabled="currentPageSituation === 1" @click="currentPageSituation--">‹ 上一页</button>
-                                    <span class="mx-3">第 {{ currentPageSituation }} 页</span>
+                                    <span class="mx-3">第 {{ currentPageSituation }} / {{ totalPagesSituation }} 页</span>
                                     <button class="btn btn-secondary" :disabled="currentPageSituation === totalPagesSituation" @click="currentPageSituation++">下一页 ›</button>
                                 </div>
                             </div>
@@ -117,7 +117,7 @@
                                 </table>
                                 <div class="d-flex justify-content-center mt-3" style="margin-bottom: 5%">
                                     <button class="btn btn-secondary" :disabled="currentPageSolution === 1" @click="currentPageSolution--">‹ 上一页</button>
-                                    <span class="mx-3">第 {{ currentPageSolution }} 页</span>
+                                    <span class="mx-3">第 {{ currentPageSolution }} / {{ totalPagesSolution}}页</span>
                                     <button class="btn btn-secondary" :disabled="currentPageSolution === totalPagesSolution" @click="currentPageSolution++">下一页 ›</button>
                                 </div>
                             </div>
@@ -150,7 +150,7 @@
 
                                 <div class="d-flex justify-content-center mt-3" style="margin-bottom: 5%">
                                     <button class="btn btn-secondary" :disabled="currentPageExample === 1" @click="currentPageExample--">‹ 上一页</button>
-                                    <span class="mx-3">第 {{ currentPageExample }} 页</span>
+                                    <span class="mx-3">第 {{ currentPageExample }} / {{ totalPagesExample }}页</span>
                                     <button class="btn btn-secondary" :disabled="currentPageExample === totalPagesExample" @click="currentPageExample++">下一页 ›</button>
                                 </div>
                             </div>
@@ -250,7 +250,7 @@ const totalPagesExample = computed(() => {
 // 获取 RExample 列表
 const fetchRExamples = () => {
     $.ajax({
-        url: "http://localhost:3000/remote/getRExamples/",
+        url: "http://127.0.0.1:3000/remote/getRExamples/",
         type: "POST",
         success(resp) {
             RExamples.value = resp.data;
@@ -267,7 +267,7 @@ const deleteRExample = (exampleId) => {
     if (!confirm("确定要删除此实例吗？")) return;
     
     $.ajax({
-        url: "http://localhost:3000/remote/deleteRExample/",
+        url: "http://127.0.0.1:3000/remote/deleteRExample/",
         type: "POST",
         headers: { Authorization: "Bearer " + store.state.user.token },
         data: { exampleId },
@@ -289,11 +289,12 @@ const deleteRExample = (exampleId) => {
 // 获取想定列表
 const fetchSituations = () => {
     $.ajax({
-        url: "http://localhost:3000/remote/getSituations/",
+        url: "http://127.0.0.1:3000/remote/getSituations/",
         type: "post",
         success(resp) {
             if (resp.code === 200) {
                 situations.value = resp.data;
+                currentPageSituation.value = 1;
                 console.log("get situations : ", situations.value)
             } else {
                 console.log("get situations erro : ", resp)
@@ -314,11 +315,12 @@ const selectSituation = (situationId) => {
     examples.value = [];
 
     $.ajax({
-        url: `http://localhost:3000/remote/getSolutions/?id=${situationId}`,
+        url: `http://127.0.0.1:3000/remote/getSolutions/?id=${situationId}`,
         type: "post",
         success(resp) {
             if (resp.code === 200) {
                 solutions.value = resp.data;
+                currentPageSolution.value = 1;
             }
         },
         error(resp) {
@@ -334,11 +336,12 @@ const selectSolution = (solutionId) => {
     examples.value = [];
 
     $.ajax({
-        url: `http://localhost:3000/remote/getExamples/?id=${solutionId}`,
+        url: `http://127.0.0.1:3000/remote/getExamples/?id=${solutionId}`,
         type: "post",
         success(resp) {
             if (resp.code === 200) {
                 examples.value = resp.data;
+                currentPageExample.value = 1;
             }
         },
         error(resp) {
@@ -361,7 +364,7 @@ const submitSelection = () => {
     }
 
     $.ajax({
-        url: "http://localhost:3000/remote/saveRExample/",
+        url: "http://127.0.0.1:3000/remote/saveRExample/",
         type: "POST",
         headers: {
             Authorization: "Bearer " + store.state.user.token,

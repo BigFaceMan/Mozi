@@ -172,7 +172,7 @@ const filteredModels = computed(() => {
 // 从后端获取模型列表
 const fetchModels = () => {
   $.ajax({
-    url: "http://localhost:3000/model/getlist/",
+    url: "http://127.0.0.1:3000/model/getlist/",
     type: "get",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -184,7 +184,7 @@ const fetchModels = () => {
     }
   });
   $.ajax({
-    url: "http://localhost:3000/remote/getRExamples/",
+    url: "http://127.0.0.1:3000/remote/getRExamples/",
     type: "post",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -194,7 +194,7 @@ const fetchModels = () => {
     }
   });
   $.ajax({
-    url: "http://localhost:3000/games/get/all/",
+    url: "http://127.0.0.1:3000/games/get/all/",
     type: "get",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -257,7 +257,7 @@ const startTraining = () => {
   // 进行后端请求，开始训练
 
   $.ajax({
-    url: "http://localhost:3000/train/add/",
+    url: "http://127.0.0.1:3000/train/add/",
     type: "post",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -289,7 +289,7 @@ const fetchEntities = (exampleId) => {
   if (!exampleId) return;
 
   $.ajax({
-    url: `http://localhost:3000/remote/getEntitys/?exampleId=${exampleId}`,
+    url: `http://127.0.0.1:3000/remote/getEntitys/?exampleId=${exampleId}`,
     type: "post",
     headers: {
       Authorization: "Bearer " + store.state.user.token,

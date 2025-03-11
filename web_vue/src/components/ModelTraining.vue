@@ -5,7 +5,7 @@
       <div class="card-body">
         <!-- 使标题居中并美化 -->
         <h5 class="title">训练可视化</h5>
-        <iframe src="http://localhost:6006" width="100%" height="800px" frameborder="0"></iframe>
+        <iframe src="http://127.0.0.1:6006" width="100%" height="800px" frameborder="0"></iframe>
       </div>
     </div>
 
@@ -25,7 +25,7 @@ export default {
   setup() {
     const store = useStore();
     const isTraining = computed(() => store.state.pk.trainingStatus === "running");
-    const socketUrl = `ws://localhost:3000/websocket/${store.state.user.token}/`;
+    const socketUrl = `ws://127.0.0.1:3000/websocket/${store.state.user.token}/`;
 
     let socket = null;
 

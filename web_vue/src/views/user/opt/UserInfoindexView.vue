@@ -125,7 +125,7 @@ export default {
     // Method to save changes
     const saveChanges = () => {
       $.ajax({
-        url: "http://localhost:3000/user/updatabyname/",
+        url: "http://127.0.0.1:3000/user/updatabyname/",
         type: "post",
         headers: {
           Authorization: "Bearer " + store.state.user.token,

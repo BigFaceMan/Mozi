@@ -30,22 +30,29 @@ public class RemoteSituationController {
     @PostMapping("/remote/getSituations/")
     public Map<String, Object> getSituations(@RequestParam Map<String, String> data) {
 //        True
-//        String url = "http://192.1.116.100:7210/www/task/page";
+//        String url = "http://192.1.116.100:7210/wwe/task/page";
 //        Fake
-        String url = "http://127.0.0.1:4001/www/task/page?pageIndex=1";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
-
+        String url = "http://127.0.0.1:4001/wwe/task/page?pageIndex=1";
         try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
             // 尝试发送请求并获取响应
             String situationJson = restTemplate.getForObject(url, String.class);
             ObjectMapper objectMapper = new ObjectMapper();
             Map<String, Object> map = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
             Map<String, Object> dataMap = (Map<String, Object>) map.get("data");
             List<Object> records = (List<Object>) dataMap.get("records");
+            int total = (int) dataMap.get("pages");
+            for (int i = 1; i < total; i++) {
+                String urli ="http://127.0.0.1:4001/wwe/task/page?pageIndex=" + Integer.toString(i + 1);
+                String situationIJson = restTemplate.getForObject(urli, String.class);
+                Map<String, Object> mapI = objectMapper.readValue(situationIJson, new TypeReference<Map<String, Object>>() {});
+                Map<String, Object> dataIMap = (Map<String, Object>) mapI.get("data");
+                List<Object> recordsI = (List<Object>) dataIMap.get("records");
+                records.addAll(recordsI);
+            }
 
             Map<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
@@ -81,101 +88,279 @@ public class RemoteSituationController {
     @PostMapping("/remote/getSolutions/")
     public Map<String, Object> getPlans(@RequestParam Map<String, String> data) {
         String situationId = data.get("id");
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("code", 200);
-        map.put("success", true);
-        map.put("message", "success");
-        List<Object> dataList = new ArrayList<>();
-        for (int i = 0; i < 30; i ++) {
-            HashMap<String, Object> dataMap = new HashMap<>();
-            dataMap.put("ver", 38);
-            dataMap.put("task_message", "真正的网电对抗");
-            dataMap.put("utime", "2025-03-08T06:39:03.000+00:00");
-            dataMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
-            dataMap.put("missionName", "网点作战" + Integer.toString(i));
-            dataMap.put("run_state", 1);
-            dataMap.put("id", "211111111" + Integer.toString(i));
-            //  想定id
-            int index = 0;
-            if (i > 15) {
-                index = i;
+        try {
+            String url = "http://127.0.0.1:4001/wwe/paticipantmissiondata/selectSeatByTaskId?taskId="+situationId;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+            String situationJson = restTemplate.getForObject(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> remoteMap = new HashMap<>();
+            try {
+                remoteMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            dataMap.put("taskUID", "111111111" + Integer.toString(index));
-            dataMap.put("status", 1);
+            Map<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("success", true);
+            resMap.put("message", "success");
+            resMap.put("data", remoteMap.get("data"));
+            return resMap;
+        } catch(Exception e) {
+            e.printStackTrace();
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("code", 200);
+            map.put("success", true);
+            map.put("message", "success");
+            List<Object> dataList = new ArrayList<>();
+            for (int i = 0; i < 30; i ++) {
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("ver", 38);
+                dataMap.put("task_message", "真正的网电对抗");
+                dataMap.put("utime", "2025-03-08T06:39:03.000+00:00");
+                dataMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
+                dataMap.put("missionName", "网点作战" + Integer.toString(i));
+                dataMap.put("run_state", 1);
+                dataMap.put("id", "211111111" + Integer.toString(i));
+                //  想定id
+                int index = 0;
+                if (i > 15) {
+                    index = i;
+                }
+                dataMap.put("taskUID", "111111111" + Integer.toString(index));
+                dataMap.put("status", 1);
 
-            HashMap<String, Object> relationMap = new HashMap<>();
-            relationMap.put("id", "4111111111");
-            relationMap.put("utime", "2025-03-08T06:39:03.000+00:00");
-            relationMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
-            relationMap.put("paticipantMissionId", "211111111" + Integer.toString(i));
-            // 想定id
-            relationMap.put("taskId", "111111111" + Integer.toString(index));
-            relationMap.put("relCountry", "中国");
-            HashMap<String, Object> relationMap1 = new HashMap<>();
-            relationMap1.put("id", "4111111112");
-            relationMap1.put("utime", "2025-03-08T06:39:03.000+00:00");
-            relationMap1.put("ctime", "2025-03-08T06:39:03.000+00:00");
-            relationMap1.put("paticipantMissionId", "211111111" + Integer.toString(i));
-            relationMap1.put("taskId", "111111111" + Integer.toString(index));
-            relationMap1.put("relCountry", "美国");
-            List<Object> relationList = new ArrayList<>();
-            relationList.add(relationMap);
-            relationList.add(relationMap1);
-            dataMap.put("relatemissionModels", relationList);
-            dataList.add(dataMap);
-        }
-        List<Object> dataSelectList = new ArrayList<>();
-        for (int i = 0; i < dataList.size(); i++) {
-            Map<String, Object> item = (Map<String, Object>) dataList.get(i);  // 类型转换
-            if (item.get("taskUID").equals(situationId)) {
-                dataSelectList.add(item);
+                HashMap<String, Object> relationMap = new HashMap<>();
+                relationMap.put("id", "4111111111");
+                relationMap.put("utime", "2025-03-08T06:39:03.000+00:00");
+                relationMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
+                relationMap.put("paticipantMissionId", "211111111" + Integer.toString(i));
+                // 想定id
+                relationMap.put("taskId", "111111111" + Integer.toString(index));
+                relationMap.put("relCountry", "中国");
+                HashMap<String, Object> relationMap1 = new HashMap<>();
+                relationMap1.put("id", "4111111112");
+                relationMap1.put("utime", "2025-03-08T06:39:03.000+00:00");
+                relationMap1.put("ctime", "2025-03-08T06:39:03.000+00:00");
+                relationMap1.put("paticipantMissionId", "211111111" + Integer.toString(i));
+                relationMap1.put("taskId", "111111111" + Integer.toString(index));
+                relationMap1.put("relCountry", "美国");
+                List<Object> relationList = new ArrayList<>();
+                relationList.add(relationMap);
+                relationList.add(relationMap1);
+                dataMap.put("relatemissionModels", relationList);
+                dataList.add(dataMap);
             }
+            List<Object> dataSelectList = new ArrayList<>();
+            for (int i = 0; i < dataList.size(); i++) {
+                Map<String, Object> item = (Map<String, Object>) dataList.get(i);  // 类型转换
+                if (item.get("taskUID").equals(situationId)) {
+                    dataSelectList.add(item);
+                }
+            }
+            map.put("data", dataSelectList);
+            return map;
         }
-        map.put("data", dataSelectList);
-        return map;
+
+
     }
 
     @PostMapping("/remote/getExamples/")
     public Map<String, Object> getExamples(@RequestParam Map<String, String> data) {
         String missionId = data.get("id");
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("code", 200);
-        map.put("success", true);
-        map.put("message", "success");
-        List<Object> dataList = new ArrayList<>();
-        for (int i = 0; i < 30; i ++) {
-            HashMap<String, Object> dataMap = new HashMap<>();
-            dataMap.put("ver", 38);
-            dataMap.put("utime", "2025-03-08T06:39:03.000+00:00");
-            dataMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
-            dataMap.put("name", "实例" + Integer.toString(i));
-            dataMap.put("run_state", 1);
-            int index = 0;
-            if (i > 15) {
-                index = i;
+        System.out.println("missionId : " + missionId);
+        try {
+            String url = "http://127.0.0.1:4001/wwe/deduce/shortcut/getByPMId?paticipantMissionUID="+missionId;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+            String situationJson = restTemplate.getForObject(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> remoteMap = new HashMap<>();
+            try {
+                remoteMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            dataMap.put("taskId", "111111111" + Integer.toString(index));
-            dataMap.put("id", "311111111" + Integer.toString(i));
-            dataMap.put("paticipantMissionUID", "211111111" + Integer.toString(index));
-            dataMap.put("status", 2);
-            dataList.add(dataMap);
-        }
+            Map<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("success", true);
+            resMap.put("message", "success");
+            resMap.put("data", remoteMap.get("data"));
+            return resMap;
+        } catch(Exception e) {
+            e.printStackTrace();
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("code", 200);
+            map.put("success", true);
+            map.put("message", "success");
+            List<Object> dataList = new ArrayList<>();
+            for (int i = 0; i < 30; i ++) {
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("ver", 38);
+                dataMap.put("utime", "2025-03-08T06:39:03.000+00:00");
+                dataMap.put("ctime", "2025-03-08T06:39:03.000+00:00");
+                dataMap.put("name", "实例" + Integer.toString(i));
+                dataMap.put("run_state", 1);
+                int index = 0;
+                if (i > 15) {
+                    index = i;
+                }
+                dataMap.put("taskId", "111111111" + Integer.toString(index));
+                dataMap.put("id", "311111111" + Integer.toString(i));
+                dataMap.put("paticipantMissionUID", "211111111" + Integer.toString(index));
+                dataMap.put("status", 2);
+                dataList.add(dataMap);
+            }
 
-        List<Object> dataSelectList = new ArrayList<>();
-        for (int i = 0; i < dataList.size(); i++) {
-            Map<String, Object> item = (Map<String, Object>) dataList.get(i);  // 类型转换
-            if (item.get("paticipantMissionUID").equals(missionId)) {
-                dataSelectList.add(item);
+            List<Object> dataSelectList = new ArrayList<>();
+            for (int i = 0; i < dataList.size(); i++) {
+                Map<String, Object> item = (Map<String, Object>) dataList.get(i);  // 类型转换
+                if (item.get("paticipantMissionUID").equals(missionId)) {
+                    dataSelectList.add(item);
+                }
             }
+            map.put("data", dataSelectList);
+            return map;
         }
-        map.put("data", dataSelectList);
-        return map;
+    }
+    @PostMapping("/remote/getEntity/")
+    public Map<String, Object> getEntity(@RequestParam Map<String, String> data) {
+        String id = data.get("situationId");
+        String groupId = data.get("groupId");
+        String equipment = "1";
+        String country = data.get("country");
+        try {
+            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getScenarioByUnipGroupStatistics?taskId="+id+"&groupId="+groupId+"&equipment="+equipment+"&country="+country;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+            String situationJson = restTemplate.getForObject(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> remoteMap = new HashMap<>();
+            try {
+                remoteMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Map<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("success", true);
+            resMap.put("message", "success");
+            resMap.put("data", remoteMap.get("data"));
+            return resMap;
+        } catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    @PostMapping("/remote/getGroup/")
+    public Map<String, Object> getGroup(@RequestParam Map<String, String> data) {
+        String id = data.get("situationId");
+        String pid = data.get("pid");
+        try {
+            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getUnipGroupTree?id="+id+"&pid="+pid;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+            String situationJson = restTemplate.getForObject(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> remoteMap = new HashMap<>();
+            try {
+                remoteMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Map<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("success", true);
+            resMap.put("message", "success");
+            resMap.put("data", remoteMap.get("data"));
+            return resMap;
+        } catch(Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+//    国家
+    @PostMapping("/remote/getCountry/")
+    public Map<String, Object> getCountry(@RequestParam Map<String, String> data) {
+        String situationId = data.get("id");
+        try {
+            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getUnipGroupTree?id="+situationId;
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+            String situationJson = restTemplate.getForObject(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> remoteMap = new HashMap<>();
+            try {
+                remoteMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Map<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("success", true);
+            resMap.put("message", "success");
+            resMap.put("data", remoteMap.get("data"));
+            return resMap;
+        } catch(Exception e) {
+            e.printStackTrace();
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", "200");
+            response.put("success", true);
+            response.put("message", "成功");
+
+            String[] countries = {"中国", "美国", "俄罗斯", "德国", "法国"};
+            List<Map<String, Object>> dataList = new ArrayList<>();
+            for (int i = 0; i < 5; i++) { // 生成两个示例数据
+                String country;
+                country = countries[i];
+                Map<String, Object> uniformData = new HashMap<>();
+                uniformData.put("country", country);
+                uniformData.put("color", "rsb(0.47,255)");
+                List<Map<String, Object>> unipGroupVOS = new ArrayList<>();
+                Map<String, Object> uniform1 = new HashMap<>();
+                uniform1.put("uniformName", "新建编辑");
+                uniform1.put("country", country);
+                uniform1.put("id", "511111111" + i);
+                uniform1.put("unimodel", null);
+                uniform1.put("childrenEdit", false);
+                uniform1.put("children", null);
+                unipGroupVOS.add(uniform1);
+
+                Map<String, Object> uniform2 = new HashMap<>();
+                uniform2.put("uniformName", "新建编辑");
+                uniform2.put("country", country);
+                uniform2.put("id", "511111111" + (i + 1));
+                uniform2.put("unimodel", null);
+                uniform2.put("childrenEdit", true);
+                uniform2.put("children", null);
+                unipGroupVOS.add(uniform2);
+
+                uniformData.put("unipGroupVOS", unipGroupVOS);
+                uniformData.put("scenarioModelVOS", null);
+                uniformData.put("equipment", null);
+                uniformData.put("expectyListV0", null);
+
+                dataList.add(uniformData);
+            }
+            response.put("data", dataList);
+            return response;
+        }
     }
 
     @PostMapping("/remote/saveRExample/")
     public Map<String, Object> saveRExample(@RequestParam Map<String, String> data) {
         Map<String, Object> response = new HashMap<>();
-
         try {
             // 解析前端传来的参数
             String situationId = data.get("situationId");

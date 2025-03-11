@@ -73,7 +73,7 @@ const form = reactive({ ...store.state.pk.form });
 // 从后端获取模型列表
 const fetchModels = () => {
   $.ajax({
-    url: "http://localhost:3000/remote/getRExamples/",
+    url: "http://127.0.0.1:3000/remote/getRExamples/",
     type: "post",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -83,7 +83,7 @@ const fetchModels = () => {
     }
   });
   $.ajax({
-    url: "http://localhost:3000/train/getlist/",
+    url: "http://127.0.0.1:3000/train/getlist/",
     type: "get",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -95,7 +95,7 @@ const fetchModels = () => {
   });
 
   $.ajax({
-    url: "http://localhost:3000/games/get/all/",
+    url: "http://127.0.0.1:3000/games/get/all/",
     type: "get",
     headers: {
       Authorization: "Bearer " + store.state.user.token,
@@ -128,7 +128,7 @@ const filteredTrainings = computed(() => {
 });
 const startTraining = () => {
     $.ajax({
-        url: "http://localhost:3000/infer/add/",
+        url: "http://127.0.0.1:3000/infer/add/",
         type: "post",
         headers: {
             Authorization: "Bearer " + store.state.user.token,
