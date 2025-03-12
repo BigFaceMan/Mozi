@@ -3,7 +3,9 @@ package org.example.backend.controller.situation;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.mapper.ExamplesMapper;
+import org.example.backend.mapper.SceneEntityMapper;
 import org.example.backend.pojo.Examples;
+import org.example.backend.pojo.SceneEntity;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,8 @@ import java.util.*;
 public class RemoteSituationController {
     @Autowired
     private ExamplesMapper examplesMapper;
+    @Autowired
+    private SceneEntityMapper sceneEntityMapper;
     @Autowired
     private RestTemplate restTemplate;
     @PostMapping("/remote/getSituations/")
@@ -234,7 +238,7 @@ public class RemoteSituationController {
         String equipment = "1";
         String country = data.get("country");
         try {
-            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getScenarioByUnipGroupStatistics?taskId="+id+"&groupId="+groupId+"&equipment="+equipment+"&country="+country;
+            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getScenarioByUnipGroupStatistics?taskId="+id+"&unipGroupId="+groupId+"&equipment="+equipment+"&country="+country;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
@@ -262,8 +266,11 @@ public class RemoteSituationController {
     public Map<String, Object> getGroup(@RequestParam Map<String, String> data) {
         String id = data.get("situationId");
         String pid = data.get("pid");
+        String country = data.get("country");
+        System.out.println("country : " + country);
+        System.out.println("pid : " + pid);
         try {
-            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getUnipGroupTree?id="+id+"&pid="+pid;
+            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getUnipGroupTreeSync?id="+id+"&pid="+pid;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
@@ -276,11 +283,28 @@ public class RemoteSituationController {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+// 处理 data
+            List<Map<String, Object>> filteredData = new ArrayList<>();
+            Object dataObj = remoteMap.get("data");
+            int cnt = 0;
+            if (dataObj instanceof List) {
+                List<Map<String, Object>> dataList = (List<Map<String, Object>>) dataObj;
+                for (Map<String, Object> item : dataList) {
+                    cnt ++;
+                    System.out.println("country : " + item.get("country"));
+                    if (country.equals(item.get("country"))) {
+//                        item.put("children", new ArrayList<>()); // 清空 children
+                        filteredData.add(item);
+                    }
+                }
+            }
+            System.out.println("This request get data : " + Integer.toString(cnt));
             Map<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("success", true);
             resMap.put("message", "success");
-            resMap.put("data", remoteMap.get("data"));
+            resMap.put("data", filteredData);
+
             return resMap;
         } catch(Exception e) {
             e.printStackTrace();
@@ -368,6 +392,8 @@ public class RemoteSituationController {
             String exampleId = data.get("exampleId");
             String exampleName = data.get("exampleName");
             String projectName = data.get("projectName");
+            String selectCountry = data.get("selectCountry");
+            System.out.println("saveRExample Country : " + selectCountry);
 
             if (situationId == null || solutionId == null || exampleId == null) {
                 response.put("code", 400);
@@ -382,6 +408,7 @@ public class RemoteSituationController {
             example.setExampleid(exampleId);
             example.setExamplename(exampleName);
             example.setProjectname(projectName);
+            example.setCountry(selectCountry);
             example.setCreatetime(new Date()); // 设置当前时间
 
 
@@ -396,8 +423,29 @@ public class RemoteSituationController {
             boolean isSaved = examplesMapper.insert(example) > 0;
 
             if (isSaved) {
+                int generatedId = example.getId();
+                System.out.println("generatedId : " + generatedId);
                 response.put("code", 200);
                 response.put("message", "保存成功");
+                Object entityListObject = data.get("selectedEntities");
+                System.out.println("entityString : " + entityListObject);
+                // 反序列化 JSON 字符串为 List<Map<String, String>>
+                ObjectMapper objectMapper = new ObjectMapper();
+                List<Map<String, String>> entityList = objectMapper.readValue((String) entityListObject, new TypeReference<List<Map<String, String>>>() {});
+                System.out.println("entityList : " + entityList);
+                for (int i = 0; i < entityList.size(); i ++) {
+//                    System.out.println("entityList : " + entityList.get(i));
+                    Map<String, String> entity = entityList.get(i);
+                    System.out.println("entity : " + entity);
+                    SceneEntity sceneEntity = new SceneEntity();
+                    String entityId = entity.get("entityId");
+                    String groupId = entity.get("groupId");
+                    sceneEntity.setEntityid(entityId);
+                    sceneEntity.setGroupid(groupId);
+                    sceneEntity.setSceneid(generatedId);
+                    sceneEntityMapper.insert(sceneEntity);
+                }
+
             } else {
                 response.put("code", 500);
                 response.put("message", "保存失败");
