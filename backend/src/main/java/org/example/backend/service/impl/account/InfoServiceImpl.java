@@ -164,7 +164,7 @@ public class InfoServiceImpl implements InfoService {
         }
 
         String encodedPassword = passwordEncoder.encode(password);
-        User user = new User(null, username, encodedPassword, urank, phone, email, 0);
+        User user = new User(null, username, encodedPassword, urank, phone, email, 0, null);
 //        User user = new User(null, username, encodedPassword);
         userMapper.insert(user);
 

@@ -19,4 +19,5 @@ public class User {
     private String phone;
     private String email;
     private Integer uploadcnt;
+    private String userid;
 }

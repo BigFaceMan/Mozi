@@ -12,6 +12,7 @@ import UserAccountRegisterView from '../views/user/account/UserAccountRegisterVi
 import LogConductView from "../views/logconduct/LogConductView"
 import GameNodesView from "../views/gameNodesConduct/GameNodesView"
 import DataAnalysisView from "../views/dataAnalysis/DataAnalysisView"
+import RmoteLogView from "../views/remoteLog/RmoteLogView"
 import store from '../store/index'
 
 const routes = [
@@ -21,6 +22,14 @@ const routes = [
     // redirect: "/pk/",
     meta: {
       requestAuth: true,
+    }
+  },
+  {
+    path: "/remoteLog/",
+    name: "remoteLog_index",
+    component: RmoteLogView,
+    meta: {
+      requestAuth: false,
     }
   },
   {
