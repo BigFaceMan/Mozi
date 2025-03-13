@@ -1,5 +1,6 @@
 package org.example.backend.controller.pk;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.backend.pojo.Train;
 import org.example.backend.pojo.TrainLog;
 import org.example.backend.pojo.User;
@@ -26,7 +27,7 @@ public class ModeTrainingController {
     private GamesService gamesService;
 
     @PostMapping("/train/add/")
-    public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) {
+    public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) throws JsonProcessingException {
         UsernamePasswordAuthenticationToken authentication =
                 (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();

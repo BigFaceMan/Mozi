@@ -30,10 +30,10 @@ public class SignUpdateGame {
         this.restTemplate = restTemplate;
     }
 
-    @Scheduled(fixedRate = 60 * 1000) // 每 1分钟执行一次
+    @Scheduled(fixedRate = 1000) // 每 20s 执行一次
     public void sendResourceInfo() {
         ResourceInfo resourceInfo = getResourceInfo();
-        System.out.println("DI serviceUrl : " + servicePlatformUrl);
+//        System.out.println("DI serviceUrl : " + servicePlatformUrl);
         String url = servicePlatformUrl + "/games/sign/";
         restTemplate.postForObject(url, resourceInfo, String.class);
     }

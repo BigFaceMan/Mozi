@@ -141,7 +141,7 @@
 
 
     <!-- 输出保存的配置信息 -->
-    <div v-if="showConfig" class="alert alert-success mt-3">
+   <div v-if="showConfig" class="alert alert-success mt-3">
       <h5>保存的配置信息:</h5>
       <pre>{{ form }}</pre>
     </div>
@@ -267,6 +267,7 @@ const startTraining = () => {
       scene: form.scene,
       model: form.model,
       pytorchVersion: form.pytorchVersion,
+      trainIters: form.trainIterations, 
       ip: form.ip,
       port: form.port,
       modelParams: JSON.stringify(form.modelParams),
