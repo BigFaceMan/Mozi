@@ -25,7 +25,7 @@ public class UserLogInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication instanceof AnonymousAuthenticationToken){
-            System.out.println("用户未登录，访问接口：" + request.getRequestURI());
+//            System.out.println("用户未登录，访问接口：" + request.getRequestURI());
             return true;
         }
 

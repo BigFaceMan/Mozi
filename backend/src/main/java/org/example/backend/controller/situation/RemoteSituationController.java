@@ -31,12 +31,22 @@ public class RemoteSituationController {
     private SceneEntityMapper sceneEntityMapper;
     @Autowired
     private RestTemplate restTemplate;
+//    Fake
+    private String url0 = "http://127.0.0.1:4001";
+    private String url1 = "http://127.0.0.1:4001";
+    private String url2 = "http://127.0.0.1:4001";
+    private String url3 = "http://127.0.0.1:4001";
+    private String url4 = "http://127.0.0.1:4001";
+//    private String url1 = "http://192.1.116.100:7210";
+//    private String url2 = "http://192.1.116.100:8082";
+//    private String url3 = "http://192.1.116.100:8081";
+//    private String url4 = "http://192.1.116.100:8002";
     @PostMapping("/remote/getSituations/")
-    public Map<String, Object> getSituations(@RequestParam Map<String, String> data) {
+    public Map<String, Object> getSituatioes(@RequestParam Map<String, String> data) {
 //        True
 //        String url = "http://192.1.116.100:7210/wwe/task/page";
 //        Fake
-        String url = "http://127.0.0.1:4001/wwe/task/page?pageIndex=1";
+        String url = url1 + "/wwe/task/page?pageIndex=1";
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -50,7 +60,8 @@ public class RemoteSituationController {
             List<Object> records = (List<Object>) dataMap.get("records");
             int total = (int) dataMap.get("pages");
             for (int i = 1; i < total; i++) {
-                String urli ="http://127.0.0.1:4001/wwe/task/page?pageIndex=" + Integer.toString(i + 1);
+                System.out.println("request Situation Page : " + Integer.toString(i));
+                String urli = url1 + "/wwe/task/page?pageIndex=" + Integer.toString(i + 1);
                 String situationIJson = restTemplate.getForObject(urli, String.class);
                 Map<String, Object> mapI = objectMapper.readValue(situationIJson, new TypeReference<Map<String, Object>>() {});
                 Map<String, Object> dataIMap = (Map<String, Object>) mapI.get("data");
@@ -92,8 +103,9 @@ public class RemoteSituationController {
     @PostMapping("/remote/getSolutions/")
     public Map<String, Object> getPlans(@RequestParam Map<String, String> data) {
         String situationId = data.get("id");
+        System.out.println("At getSolutions, situationId : " + situationId);
         try {
-            String url = "http://127.0.0.1:4001/wwe/paticipantmissiondata/selectSeatByTaskId?taskId="+situationId;
+            String url = url1 + "/wwe/paticipantmissiondata/selectSeatByTaskId?taskId="+situationId;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
@@ -176,7 +188,7 @@ public class RemoteSituationController {
         String missionId = data.get("id");
         System.out.println("missionId : " + missionId);
         try {
-            String url = "http://127.0.0.1:4001/wwe/deduce/shortcut/getByPMId?paticipantMissionUID="+missionId;
+            String url = url1 + "/wwe/deduce/shortcut/getByPMId?paticipantMissionUID="+missionId;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
@@ -237,8 +249,9 @@ public class RemoteSituationController {
         String groupId = data.get("groupId");
         String equipment = "1";
         String country = data.get("country");
+        System.out.println("At getEntity, situationId : " + id + " groupId : " + groupId + " country : " + country);
         try {
-            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getScenarioByUnipGroupStatistics?taskId="+id+"&unipGroupId="+groupId+"&equipment="+equipment+"&country="+country;
+            String url = url4 + "/ygserver/experiment/scene/getScenarioByUnipGroupStatistics?taskId="+id+"&unipGroupId="+groupId+"&equipment="+equipment+"&country="+country;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
@@ -267,10 +280,9 @@ public class RemoteSituationController {
         String id = data.get("situationId");
         String pid = data.get("pid");
         String country = data.get("country");
-        System.out.println("country : " + country);
-        System.out.println("pid : " + pid);
+        System.out.println("At getGoup, situationId : " + id + " pid : " + pid + " country : " + country);
         try {
-            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getUnipGroupTreeSync?id="+id+"&pid="+pid;
+            String url = url4 + "/ygserver/experiment/scene/getUnipGroupTreeSync?id="+id+"&pid="+pid;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
@@ -315,9 +327,10 @@ public class RemoteSituationController {
 //    国家
     @PostMapping("/remote/getCountry/")
     public Map<String, Object> getCountry(@RequestParam Map<String, String> data) {
-        String situationId = data.get("id");
+        String situationId = data.get("situationId");
+        System.out.println("At getCountry : situationId : " + situationId);
         try {
-            String url = "http://127.0.0.1:4001/ygserver/experiment/scene/getUnipGroupTree?id="+situationId;
+            String url = url4 + "/ygserver/experiment/scene/getUnipGroupTree?id="+situationId;
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
             MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();

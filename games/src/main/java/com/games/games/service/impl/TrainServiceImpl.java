@@ -9,10 +9,14 @@ import com.games.games.pojo.Train;
 import com.games.games.pojo.TrainLog;
 import com.games.games.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
+import javax.swing.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,6 +37,8 @@ public class TrainServiceImpl implements TrainService {
     private TrainLogMapper trainLogMapper;
     @Autowired
     private ExceptionLogMapper exceptionLogMapper;
+    @Value("${server.env}")
+    private String envName;
     private int runStatus = 1;
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
 
@@ -91,7 +97,31 @@ public class TrainServiceImpl implements TrainService {
         String pytorchVersion = data.getFirst("pytorchVersion");
         String modelParams = data.getFirst("modelParams");
         String scene = data.getFirst("scene");
-        File projectPath = new File(System.getProperty("user.dir"), "src/main/python");
+        File projectPath = new File(System.getProperty("user.dir"), "/python");
+        if (!projectPath.exists()) {
+            if (projectPath.mkdirs()) {
+                System.out.println("目录创建成功：" + projectPath.getAbsolutePath());
+            } else {
+                System.err.println("目录创建失败！");
+            }
+        }
+        File tensorboardDir = new File(projectPath.getPath(), "/logs");
+        File checkpointDir = new File(projectPath.getPath(), "/chekcpoint");
+        if (!tensorboardDir.exists()) {
+            if (tensorboardDir.mkdirs()) {
+                System.out.println("目录创建成功：" + tensorboardDir.getAbsolutePath());
+            } else {
+                System.err.println("目录创建失败！");
+            }
+        }
+        if (!checkpointDir.exists()) {
+            if (checkpointDir.mkdirs()) {
+                System.out.println("目录创建成功：" + checkpointDir.getAbsolutePath());
+            } else {
+                System.err.println("目录创建失败！");
+            }
+        }
+
         File checkpointpathcls = new File(projectPath, "checkpoint/" + trainingName + "_" + scene + ".pth");
         File tensorboardpathcls = new File(projectPath, "logs/" + trainingName + "_" + scene);
         // 如果需要字符串形式的路径，可以调用 getPath()
@@ -108,21 +138,25 @@ public class TrainServiceImpl implements TrainService {
         String code = modelTrain.getCode();
         // 创建训练脚本保存路径
         File trainFile = new File(projectPath, "train.py");
-
-        // 将代码写入 train.py 文件
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(trainFile))) {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+            new FileOutputStream(trainFile), StandardCharsets.UTF_8))) {
             writer.write(code);
         } catch (IOException e) {
-            // 处理写入文件时的异常
             Map<String, String> errorMap = new HashMap<>();
             errorMap.put("error_message", "保存代码文件失败: " + e.getMessage());
             return errorMap;
         }
 
+        String params = data.getFirst("params");
+
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        String paramsJson = isWindows ? params.replace("\"", "\\\"") : params.replace("'", "\\'");
+        String quote = isWindows ? "\"" : "'";
 
         Map<String, String> result = new HashMap<>();
-        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, uId, 3, ip, port, processId, trainFile.getPath());
+        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, uId, 3, ip, port, processId, trainFile.getPath(), paramsJson);
         trainMapper.insert(train);
+        System.out.println("Conda EvnName : " + envName);
 
         Thread trainingThread = new Thread(() -> {
             try {
@@ -131,15 +165,17 @@ public class TrainServiceImpl implements TrainService {
                     // Windows 平台
                     command = new String[]{
                             "cmd.exe", "/c",
-                            "conda activate ssp && python -u " + trainFile.getPath() +
-                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                            "conda activate " + envName + " && python -u " + trainFile.getPath() +
+                                    " --process_id " + processId +
+                                    " --tensorboardpath " + tensorboardpath +
+                                    " --params " + quote + paramsJson + quote
                     };
                 } else {
                     // Linux 平台
                     command = new String[]{
                             "/bin/bash", "-c",
-                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate ssp && python -u " + trainFile.getPath() +
-                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName + " && python -u " + trainFile.getPath() +
+                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
                     };
                 }
 
@@ -347,6 +383,9 @@ public class TrainServiceImpl implements TrainService {
         String tensorboardpath = data.getFirst("tensorboardpath");
         Train train = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", trainingName));
         String trainPyPath = train.getTrainpypath();
+        String paramsJson = train.getParams();
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        String quote = isWindows ? "\"" : "'";
 //        long currentTimeMillis = System.currentTimeMillis(); // 获取当前的时间戳
 //        Date currentDate = new Date(currentTimeMillis); // 将时间戳转换为Date对象
 //        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss"); // 定义日期格式
@@ -384,15 +423,15 @@ public class TrainServiceImpl implements TrainService {
                     // Windows 平台
                     command = new String[]{
                             "cmd.exe", "/c",
-                            "conda activate ssp && python -u " + trainPyPath +
-                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                            "conda activate " + envName + " && python -u " + trainPyPath +
+                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
                     };
                 } else {
                     // Linux 平台
                     command = new String[]{
                             "/bin/bash", "-c",
-                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate ssp && python -u " + trainPyPath +
-                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath
+                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName + " && python -u " + trainPyPath +
+                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
                     };
                 }
 
@@ -478,13 +517,13 @@ public class TrainServiceImpl implements TrainService {
                     // Windows 下使用 cmd.exe
                     command = new String[]{
                             "cmd.exe", "/c",
-                            "conda activate ssp && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
+                            "conda activate " + envName + " && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
                     };
                 } else {
                     // Linux 下使用 /bin/bash
                     command = new String[]{
                             "/bin/bash", "-c",
-                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate ssp && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
+                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName + " && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
                     };
                 }
                 // 使用 ProcessBuilder 启动 TensorBoard
@@ -534,6 +573,7 @@ public class TrainServiceImpl implements TrainService {
     @Override
     public Map<String, String> deleteTensorboard(MultiValueMap<String, String> data) {
         int port = Integer.parseInt(data.getFirst("tPort"));
+        System.out.println("want to kill port : " + port);
         killProcessByPort(port);
         HashMap<String, String> result = new HashMap<>();
         result.put("status", "success");
@@ -543,7 +583,6 @@ public class TrainServiceImpl implements TrainService {
     public void killProcessByPort(int port) {
         try {
             String os = System.getProperty("os.name").toLowerCase();
-            String pid = null;
             ProcessBuilder netstatProcessBuilder;
 
             if (os.contains("win")) {
@@ -558,32 +597,52 @@ public class TrainServiceImpl implements TrainService {
             BufferedReader reader = new BufferedReader(new InputStreamReader(netstatProcess.getInputStream()));
 
             String line;
+            String pid = null;
             while ((line = reader.readLine()) != null) {
                 System.out.println("line is: " + line);
-                pid = line.trim().split("\\s+")[0]; // 提取 PID
-            }
-            System.out.println("pid is: " + pid);
-
-            if (pid != null && !pid.isEmpty()) {
-                ProcessBuilder killProcessBuilder;
-                if (os.contains("win")) {
-                    // Windows 使用 taskkill 杀死进程
-                    killProcessBuilder = new ProcessBuilder("cmd.exe", "/c", "taskkill /PID " + pid + " /F");
-                } else {
-                    // Linux 使用 kill 命令
-                    killProcessBuilder = new ProcessBuilder("/bin/bash", "-c", "kill -9 " + pid);
+                if (line.contains("6001")) {  // 只处理包含 6001 端口的行
+                    String[] parts = line.trim().split("\\s+");
+                    pid = parts[parts.length - 1]; // PID 在最后一列
+                    ProcessBuilder killProcessBuilder;
+                    if (os.contains("win")) {
+                        // Windows 使用 taskkill 杀死进程
+                        killProcessBuilder = new ProcessBuilder("cmd.exe", "/c", "taskkill /PID " + pid + " /F");
+                    } else {
+                        // Linux 使用 kill 命令
+                        killProcessBuilder = new ProcessBuilder("/bin/bash", "-c", "kill -9 " + pid);
+                    }
+                    Process killProcess = killProcessBuilder.start();
+                    int exitCode = killProcess.waitFor();
+                    if (exitCode == 0) {
+                        System.out.println("Successfully killed process with PID " + pid);
+                    } else {
+                        System.out.println("Failed to kill process with PID " + pid);
+                    }
+//                    break;
                 }
-
-                Process killProcess = killProcessBuilder.start();
-                int exitCode = killProcess.waitFor();
-                if (exitCode == 0) {
-                    System.out.println("Successfully killed process with PID " + pid);
-                } else {
-                    System.out.println("Failed to kill process with PID " + pid);
-                }
-            } else {
-                System.out.println("No process found on port " + port);
             }
+//            System.out.println("TensorBoard PID using port 6001 is: " + pid);
+
+//            if (pid != null && !pid.isEmpty()) {
+//                ProcessBuilder killProcessBuilder;
+//                if (os.contains("win")) {
+//                    // Windows 使用 taskkill 杀死进程
+//                    killProcessBuilder = new ProcessBuilder("cmd.exe", "/c", "taskkill /PID " + pid + " /F");
+//                } else {
+//                    // Linux 使用 kill 命令
+//                    killProcessBuilder = new ProcessBuilder("/bin/bash", "-c", "kill -9 " + pid);
+//                }
+//
+//                Process killProcess = killProcessBuilder.start();
+//                int exitCode = killProcess.waitFor();
+//                if (exitCode == 0) {
+//                    System.out.println("Successfully killed process with PID " + pid);
+//                } else {
+//                    System.out.println("Failed to kill process with PID " + pid);
+//                }
+//            } else {
+//                System.out.println("No process found on port " + port);
+//            }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }

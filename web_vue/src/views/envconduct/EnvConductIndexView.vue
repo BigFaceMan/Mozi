@@ -27,7 +27,7 @@
                     </thead>
                     <tbody>
                         <tr v-for="rexample in pagedRExamples" :key="rexample.id">
-                            <td>{{ rexample.exampleid }}</td>
+                            <td>{{ rexample.id }}</td>
                             <td>{{ rexample.projectname }}</td>
                             <td>{{ rexample.examplename }}</td>
                             <td>{{ rexample.createtime }}</td>
@@ -62,6 +62,12 @@
                         <div class="row mt-5">
                             <!-- 第一列：想定列表 -->
                             <div class="col-md-4">
+                                <div class="p-3">
+                                    <div class="input-group stylish-search">
+                                        <!-- <span class="input-group-text"><i class="fas fa-search"></i></span> -->
+                                        <input v-model="searchQuerySituation" class="form-control" placeholder="搜索想定..." />
+                                    </div>
+                                </div>
                                 <div class="card">
                                     <div class="card-header bg-primary text-white">
                                         <h5 class="mb-0">选择想定</h5>
@@ -94,6 +100,12 @@
 
                             <!-- 第二列：方案列表 -->
                             <div class="col-md-4" v-if="selectedSituationId">
+                                <div class="p-3">
+                                    <div class="input-group stylish-search">
+                                        <!-- <span class="input-group-text"><i class="fas fa-search"></i></span> -->
+                                        <input v-model="searchQuerySolution" class="form-control" placeholder="搜索方案..." />
+                                    </div>
+                                </div>
                                 <div class="card">
                                     <div class="card-header bg-success text-white">
                                         <h5 class="mb-0">选择方案</h5>
@@ -126,6 +138,12 @@
 
                             <!-- 第三列：实例列表 -->
                             <div class="col-md-4" v-if="selectedSolutionId">
+                                <div class="p-3">
+                                    <div class="input-group stylish-search">
+                                        <!-- <span class="input-group-text"><i class="fas fa-search"></i></span> -->
+                                        <input v-model="searchQueryExample" class="form-control" placeholder="搜索实例..." />
+                                    </div>
+                                </div>
                                 <div class="card">
                                     <div class="card-header bg-warning text-dark">
                                         <h5 class="mb-0">选择实例</h5>
@@ -210,13 +228,15 @@
                                             </thead>
                                             <tbody>
                                                 <tr v-for="group in pagedGroup" :key="group.id">
-                                                    <td @click="chooseGroup(group)" style="cursor: pointer;">{{ group.unitGroupName }}</td>
-                                                    <td class="d-flex">
-                                                        <button class="btn btn-outline-primary btn-sm mx-2" @click="selectGroup(group)">
-
+                                                    <td style="cursor: pointer;">{{ group.unitGroupName }}</td>
+                                                    <td class="d-flex justify-content-center align-items-center gap-2">
+                                                        <button class="btn stylish-btn btn-success" @click="selectGroup(group)">
                                                             <i class="fas fa-check-circle"></i> 选择
                                                         </button>
-                                                        <button class="btn btn-outline-warning btn-sm mx-2" @click="goBackGroup()" :disabled="groupStack.length <= 1">
+                                                        <button class="btn stylish-btn btn-info" @click="chooseGroup(group)">
+                                                            <i class="fas fa-angle-double-right"></i> 展开
+                                                        </button>
+                                                        <button class="btn stylish-btn btn-warning" @click="goBackGroup()" :disabled="groupStack.length <= 1">
                                                             <i class="fas fa-arrow-left"></i> 返回
                                                         </button>
                                                     </td>
@@ -245,6 +265,9 @@
                                                     <th>类型</th>
                                                     <th>实体名</th>
                                                     <th>选择</th>
+                                                    <th> 全选: 
+                                                        <input type="checkbox" @change="toggleAllEntities" :checked="isAllSelected">
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -312,6 +335,9 @@ const selectedExampleName = ref(null);
 const selectedCountryName = ref(null);
 const showCreateModal = ref(false);
 const searchQuery = ref(""); // 搜索框的输入
+const searchQuerySituation = ref(""); // 搜索框的输入
+const searchQuerySolution = ref(""); // 搜索框的输入
+const searchQueryExample = ref(""); // 搜索框的输入
 
 // 编组栈
 const groupStack = ref([0]);
@@ -336,25 +362,39 @@ const totalPages = computed(() => {
 // Situation
 const currentPageSituation = ref(1);
 const pageSizeSituation = 5; // 每页显示10条数据
+
+const filteredSituations = computed(() => {
+    return situations.value.filter(s => 
+        s.taskName.includes(searchQuerySituation.value) || 
+        s.id.toString().includes(searchQuerySituation.value)
+    );
+});
 const pagedSituations = computed(() => {
     const start = (currentPageSituation.value - 1) * pageSizeSituation;
     const end = currentPageSituation.value * pageSizeSituation;
-    return situations.value.slice(start, end);
+    return filteredSituations.value.slice(start, end);
 });
 const totalPagesSituation = computed(() => {
-    return Math.ceil(situations.value.length / pageSizeSituation);
+    return Math.ceil(filteredSituations.value.length / pageSizeSituation);
 });
 
 // Solution
 const currentPageSolution = ref(1);
 const pageSizeSolution = 5; // 每页显示10条数据
+
+const filteredSolution = computed(() => {
+    return solutions.value.filter(s => 
+        s.missionName.includes(searchQuerySolution.value) || 
+        s.id.toString().includes(searchQuerySolution.value)
+    );
+});
 const pagedSolution = computed(() => {
     const start = (currentPageSolution.value - 1) * pageSizeSolution;
     const end = currentPageSolution.value * pageSizeSolution;
-    return solutions.value.slice(start, end);
+    return filteredSolution.value.slice(start, end);
 });
 const totalPagesSolution = computed(() => {
-    return Math.ceil(solutions.value.length / pageSizeSolution);
+    return Math.ceil(filteredSolution.value.length / pageSizeSolution);
 });
 
 
@@ -363,15 +403,21 @@ const totalPagesSolution = computed(() => {
 const currentPageExample = ref(1);
 // 每页多少个数据
 const pageSizeExample = 5; // 每页显示10条数据
+const filteredExample = computed(() => {
+    return examples.value.filter(s => 
+        s.name.includes(searchQueryExample.value) || 
+        s.id.toString().includes(searchQueryExample.value)
+    );
+});
 // 当前页所有的数据
 const pagedExamples = computed(() => {
     const start = (currentPageExample.value - 1) * pageSizeExample;
     const end = currentPageExample.value * pageSizeExample;
-    return examples.value.slice(start, end);
+    return filteredExample.value.slice(start, end);
 });
 // 总共多少页
 const totalPagesExample = computed(() => {
-    return Math.ceil(examples.value.length / pageSizeExample);
+    return Math.ceil(filteredExample.value.length / pageSizeExample);
 });
 
 // Country
@@ -418,6 +464,30 @@ const pagedEntity = computed(() => {
 const totalPagesEntity = computed(() => {
     return Math.ceil(entitys.value.length / pageSizeEntity);
 });
+
+const isAllSelected = computed(() => {
+        return entitys.value.length > 0 && 
+               entitys.value.every(entity => 
+                   selectedEntities.value.some(selected => selected.entityId === entity.id)
+               );
+});
+const toggleAllEntities = () => {
+    if (isAllSelected.value) {
+        // 取消全选：移除当前页的所有实体
+        selectedEntities.value = selectedEntities.value.filter(
+            selected => !entitys.value.some(entity => entity.id === selected.entityId)
+        );
+    } else {
+        // 全选：添加当前页所有实体
+        const newSelections = entitys.value.map(entity => ({
+            groupId: selectedGroupId.value,
+            entityId: entity.id
+        }));
+        selectedEntities.value = [...selectedEntities.value, ...newSelections.filter(newEntity =>
+            !selectedEntities.value.some(selected => selected.entityId === newEntity.entityId)
+        )];
+    }
+};
 
 const fetchCountry = (situationId) => {
     $.ajax({
@@ -505,7 +575,7 @@ const selectGroup = (group) => {
         url: "http://127.0.0.1:3000/remote/getEntity/",
         type: "post",
         data: {
-            situationsId: selectedSituationId.value,
+            situationId: selectedSituationId.value,
             groupId: group.id,
             country: selectedCountryName.value,
         },
@@ -532,7 +602,7 @@ const chooseGroup = (group) => {
         url: "http://127.0.0.1:3000/remote/getGroup/",
         type: "post",
         data: {
-            situationsId: selectedSituationId.value,
+            situationId: selectedSituationId.value,
             pid: group.id,
             country: selectedCountryName.value,
         },
@@ -560,7 +630,7 @@ const goBackGroup = () => {
         url: "http://127.0.0.1:3000/remote/getGroup/",
         type: "post",
         data: {
-            situationsId: selectedSituationId.value,
+            situationId: selectedSituationId.value,
             pid: currentGId,
             country: selectedCountryName.value,
         },
@@ -592,7 +662,7 @@ const selectCountry = (country) => {
         url: "http://127.0.0.1:3000/remote/getGroup/",
         type: "post",
         data: {
-            situationsId: selectedSituationId.value,
+            situationId: selectedSituationId.value,
             pid: lastGroupId,
             country: selectedCountryName.value,
         },
@@ -649,12 +719,14 @@ const selectSolution = (solutionId) => {
             console.error("获取实例失败:", resp);
         }
     });
-};
+}; 
 
 const selectedExample = (example) => {
     selectedExampleId.value = example.id;
     selectedExampleName.value = example.name;
-    fetchCountry(situations.value.id)
+    console.log("select Example : ", selectedExampleId.value)
+    console.log("select Example situation id : ", selectedSituationId.value)
+    fetchCountry(selectedSituationId.value)
 };
 
 // 提交最终选择的想定、方案、实例
@@ -750,8 +822,8 @@ onMounted(() => {
     background: white;
     border-radius: 10px;
     padding: 20px;
-    width: 80%;
-    max-width: 1000px;
+    width: 90%;
+    max-width: 10000px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     position: relative;
 }
@@ -810,5 +882,25 @@ onMounted(() => {
     box-shadow: 0px 3px 7px rgba(0, 123, 255, 0.3);
     outline: none;
 }
+.stylish-search {
+    border-radius: 8px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
 
+.stylish-search .form-control {
+    border: none;
+    border-radius: 0 8px 8px 0;
+    padding: 10px;
+    font-size: 16px;
+}
+
+.stylish-search .input-group-text {
+    background-color: #f8f9fa;
+    border: none;
+    border-radius: 8px 0 0 8px;
+    padding: 10px 15px;
+    font-size: 16px;
+    color: #6c757d;
+}
 </style>

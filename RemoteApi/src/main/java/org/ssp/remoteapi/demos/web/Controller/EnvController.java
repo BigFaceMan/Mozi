@@ -352,7 +352,7 @@ public class EnvController {
             record.put("task_message", "真正的网电对抗");
             record.put("utime", "2025-03-08T06:39:03.000+00:00");
             record.put("ctime", "2025-03-08T06:39:03.000+00:00");
-            record.put("taskName", "西工大中部场景其他");
+            record.put("taskName", "西工大中部场景其他" + Integer.toString(i));
             record.put("run_state", 1);
             record.put("id", "111111111" + i);
             record.put("status", 1);

@@ -77,7 +77,6 @@ public class LoginServiceImpl implements LoginService {
     public Map<String, String> getRemoteToken(String username, String password, String userId) {
         // 记录接收到的用户名和密码（可选择记录，避免泄露密码）
         logger.info("Received remote login attempt for username: {}", username);
-
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("userid", userId);
         List<User> users = userMapper.selectList(queryWrapper);

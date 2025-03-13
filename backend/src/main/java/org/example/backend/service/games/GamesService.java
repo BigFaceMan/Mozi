@@ -10,6 +10,8 @@ import java.util.Map;
 public interface GamesService {
     public Map<String, String> signGame(ResourceInfo resourceInfo);
     public List<ResourceInfo> getAllGameNode();
+
+    public String getParamsJsonString(String scene);
     public Map<String, String> addTrain(MultiValueMap<String, String> data);
     public Map<String, String> killTrain(MultiValueMap<String, String> data);
     public Map<String, String> stopTrain(MultiValueMap<String, String> data);

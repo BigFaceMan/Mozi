@@ -1,6 +1,12 @@
 package org.example.backend.service.impl.games;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.example.backend.mapper.ExamplesMapper;
+import org.example.backend.mapper.SceneEntityMapper;
+import org.example.backend.pojo.Examples;
 import org.example.backend.pojo.ResourceInfo;
+import org.example.backend.pojo.SceneEntity;
 import org.example.backend.service.games.GamesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -17,6 +23,10 @@ import java.util.Map;
 public class GamesServiceImpl implements GamesService {
     @Autowired
     private RestTemplate restTemplate;
+    @Autowired
+    private ExamplesMapper examplesMapper;
+    @Autowired
+    private SceneEntityMapper sceneEntityMapper;
     Map<String, ResourceInfo> gameNodes = new HashMap<>();
     @Override
     public Map<String, String> signGame(ResourceInfo resourceInfo) {
@@ -33,6 +43,25 @@ public class GamesServiceImpl implements GamesService {
         return new ArrayList<>(gameNodes.values());
     }
 
+
+    public String getParamsJsonString(String scene) {
+        QueryWrapper<Examples> queryWrapperExamples = new QueryWrapper<>();
+        Examples examples = examplesMapper.selectOne(queryWrapperExamples.eq("projectname", scene));
+        int sceneId = examples.getId();
+        QueryWrapper<SceneEntity> queryWrapperSceneEntity = new QueryWrapper<>();
+        List<SceneEntity> sceneEntityList = sceneEntityMapper.selectList(queryWrapperSceneEntity.eq("sceneid", sceneId));
+        HashMap<String, Object> paramsMap = new HashMap<>();
+        paramsMap.put("sceneEntitySelect", sceneEntityList);
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.writeValueAsString(paramsMap); // 转换为 JSON
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{}"; // 出错时返回空 JSON
+        }
+    }
+
+
     @Override
     public Map<String, String> addTrain(MultiValueMap<String, String> data) {
 //        System.out.println("data is : \n" + data);
@@ -45,10 +74,17 @@ public class GamesServiceImpl implements GamesService {
             return map;
         }
 
+        String scene = data.getFirst("scene");
+        String params = getParamsJsonString(scene);
+        data.add("params", params);
+
+        System.out.println("addTrain params is : " + params);
+
         String url = "http://" + ip + ":" + port + "/train/add/";
 //        if (gameNodes.containsKey(gameKey)) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
 
         // 将 data 封装到 HttpEntity 中
         HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);

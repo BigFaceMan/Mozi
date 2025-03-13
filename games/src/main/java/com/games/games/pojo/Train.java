@@ -26,4 +26,5 @@ public class Train {
     private String port;
     private String processid;
     private String trainpypath;
+    private String params;
 }
