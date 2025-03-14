@@ -155,6 +155,7 @@ public class ModelOptServiceImpl implements ModelOptService {
 
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
         User user = loginUser.getUser();
+        System.out.println("getModelList user is : " + user);
         System.out.println("user'rank : " + user.getUrank());
         List<Model> models;
         if (user.getUrank().equals("0")) {

@@ -430,7 +430,7 @@ public class RemoteSituationController {
 
             UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
             User user = loginUser.getUser();
-            example.setUid(user.getId().toString());
+            example.setUid(user.getId());
 
             // 存入数据库
             boolean isSaved = examplesMapper.insert(example) > 0;

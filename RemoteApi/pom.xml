@@ -55,7 +55,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>org.ssp.remoteapi.RemoteApiApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

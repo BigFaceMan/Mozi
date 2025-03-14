@@ -7,8 +7,8 @@ export default {
       trainingName: 'CNNinfer',
       scene: "墨子1",
       model: 'CNN',
-      ip: '127.0.0.1',
-      port: '3001',
+      ip: '',
+      port: '',
     },
   },
   getters: {

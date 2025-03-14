@@ -15,7 +15,7 @@ import java.util.Date;
 public class Examples {
     @TableId(type = IdType.AUTO)
     private Integer id;
-    private String uid;
+    private Integer uid;
     private String projectname;
     private String examplename;
     private String situationid;
