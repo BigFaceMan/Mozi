@@ -309,7 +309,6 @@ public class TrainServiceImpl implements TrainService {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(trainFile), StandardCharsets.UTF_8))) {
             writer.write(modelTrain.getCode());
         } catch (IOException e) {
-
             Map<String, String> response = new HashMap<>();
             response.put("message", "保存代码文件失败: " + e.getMessage());
             return response;
@@ -389,10 +388,7 @@ public class TrainServiceImpl implements TrainService {
 
             stdoutThread.start();
             stderrThread.start();
-
-//            stdoutThread.join();
-//            stderrThread.join();
-// 等待最多 5 秒获取 PID
+            // 等待最多 5 秒获取 PID
             long startTime = System.currentTimeMillis();
             long timeout = 10000; // 5 秒
             while (processIdHolder[0] == null && (System.currentTimeMillis() - startTime) < timeout) {
@@ -419,7 +415,7 @@ public class TrainServiceImpl implements TrainService {
                     System.out.println("Python 进程退出，代码: " + exitCode);
 
                     UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
-                    updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : 3);
+                    updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : runStatus);
                     if (trainMapper.update(null, updateWrapper) > 0) {
                         System.out.println("成功更新训练进程状态");
                     }
@@ -445,7 +441,22 @@ public class TrainServiceImpl implements TrainService {
             return response;
         }
     }
-
+    public boolean terminateProcess(String pid) {
+        try {
+            String os = System.getProperty("os.name").toLowerCase();
+            Process process;
+            if (os.contains("win")) {
+                process = new ProcessBuilder("taskkill", "/F", "/T", "/PID", pid).start();
+            } else {
+                process = new ProcessBuilder("kill", "-9", pid).start();
+            }
+            process.waitFor();
+            return process.exitValue() == 0;
+        } catch (Exception e) {
+            System.err.println("终止进程失败: " + e.getMessage());
+            return false;
+        }
+    }
     @Override
     public Map<String, String> killTrain(MultiValueMap<String, String> data) throws IOException {
         Map<String, String> response = new HashMap<>();
@@ -481,14 +492,13 @@ public class TrainServiceImpl implements TrainService {
         lock.lock();
         try {
             runStatus = 0;
-            // 在 Windows 系统上终止整个进程树
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                new ProcessBuilder("taskkill", "/F", "/T", "/PID", processPid).start();
-            } else {
-                // 在类 Unix 系统上终止整个进程树
-                thread.destroy(); // 尝试优雅终止
+            boolean killed = terminateProcess(processPid);
+            if (!killed) {
+                response.put("status", "error");
+                response.put("message", "Failed to terminate process");
+                return response;
             }
-
+//
             // **等待 `addTrain` 里的线程执行完毕**
             System.out.println("等待训练线程执行完数据库更新...");
             thread.join();  // **等待该线程执行完毕**
@@ -527,14 +537,13 @@ public class TrainServiceImpl implements TrainService {
         lock.lock();
         try {
             runStatus = 2;
-            // 在 Windows 系统上终止整个进程树
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                new ProcessBuilder("taskkill", "/F", "/T", "/PID", processPid).start();
-            } else {
-                // 在类 Unix 系统上终止整个进程树
-                thread.destroy(); // 尝试优雅终止
+            boolean killed = terminateProcess(processPid);
+            if (!killed) {
+                response.put("status", "error");
+                response.put("message", "Failed to terminate process");
+                return response;
             }
-
+//
             // **等待 `addTrain` 里的线程执行完毕**
             System.out.println("等待训练线程执行完数据库更新...");
             thread.join();  // **等待该线程执行完毕**
@@ -559,107 +568,128 @@ public class TrainServiceImpl implements TrainService {
         String paramsJson = train.getParams();
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
         String quote = isWindows ? "\"" : "'";
-//        long currentTimeMillis = System.currentTimeMillis(); // 获取当前的时间戳
-//        Date currentDate = new Date(currentTimeMillis); // 将时间戳转换为Date对象
-//        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss"); // 定义日期格式
-//        String formattedDate = dateFormat.format(currentDate); // 格式化日期
-//        String model = data.getFirst("model");
-//        String pytorchVersion = data.getFirst("pytorchVersion");
-//        String modelParams = data.getFirst("modelParams");
-//        String scene = data.getFirst("scene");
-//        File projectPath = new File(System.getProperty("user.dir"), "src/main/python");
-//        File checkpointpathcls = new File(projectPath, "checkpoint/" + trainingName + "_" + scene + ".pth");
-//        File tensorboardpathcls = new File(projectPath, "logs/" + trainingName + "_" + scene);
-//        // 如果需要字符串形式的路径，可以调用 getPath()
-//        String checkpointpath = checkpointpathcls.getPath();
-//        String tensorboardpath = tensorboardpathcls.getPath();
-//        String ip = data.getFirst("ip");
-//        String port = data.getFirst("port");
-//        Integer uId = Integer.parseInt(data.getFirst("uId"));
 
+        try {
+            String[] command;
+            if (isWindows) {
+                command = new String[]{
+                        "cmd.exe", "/c",
+                        "conda activate " + envName + " && python -u " + trainPyPath +
+                                " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
+                };
+            } else {
+                command = new String[]{
+                        "/bin/bash", "-c",
+                        "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName +
+                                " && python -u " + trainPyPath +
+                                " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
+                };
+            }
 
-        UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("trainingname", trainingName).set("running", 1);
-        AtomicBoolean isUpdated = new AtomicBoolean(trainMapper.update(null, updateWrapper) > 0);
-        if (isUpdated.get()) {
-            System.out.println("Exception : 成功更新训练进程状态");
-        } else {
-            System.out.println("Exception : 未成功更新训练进程状态");
-        }
-//        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, uId, 3, ip, port, processId);
-//        trainMapper.insert(train);
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            Process pythonProcess = processBuilder.start();
 
-        Thread trainingThread = new Thread(() -> {
-            try {
-                String[] command;
-                if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                    // Windows 平台
-                    command = new String[]{
-                            "cmd.exe", "/c",
-                            "conda activate " + envName + " && python -u " + trainPyPath +
-                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
-                    };
-                } else {
-                    // Linux 平台
-                    command = new String[]{
-                            "/bin/bash", "-c",
-                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName + " && python -u " + trainPyPath +
-                                    " --process_id " + processId + " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
-                    };
-                }
+            System.out.println("Python 训练进程启动，等待 PID 输出...");
 
-                ProcessBuilder processBuilder = new ProcessBuilder(command);
-                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
-                Process pythonProcess = processBuilder.start();
-                try {
-                    System.out.println("运行python程序 processId : " + processId);
-                    // 等待 Python 进程结束
-                    int exitCode = pythonProcess.waitFor(); // 阻塞直到进程结束
-                    // 进程结束后执行数据库操作
-                    if (exitCode == 0) {
-                        // 成功执行 Python 进程
-                        System.out.println("Python 进程成功结束，开始执行数据库操作...");
-                        updateWrapper.eq("trainingname", trainingName).set("running", 0);
-                        isUpdated.set(trainMapper.update(null, updateWrapper) > 0);
-                        if (isUpdated.get()) {
-                            System.out.println("成功更新训练进程状态");
-                        } else {
-                            System.out.println("未成功更新训练进程状态");
+            final String[] processIdHolder = {null};
+            // 读取 stdout 和 PID
+            Thread stdoutThread = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println("Python 输出: " + line);
+
+                        // 获取 PID
+                        if (line.startsWith("PID :")) {
+                            synchronized (processIdHolder) {
+                                processIdHolder[0] = line.replace("PID :", "").trim();
+                            }
                         }
-                    } else {
-                        // Python 进程异常结束
-                        System.out.println("Python 进程异常结束，退出代码: " + exitCode);
-                        System.out.println("执行数据库操作");
 
-                        updateWrapper.eq("trainingname", trainingName).set("running", runStatus);
-                        isUpdated.set(trainMapper.update(null, updateWrapper) > 0);
-                        if (isUpdated.get()) {
-                            System.out.println("Exception : 成功更新训练进程状态");
-                        } else {
-                            System.out.println("Exception : 未成功更新训练进程状态");
-                        }
+//                        TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
+//                        trainLogMapper.insert(trainLog);
                     }
-                } catch (InterruptedException e) {
-                    // 捕获线程中断异常
-                    Thread.currentThread().interrupt(); // 恢复中断状态
-                    System.out.println("进程等待被中断");
+                } catch (IOException e) {
+                    System.err.println("读取标准输出时出错: " + e.getMessage());
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            });
+
+            // 读取 stderr
+            Thread stderrThread = new Thread(() -> {
+                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
+                    String line;
+                    while ((line = errorReader.readLine()) != null) {
+                        System.err.println("Python 错误: " + line);
+//                        try {
+//                            ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
+//                            exceptionLogMapper.insert(exceptionLog);
+//                        } catch (Exception e) {
+//                            System.err.println("插入数据库失败: " + e.getMessage());
+//                        }
+                    }
+                } catch (IOException e) {
+                    System.err.println("读取错误输出时出错: " + e.getMessage());
+                }
+            });
+
+            stdoutThread.start();
+            stderrThread.start();
+            // 等待最多 5 秒获取 PID
+            long startTime = System.currentTimeMillis();
+            long timeout = 10000; // 5 秒
+            while (processIdHolder[0] == null && (System.currentTimeMillis() - startTime) < timeout) {
+                Thread.sleep(100);
             }
-            finally {
-                processMap.remove(processId); // 从 map 中移除进程
+            // 确保 PID 获取成功
+            if (processIdHolder[0] == null) {
+                response = new HashMap<>();
+                response.put("message", "保存代码文件失败: " + "无法获取 Python 进程的 PID");
+                return response;
             }
-        });
 
-        processMap.put(processId, trainingThread);
-        trainingThread.start();
+            processId = processIdHolder[0];
+            System.out.println("Python 进程 PID 获取成功: " + processId);
+            UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("trainingname", trainingName).set("running", 1).set("processid", processId);
+            AtomicBoolean isUpdated = new AtomicBoolean(trainMapper.update(null, updateWrapper) > 0);
+            if (isUpdated.get()) {
+                System.out.println("Exception : 成功更新训练进程状态");
+            } else {
+                System.out.println("Exception : 未成功更新训练进程状态");
+            }
+            // 监听进程状态
+            String finalProcessId = processId;
+            Thread trainingThread = new Thread(() -> {
+                try {
+                    int exitCode = pythonProcess.waitFor();
+                    System.out.println("Python 进程退出，代码: " + exitCode);
 
+//                    UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
+                    updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : runStatus);
+                    if (trainMapper.update(null, updateWrapper) > 0) {
+                        System.out.println("成功更新训练进程状态");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    processMap.remove(finalProcessId);
+                }
+            });
 
-        response.put("status", "success");
-        response.put("processId", processId);
-        response.put("trainningName", trainingName);
-        return response;
+            processMap.put(processId, trainingThread);
+            trainingThread.start();
+
+            response = new HashMap<>();
+            response.put("message", "success");
+            response.put("processId", processId);
+            response.put("trainingName", trainingName);
+            return response;
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            response = new HashMap<>();
+            response.put("message", "启动 Python 进程失败: " + e.getMessage());
+            return response;
+        }
     }
 
     @Override
