@@ -39,7 +39,7 @@ export default {
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        height: "100vh", // 关键：确保背景容器高度填满视口
+        minHeight: "100vh", // 关键：确保背景容器高度填满视口
         width: "100vw", // 关键：确保背景横向填满
       };
     });
