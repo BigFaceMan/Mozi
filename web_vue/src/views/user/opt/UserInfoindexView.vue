@@ -6,8 +6,25 @@
         <div class="card" style="margin-top: 50px;">
           <div class="card-body">
             <img src="../../../assets/images/user_photo.jpg" alt="User Photo" class="img-fluid">
-            <!-- Edit Button below the photo -->
-            <button type="button" class="btn btn-primary mt-3" style="margin-left: 80px;" @click="openModal">修改信息</button>
+      <!-- 按钮组 -->
+            <div class="d-flex flex-column align-items-center mt-3">
+              <!-- 修改信息按钮 -->
+              <button type="button" class="btn btn-primary w-75 shadow-sm" @click="openModal">
+                ✏️ 修改信息
+              </button>
+
+              <!-- 选择背景图片按钮 -->
+              <label for="background-upload" class="btn btn-outline-secondary w-75 shadow-sm mt-2">
+                📷 选择背景
+              </label>
+              <input type="file" id="background-upload" @change="handleFileChange" accept="image/*" class="d-none" />
+
+              <!-- 切换导航布局按钮 -->
+              <button @click="toggleLayout" class="btn btn-outline-info w-75 shadow-sm mt-2">
+                🔄 切换主题
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -73,16 +90,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Upload Background Image Button -->
-    <div class="mt-3">
-      <!-- Custom label button for selecting background image -->
-      <label for="background-upload" class="btn btn-secondary">
-        请选择背景图片
-      </label>
-      <!-- Hidden file input -->
-      <input type="file" id="background-upload" @change="handleFileChange" accept="image/*" class="d-none" />
     </div>
   </div>
 </template>
@@ -163,6 +170,9 @@ export default {
         reader.readAsDataURL(file);
       }
     };
+    const toggleLayout = () => {
+        store.commit("toggleNavLayout");
+    };
 
     return {
       username,
@@ -175,7 +185,8 @@ export default {
       openModal,
       closeModal,
       saveChanges,
-      handleFileChange
+      handleFileChange,
+      toggleLayout
     };
   }
 };

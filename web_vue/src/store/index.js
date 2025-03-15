@@ -2,6 +2,7 @@ import { createStore } from 'vuex'
 import ModuleUser from './user'
 import ModulePk from './pk'
 import ModuleTrain from './train'
+import ThemeSet from './theme'
 
 export default createStore({
   state: {
@@ -15,6 +16,7 @@ export default createStore({
   modules: {
     user: ModuleUser,
     pk: ModulePk,
-    train: ModuleTrain
+    train: ModuleTrain,
+    themeSet: ThemeSet
   }
 })
