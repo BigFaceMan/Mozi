@@ -2,6 +2,8 @@
 
 ## 前端
 
+
+
 在web_vue 目录下
 
 ### 配置
@@ -9,9 +11,7 @@
 上传的没有node_moudules目录，需要打开命令行在该目录下进行npm install 来安装一些依赖的库
 然后用vue ui 直接图形化导入运行即可
 
-# 后端
-
-
+## 后端
 
 backend 服务节点
 
@@ -21,9 +21,7 @@ RemoteApi 模拟远程api
 
 znt.sql 数据库结构
 
-# 环境
-
-
+## 环境
 
 - jdk: 1.8  
 - java：8
