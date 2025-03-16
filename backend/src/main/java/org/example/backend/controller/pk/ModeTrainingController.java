@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import org.example.backend.service.impl.utils.UserDetailsImpl;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +27,16 @@ public class ModeTrainingController {
     private ModelTrainingService modelTrainingService;
     @Autowired
     private GamesService gamesService;
+
+
+    @PostMapping("/train/acc/")
+    public Map<String, String> accTrain(@RequestParam(defaultValue = "1") double speed) {
+        System.out.println("In Train Acc : " + Double.toString(speed));
+
+        Map<String, String> map = new HashMap<>();
+        map.put("message", "Success");
+        return map;
+    }
 
     @PostMapping("/train/add/")
     public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) throws JsonProcessingException {

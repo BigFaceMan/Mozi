@@ -91,6 +91,20 @@
                             <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button>
                             <!-- <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button> -->
                             <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '2'" @click="killTraining(training)">终止训练</button>
+                            <div class="btn-group ms-2" v-if="training.running == '1'">
+                                <button class="btn btn-sm" :style="{ backgroundColor: '#FFA500', color: 'white' }">
+                                    <i class="fas fa-tachometer-alt"></i> {{ training.speedMultiplier || 1 }}x 加速
+                                </button>
+                                <button class="btn btn-sm dropdown-toggle dropdown-toggle-split" :style="{ backgroundColor: '#FFA500', color: 'white' }" data-bs-toggle="dropdown" aria-expanded="false">
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" @click="trainAcc(training, 1)">🚀 1x 加速</a></li>
+                                    <li><a class="dropdown-item" @click="trainAcc(training, 1.5)">🚀 1.5x 加速</a></li>
+                                    <li><a class="dropdown-item" @click="trainAcc(training, 2)">⚡ 2x 加速</a></li>
+                                    <li><a class="dropdown-item" @click="trainAcc(training, 3)">🔥 3x 加速</a></li>
+                                    <li><a class="dropdown-item" @click="trainAcc(training, 10)">🔥 10x 加速</a></li>
+                                </ul>
+                            </div>
                         </td>
                         </tr>
                     </tbody>
@@ -801,7 +815,26 @@ const downloadModel = (training) => {
     });
 };
 
+const trainAcc = (training, speed) => {
+    training.speedMultiplier = speed;
 
+    $.ajax({
+        url: "http://127.0.0.1:3000/train/acc/",  // 确保后端接口正确
+        type: "post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            speed: speed,
+        },
+        success(resp) {
+            console.log("modify train speed : ", resp.message)
+        },
+        error(err) {
+            console.error("Error fetching model file:", err);
+        }
+    });
+}
 
 
 const viewSuggestions = () => {
@@ -816,7 +849,7 @@ const viewSuggestions = () => {
             suggestions.push('CPU使用率较高，建议优化模型或增加并行计算资源');
             break;
         case 2:
-            suggestions.push('GPU使用率较高，建议优化模型或增加GPU数量');
+                suggestions.push('GPU使用率较高，建议优化模型或增加GPU数量');
             break;
         case 3:
             suggestions.push('内存使用率较高，建议优化内存使用或增加内存');
