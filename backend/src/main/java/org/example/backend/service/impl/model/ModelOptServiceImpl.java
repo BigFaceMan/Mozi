@@ -2,7 +2,9 @@ package org.example.backend.service.impl.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.example.backend.mapper.ModelMapper;
+import org.example.backend.mapper.ModelPthMapper;
 import org.example.backend.pojo.Model;
+import org.example.backend.pojo.ModelPth;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.model.ModelOptService;
@@ -22,6 +24,8 @@ public class ModelOptServiceImpl implements ModelOptService {
 
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private ModelPthMapper modelPthMapper;
 
     @Override
     public Map<String, String> add(Map<String, String> data) {
@@ -300,5 +304,14 @@ public class ModelOptServiceImpl implements ModelOptService {
 
         map.put("success_message", "success");
         return map;
+    }
+
+    @Override
+    public byte[] getModelPth(Integer trainId) {
+        ModelPth modelPth = modelPthMapper.selectOne(new QueryWrapper<ModelPth>().eq("train_id", trainId));
+        if (modelPth == null) {
+            return null;
+        }
+        return modelPth.getModelPth();
     }
 }

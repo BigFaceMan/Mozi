@@ -767,33 +767,38 @@ const generateReport = function (training) {
 };
 
 const downloadModel = (training) => {
-    console.log(training)
-    // 假设我们生成一些假的二进制数据
-    const fakeData = [
-        0, 1, 0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233
-    ];
-    
-    // 将假数据转为二进制数组 (Uint8Array)
-    const fileContent = new Uint8Array(fakeData);
-    
-    // 创建一个 Blob 对象，指定文件类型为二进制文件
-    const blob = new Blob([fileContent], { type: 'application/octet-stream' });
-    
-    // 创建一个隐藏的<a>标签
-    const link = document.createElement('a');
-    
-    // 使用 URL.createObjectURL 创建一个 URL 指向 Blob 对象
-    const url = URL.createObjectURL(blob);
-    
-    // 设置文件下载链接
-    link.href = url;
-    link.download = 'model.pth';  // 设置下载的文件名
-    
-    // 模拟点击事件以触发下载
-    link.click();
-    
-    // 释放创建的 URL 对象
-    URL.revokeObjectURL(url);
+    $.ajax({
+        url: "http://127.0.0.1:3000/model/trainPth/",  // 确保后端接口正确
+        type: "get",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            trainId: training.id,
+        },
+        xhrFields: {
+            responseType: 'blob'  // 告诉 jQuery 以二进制 Blob 的方式接收数据
+        },
+        success(resp) {
+            // 创建 Blob 对象
+            const blob = new Blob([resp], { type: 'application/octet-stream' });
+
+            // 创建下载链接
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `model_${training.trainingname}.pth`;  // 设定下载文件名
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // 释放 URL 资源
+            URL.revokeObjectURL(url);
+        },
+        error(err) {
+            console.error("Error fetching model file:", err);
+        }
+    });
 };
 
 

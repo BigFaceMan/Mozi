@@ -1,5 +1,6 @@
 package org.example.backend.controller.model;
 
+import kotlin.ParameterName;
 import org.example.backend.pojo.Model;
 import org.example.backend.service.model.ModelOptService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,5 +34,10 @@ public class ModelOptController {
     @GetMapping("/model/getlist/")
     public List<Model> getlist() {
         return modelOptService.getList();
+    }
+
+    @GetMapping("/model/trainPth/")
+    public byte[] getModelPth(@RequestParam(defaultValue = "-1") Integer trainId) {
+        return modelOptService.getModelPth(trainId);
     }
 }

@@ -3,15 +3,14 @@ package com.games.games.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.games.games.mapper.*;
-import com.games.games.pojo.ExceptionLog;
-import com.games.games.pojo.Model;
-import com.games.games.pojo.Train;
-import com.games.games.pojo.TrainLog;
+import com.games.games.pojo.*;
+import com.games.games.utils.FileUtils;
 import com.games.games.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.swing.*;
 import java.io.*;
@@ -37,8 +36,10 @@ public class TrainServiceImpl implements TrainService {
     private TrainLogMapper trainLogMapper;
     @Autowired
     private ExceptionLogMapper exceptionLogMapper;
+    @Autowired
+    private ModelPthMapper modelPthMapper;
     @Value("${server.env}")
-    private String envName;
+    private String  envName;
     private int runStatus = 1;
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
 
@@ -272,7 +273,15 @@ public class TrainServiceImpl implements TrainService {
 //        response.put("trainningName", trainingName);
 //        return response;
 //    }
-
+    public void saveCheckpoint(String trainingName, String scene, int trainId,  byte[] modelCheckpoint) throws IOException {
+        ModelPth checkpoint = new ModelPth();
+        checkpoint.setTrainningName(trainingName);
+        checkpoint.setScene(scene);
+        checkpoint.setTrainId(trainId);
+        checkpoint.setModelPth(modelCheckpoint);
+        checkpoint.setTimestamp(new Date());
+        modelPthMapper.insert(checkpoint);
+    }
     @Override
     public Map<String, String> addTrain(MultiValueMap<String, String> data) {
         String trainingNamePre = data.getFirst("trainingName");
@@ -291,10 +300,27 @@ public class TrainServiceImpl implements TrainService {
             System.out.println("目录创建成功：" + projectPath.getAbsolutePath());
         }
 
+        File tensorboardDir = new File(projectPath.getPath(), "/logs");
+        File checkpointDir = new File(projectPath.getPath(), "/checkpoint");
+        if (!tensorboardDir.exists()) {
+            if (tensorboardDir.mkdirs()) {
+                System.out.println("目录创建成功：" + tensorboardDir.getAbsolutePath());
+            } else {
+                System.err.println("目录创建失败！");
+            }
+        }
+        if (!checkpointDir.exists()) {
+            if (checkpointDir.mkdirs()) {
+                System.out.println("目录创建成功：" + checkpointDir.getAbsolutePath());
+            } else {
+                System.err.println("目录创建失败！");
+            }
+        }
+
         File checkpointFile = new File(projectPath, "checkpoint/" + trainingName + "_" + scene + ".pth");
-        File tensorboardDir = new File(projectPath, "logs/" + trainingName + "_" + scene);
+        File tensorboardFile = new File(projectPath, "logs/" + trainingName + "_" + scene);
         String checkpointPath = checkpointFile.getPath();
-        String tensorboardPath = tensorboardDir.getPath();
+        String tensorboardPath = tensorboardFile.getPath();
 
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
@@ -327,14 +353,14 @@ public class TrainServiceImpl implements TrainService {
             if (isWindows) {
                 command = new String[]{
                         "cmd.exe", "/c",
-                        "conda activate " + envName + " && python -u " + trainFile.getPath() +
+                        "conda activate " + envName + " && python -u " + trainFile.getPath() + " --checkpointpath " + checkpointPath +
                                 " --tensorboardpath " + tensorboardPath + " --params " + quote + paramsJson + quote
                 };
             } else {
                 command = new String[]{
                         "/bin/bash", "-c",
                         "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName +
-                                " && python -u " + trainFile.getPath() +
+                                " && python -u " + trainFile.getPath() + " --checkpointpath " + checkpointPath +
                                 " --tensorboardpath " + tensorboardPath + " --params " + quote + paramsJson + quote
                 };
             }
@@ -356,7 +382,9 @@ public class TrainServiceImpl implements TrainService {
                         // 获取 PID
                         if (line.startsWith("PID :")) {
                             synchronized (processIdHolder) {
+                                System.out.println("want get pid !!!!!");
                                 processIdHolder[0] = line.replace("PID :", "").trim();
+                                System.out.println("PID : " + processIdHolder[0]);
                             }
                         }
 
@@ -413,10 +441,15 @@ public class TrainServiceImpl implements TrainService {
                 try {
                     int exitCode = pythonProcess.waitFor();
                     System.out.println("Python 进程退出，代码: " + exitCode);
-
                     UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
                     updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : runStatus);
                     if (trainMapper.update(null, updateWrapper) > 0) {
+                        if (runStatus == 0 || exitCode == 0) {
+                            Train train1 = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", trainingName));
+                            byte[] modelCheckpoint = FileUtils.readFileToByteArray(checkpointPath);
+                            saveCheckpoint(trainingName, scene, train1.getId(), modelCheckpoint);
+                            System.out.println("保存 checkpoint 文件...");
+                        }
                         System.out.println("成功更新训练进程状态");
                     }
                 } catch (Exception e) {
@@ -574,14 +607,14 @@ public class TrainServiceImpl implements TrainService {
             if (isWindows) {
                 command = new String[]{
                         "cmd.exe", "/c",
-                        "conda activate " + envName + " && python -u " + trainPyPath +
+                        "conda activate " + envName + " && python -u " + trainPyPath + " --checkpointpath " + train.getCheckpointpath() +
                                 " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
                 };
             } else {
                 command = new String[]{
                         "/bin/bash", "-c",
                         "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName +
-                                " && python -u " + trainPyPath +
+                                " && python -u " + trainPyPath + " --checkpointpath " + train.getCheckpointpath() +
                                 " --tensorboardpath " + tensorboardpath + " --params " + quote + paramsJson + quote
                 };
             }
@@ -605,9 +638,6 @@ public class TrainServiceImpl implements TrainService {
                                 processIdHolder[0] = line.replace("PID :", "").trim();
                             }
                         }
-
-//                        TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
-//                        trainLogMapper.insert(trainLog);
                     }
                 } catch (IOException e) {
                     System.err.println("读取标准输出时出错: " + e.getMessage());
@@ -620,12 +650,6 @@ public class TrainServiceImpl implements TrainService {
                     String line;
                     while ((line = errorReader.readLine()) != null) {
                         System.err.println("Python 错误: " + line);
-//                        try {
-//                            ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
-//                            exceptionLogMapper.insert(exceptionLog);
-//                        } catch (Exception e) {
-//                            System.err.println("插入数据库失败: " + e.getMessage());
-//                        }
                     }
                 } catch (IOException e) {
                     System.err.println("读取错误输出时出错: " + e.getMessage());
@@ -664,7 +688,6 @@ public class TrainServiceImpl implements TrainService {
                     int exitCode = pythonProcess.waitFor();
                     System.out.println("Python 进程退出，代码: " + exitCode);
 
-//                    UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
                     updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : runStatus);
                     if (trainMapper.update(null, updateWrapper) > 0) {
                         System.out.println("成功更新训练进程状态");

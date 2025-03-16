@@ -13,5 +13,7 @@ public interface ModelOptService {
     Map<String, String> remove(Map<String, String> data);
 
     Map<String, String> update(Map<String, String> data);
+
+    byte[] getModelPth(Integer trainId);
 }
 
