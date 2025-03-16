@@ -159,16 +159,25 @@ export default {
 
     // Handle file change (background image upload)
     const handleFileChange = (event) => {
+      console.log("add iamge path !!!")
       const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const imageUrl = e.target.result;
-          document.body.style.backgroundImage = `url(${imageUrl})`; // Update background image
-          document.body.style.backgroundSize = 'cover'; // Ensure it covers the screen
-        };
-        reader.readAsDataURL(file);
-      }
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            store.commit("setCustomBackground", e.target.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      // const file = event.target.files[0];
+      // if (file) {
+      //   const reader = new FileReader();
+      //   reader.onload = (e) => {
+      //     const imageUrl = e.target.result;
+      //     document.body.style.backgroundImage = `url(${imageUrl})`; // Update background image
+      //     document.body.style.backgroundSize = 'cover'; // Ensure it covers the screen
+      //   };
+      //   reader.readAsDataURL(file);
+      // }
     };
     const toggleLayout = () => {
         store.commit("toggleNavLayout");

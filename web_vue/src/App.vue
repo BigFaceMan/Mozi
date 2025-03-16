@@ -30,8 +30,23 @@ export default {
   setup() {
     // 这里可以通过某个配置决定默认是顶部导航还是侧边栏
     const store = useStore();
- // 计算属性，根据导航模式返回不同的背景图片
+    // 计算属性：动态获取背景图片
     const backgroundStyle = computed(() => {
+      // 优先使用用户自定义背景
+      const customBg = store.state.themeSet.customBackground;
+      if (customBg) {
+        console.log("App catch change : ", customBg)
+        return {
+          backgroundImage: `url(${customBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          minHeight: "100vh",
+          width: "100vw",
+        };
+      }
+
+      // 根据导航模式使用默认背景
       return {
         backgroundImage: store.state.themeSet.useTopNav
           ? `url(${new URL('@/assets/images/background.png', import.meta.url)})`
@@ -39,10 +54,11 @@ export default {
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        minHeight: "100vh", // 关键：确保背景容器高度填满视口
-        width: "100vw", // 关键：确保背景横向填满
+        minHeight: "100vh",
+        width: "100vw",
       };
     });
+
 
     return {
       store,
