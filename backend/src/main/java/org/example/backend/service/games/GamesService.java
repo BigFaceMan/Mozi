@@ -22,7 +22,7 @@ public interface GamesService {
     public Map<String, String> continueTrain(MultiValueMap<String, String> data);
 
 
-    public Map<String, String> addInfer(MultiValueMap<String, String> data);
+    public Map<String, String> addInfer(MultiValueMap<String, String> data) throws JsonProcessingException;
     public Map<String, String> killInfer(MultiValueMap<String, String> data);
     public Map<String, String> stopInfer(MultiValueMap<String, String> data);
     public Map<String, String> continueInfer(MultiValueMap<String, String> data);

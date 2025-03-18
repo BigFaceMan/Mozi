@@ -273,7 +273,7 @@ public class GamesServiceImpl implements GamesService {
     }
 
     @Override
-    public Map<String, String> addInfer(MultiValueMap<String, String> data) {
+    public Map<String, String> addInfer(MultiValueMap<String, String> data) throws JsonProcessingException {
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
         HashMap<String, String> map = new HashMap<>();
@@ -282,6 +282,18 @@ public class GamesServiceImpl implements GamesService {
             map.put("msg", "ip or port is null");
             return map;
         }
+
+//        String scene = data.getFirst("scene");
+//        QueryWrapper<Examples> queryWrapperExamples = new QueryWrapper<>();
+//        Examples examples = examplesMapper.selectOne(queryWrapperExamples.eq("projectname", scene));
+//        int sceneId = examples.getId();
+//        QueryWrapper<SceneEntity> queryWrapperSceneEntity = new QueryWrapper<>();
+//        List<SceneEntity> sceneEntityList = sceneEntityMapper.selectList(queryWrapperSceneEntity.eq("sceneid", sceneId));
+        HashMap<String, Object> paramsMap = new HashMap<>();
+        paramsMap.put("trainIters", 100);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String params = objectMapper.writeValueAsString(paramsMap); // 转换为 JSON
+        data.add("params", params);
 
         String url = "http://" + ip + ":" + port + "/infer/add/";
 //        if (gameNodes.containsKey(gameKey)) {

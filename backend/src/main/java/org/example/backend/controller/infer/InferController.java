@@ -1,5 +1,6 @@
 package org.example.backend.controller.infer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.backend.pojo.Infer;
 import org.example.backend.pojo.User;
 import org.example.backend.service.games.GamesService;
@@ -25,7 +26,7 @@ public class InferController {
     @Autowired
     private GamesService gamesService;
     @PostMapping("/infer/add/")
-    public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) {
+    public Map<String, String> addInfer(@RequestParam MultiValueMap<String, String> data) throws JsonProcessingException {
         UsernamePasswordAuthenticationToken authentication =
                 (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();

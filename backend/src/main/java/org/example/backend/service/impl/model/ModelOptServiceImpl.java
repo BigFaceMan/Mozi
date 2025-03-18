@@ -52,6 +52,7 @@ public class ModelOptServiceImpl implements ModelOptService {
             structureimageBase64 = structureimageBase64.split(",")[1];
         }
         String code = data.get("code");
+        String inferCode = data.get("inferCode");
 
         // 检查必填字段是否为空
         if (name == null || name.trim().isEmpty()) {
@@ -145,7 +146,7 @@ public class ModelOptServiceImpl implements ModelOptService {
         // 这里可以进行其他的逻辑处理，比如存储数据等
         // 示例代码，假设数据存储成功
         Date now = new Date();
-        Model model = new Model(null, name, summary, environment, ability, structureimagePath, code, modelstruct, situationselect, modelselect, user.getId(), now, now);
+        Model model = new Model(null, name, summary, environment, ability, structureimagePath, code, inferCode,modelstruct, situationselect, modelselect, user.getId(), now, now);
         modelMapper.insert(model);
 
         map.put("success_message", "success");

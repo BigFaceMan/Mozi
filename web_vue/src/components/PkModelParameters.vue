@@ -102,7 +102,14 @@ const fetchModels = () => {
     },
     success(resp) {
       gameNodes.value = resp;
-      // console.log(resp)
+      if (gameNodes.value.length != 0) {
+        // console.log("allocation init ip+port : ")
+        // console.log(gameNodes.value[0].ip)
+        form.ip=gameNodes.value[0].ip
+        form.port=gameNodes.value[0].port
+        // console.log("allocation init ip : ", form.ip)
+        // console.log("allocation init port : ", form.port)
+      }
     }
   });
 };

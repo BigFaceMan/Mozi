@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-03-09 10:11:09
+ * @LastEditTime: 2025-03-18 13:03:40
 -->
 <template>
     <div class="container mt-4">
@@ -196,6 +196,10 @@
                                 <input type="file" class="form-control" id="modelSelection" @change="handleFileChange" />
                             </div>
                             <div class="mb-3">
+                                <label for="environment" class="form-label">选择推理文件</label>
+                                <input type="file" class="form-control" id="modelSelection" @change="handleInferFileChange" />
+                            </div>
+                            <div class="mb-3">
                                 <label for="environment" class="form-label">选择数据文件</label>
                                 <input type="file" class="form-control" id="modelSelection" @change="handleDataFileChange" />
                             </div>
@@ -356,6 +360,7 @@ export default {
             methodSelection: '',
             structureimage: '', // 默认为空，等待用户上传
             code: '',
+            inferCode: '',
             data: ''
         });
         const methodOptions = ref([
@@ -619,6 +624,7 @@ export default {
                     "ability": form.ability,
                     "structureimage": form.structureimage,
                     "code": form.code,
+                    "inferCode": form.inferCode,
                     "modelstruct": JSON.stringify(newLayers.value),
                     "modelselect": form.methodSelection,
                     "situationselect": form.situationSelection
@@ -724,6 +730,22 @@ export default {
             }
         };
 
+        const handleInferFileChange = (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                
+                // 当文件读取完成时触发
+                reader.onload = () => {
+                    // 将文件的内容存储到 form.params 中
+                    form.inferCode = reader.result; // reader.result 是文件的内容
+                };
+
+                // 读取文件内容
+                reader.readAsText(file); // 读取文件为文本，如果是二进制文件，可以使用 readAsDataURL
+            }
+        };
+
         const handleFileChange = (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -802,6 +824,7 @@ export default {
             handleFileChange,
             isModalEditVisible,
             handleDataFileChange,
+            handleInferFileChange
         };
     }
 };

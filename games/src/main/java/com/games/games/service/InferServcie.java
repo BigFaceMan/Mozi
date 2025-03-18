@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.Map;
 
 public interface InferServcie {
+
+    public boolean terminateProcess(String pid);
     public Map<String, String> addInfer(MultiValueMap<String, String> data);
     public Map<String, String> killInfer(MultiValueMap<String, String> data) throws IOException;
     public Map<String, String> stopInfer(MultiValueMap<String, String> data) throws IOException;

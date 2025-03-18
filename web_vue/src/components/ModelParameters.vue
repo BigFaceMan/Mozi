@@ -138,7 +138,10 @@
     <button @click="saveConfig" class="btn btn-primary">保存配置</button>
     <button @click="startTraining" class="btn btn-primary">开始训练</button>
   </div>
-
+  <!-- 显示训练进度 -->
+  <div v-if="trainingStatus" class="mt-3">
+    <p>{{ trainingStatus }}</p>
+  </div>
 
     <!-- 输出保存的配置信息 -->
    <div v-if="showConfig" class="alert alert-success mt-3">

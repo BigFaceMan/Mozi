@@ -6,6 +6,7 @@ import com.games.games.mapper.*;
 import com.games.games.pojo.*;
 import com.games.games.service.InferServcie;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
@@ -32,6 +33,11 @@ public class InferServcieImpl implements InferServcie {
     private InferMapper inferMapper;
     @Autowired
     private InferLogMapper inferLogMapper;
+    @Autowired
+    private ModelPthMapper modelPthMapper;
+
+    @Value("${server.env}")
+    private String envName;
     private int runStatus = 0;
     private static String getPythonProcessId(String processId) throws IOException {
 //        System.out.println("processId " + processId);
@@ -58,6 +64,22 @@ public class InferServcieImpl implements InferServcie {
         }
         return pid;
     }
+    public boolean terminateProcess(String pid) {
+        try {
+            String os = System.getProperty("os.name").toLowerCase();
+            Process process;
+            if (os.contains("win")) {
+                process = new ProcessBuilder("taskkill", "/F", "/T", "/PID", pid).start();
+            } else {
+                process = new ProcessBuilder("kill", "-9", pid).start();
+            }
+            process.waitFor();
+            return process.exitValue() == 0;
+        } catch (Exception e) {
+            System.err.println("终止进程失败: " + e.getMessage());
+            return false;
+        }
+    }
     @Override
     public Map<String, String> addInfer(MultiValueMap<String, String> data) {
         String inferNamePre = data.getFirst("inferName");
@@ -72,135 +94,185 @@ public class InferServcieImpl implements InferServcie {
         String port = data.getFirst("port");
         Integer uId = Integer.parseInt(data.getFirst("uId"));
         String userName = data.getFirst("userName");
-        File projectPath = new File(System.getProperty("user.dir"), "src/main/python");
+        File projectPath = new File(System.getProperty("user.dir"), "/python");
         File tensorboardpathcls = new File(projectPath, "logs/" + inferName + "_" + scene);
 
+        if (!tensorboardpathcls.exists()) {
+            if (tensorboardpathcls.mkdirs()) {
+                System.out.println("目录创建成功：" + tensorboardpathcls.getAbsolutePath());
+            } else {
+                System.err.println("目录创建失败！");
+            }
+        }
         QueryWrapper<Train> queryWrapper = new QueryWrapper<Train>();
         Train train = trainMapper.selectOne(queryWrapper.eq("trainingname", trainName));
-        String checkPointPath = train.getCheckpointpath();
         String algName = train.getModel();
         QueryWrapper<Model> queryModelWrapper = new QueryWrapper<Model>();
         Model modelTrain = modelMapper.selectOne(queryModelWrapper.eq("name", algName));
-        String processId = UUID.randomUUID().toString();
-        String code = modelTrain.getCode();
+        String inferCode = modelTrain.getInferCode();
         // 创建训练脚本保存路径
         File inferFile = new File(projectPath, "infer.py");
-
         // 将代码写入 train.py 文件
-        File trainFile;
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(inferFile))) {
-            writer.write(code);
+            writer.write(inferCode);
         } catch (IOException e) {
             // 处理写入文件时的异常
             Map<String, String> errorMap = new HashMap<>();
             errorMap.put("error_message", "保存代码文件失败: " + e.getMessage());
             return errorMap;
         }
-
-        Map<String, String> result = new HashMap<>();
-        Infer infer = new Infer(null, inferName, scene, trainName, 1, tensorboardpathcls.getPath(), uId, ip, port, processId, inferFile.getPath(), checkPointPath);
-        inferMapper.insert(infer);
-
-        Thread inferThread = new Thread(() -> {
-            try {
-                String[] command = {
-                        "cmd.exe", "/c", // Windows 下需要使用 cmd.exe
-                        "conda activate ssp &&python " + " -u " + inferFile.getPath() +  " --process_id " + processId + " --tensorboardpath " + tensorboardpathcls.getPath() + " --checkpointpath " + checkPointPath
-                };
-
-                ProcessBuilder processBuilder = new ProcessBuilder(command);
-//                processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
-                Process pythonProcess = processBuilder.start();
-
-                System.out.println("运行python infer程序 processId : " + processId);
-
-                new Thread(() -> {
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
-                        String line;
-                        while ((line = reader.readLine()) != null) {
-                            System.out.println("Python Infer 输出: " + line); // 仅用于调试
-//                            System.out.println("read test ");
-//                            TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
-//                            trainLogMapper.insert(trainLog);
-                            InferLog inferLog = new InferLog(null, userName, inferName, line, new Date());
-                            inferLogMapper.insert(inferLog);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
-
-                new Thread(() -> {
-                    try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
-                        String line;
-                        while ((line = errorReader.readLine()) != null) {
-                            System.out.println("Python 错误: " + line); // 仅用于调试
-//                            System.out.println("插入数据库");
-                            try {
-                                // 插入数据库操作
-                                ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
-                                exceptionLogMapper.insert(exceptionLog);
-                            } catch (Exception e) {
-                                System.err.println("插入数据库失败: " + e.getMessage());
-                                e.printStackTrace(); // 打印具体的异常
-                            }
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }).start();
-
-                try {
-                    // 等待 Python 进程结束
-                    int exitCode = pythonProcess.waitFor(); // 阻塞直到进程结束
-                    // 进程结束后执行数据库操作
-                    if (exitCode == 0) {
-                        // 成功执行 Python 进程
-                        System.out.println("Python 进程成功结束，开始执行数据库操作...");
-                        UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
-                        updateWrapper.eq("infername", inferName).set("running", 0);
-                        boolean isUpdated = inferMapper.update(null, updateWrapper) > 0;
-                        if (isUpdated) {
-                            System.out.println("成功更新训练进程状态");
-                        } else {
-                            System.out.println("未成功更新训练进程状态");
-                        }
-                    } else {
-                        // Python 进程异常结束
-                        System.out.println("Python 进程异常结束，退出代码: " + exitCode);
-                        System.out.println("执行数据库操作");
-
-                        UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
-                        updateWrapper.eq("infername", inferName).set("running", runStatus);
-                        boolean isUpdated = inferMapper.update(null, updateWrapper) > 0;
-                        if (isUpdated) {
-                            System.out.println("Exception : 成功更新训练进程状态");
-                        } else {
-                            System.out.println("Exception : 未成功更新训练进程状态");
-                        }
-                    }
-                } catch (InterruptedException e) {
-                    // 捕获线程中断异常
-                    Thread.currentThread().interrupt(); // 恢复中断状态
-                    System.out.println("进程等待被中断");
-                }
+        File checkpointDir = new File(projectPath.getPath(), "/checkpoint");
+        if (!checkpointDir.exists()) {
+            if (checkpointDir.mkdirs()) {
+                System.out.println("目录创建成功：" + checkpointDir.getAbsolutePath());
+            } else {
+                System.err.println("目录创建失败！");
+            }
+        }
+        File checkpointFile = new File(projectPath, "checkpoint/" + inferName + "_" + scene + ".pth");
+        QueryWrapper<ModelPth> queryModelPthWrapper = new QueryWrapper<ModelPth>();
+        ModelPth modelPthLoad = modelPthMapper.selectOne(queryModelPthWrapper.eq("train_id", train.getId()));
+        if (modelPthLoad != null) {
+            byte[] checkpointLoad = modelPthLoad.getModelPth();
+            try (FileOutputStream fos = new FileOutputStream(checkpointFile)) {
+                fos.write(checkpointLoad);
+                fos.flush();
+                System.out.println("Checkpoint saved successfully: " + checkpointFile.getAbsolutePath());
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            finally {
-                processMap.remove(processId); // 从 map 中移除进程
+        } else {
+            System.err.println("No checkpoint found for train_id: " + train.getId());
+        }
+        // 处理参数
+        String params = data.getFirst("params");
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        String paramsJson = isWindows ? params.replace("\"", "\\\"") : params.replace("'", "\\'");
+        String quote = isWindows ? "\"" : "'";
+
+        System.out.println("Conda Env Name: " + envName);
+
+
+        try {
+            String[] command;
+            if (isWindows) {
+                command = new String[]{
+                        "cmd.exe", "/c",
+                        "conda activate " + envName + " && python -u " + inferFile.getPath() + " --checkpointpath " + checkpointFile.getPath() +
+                                " --params " + quote + paramsJson + quote
+                };
+            } else {
+                command = new String[]{
+                        "/bin/bash", "-c",
+                        "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName +
+                                " && python -u " + inferFile.getPath() + " --checkpointpath " + checkpointFile.getPath() +
+                                " --params " + quote + paramsJson + quote
+                };
             }
-        });
 
-        processMap.put(processId, inferThread);
-        inferThread.start();
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            Process pythonProcess = processBuilder.start();
 
-        Map<String, String> response = new HashMap<>();
+            System.out.println("Python 推理进程启动，等待 PID 输出...");
 
-        response.put("status", "success");
-        response.put("processId", processId);
-        response.put("inferName", inferName);
-        return response;
+            final String[] processIdHolder = {null};
+
+            // 读取 stdout 和 PID
+            Thread stdoutThread = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println("Python 输出: " + line);
+
+                        // 获取 PID
+                        if (line.startsWith("PID :")) {
+                            synchronized (processIdHolder) {
+                                System.out.println("want get pid !!!!!");
+                                processIdHolder[0] = line.replace("PID :", "").trim();
+                                System.out.println("PID : " + processIdHolder[0]);
+                            }
+                        }
+
+                        InferLog inferLog  = new InferLog(null, userName, inferName, line, new Date());
+                        inferLogMapper.insert(inferLog);
+                    }
+                } catch (IOException e) {
+                    System.err.println("读取标准输出时出错: " + e.getMessage());
+                }
+            });
+
+            // 读取 stderr
+            Thread stderrThread = new Thread(() -> {
+                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
+                    String line;
+                    while ((line = errorReader.readLine()) != null) {
+                        System.err.println("Python 错误: " + line);
+                        try {
+                            ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
+                            exceptionLogMapper.insert(exceptionLog);
+                        } catch (Exception e) {
+                            System.err.println("插入数据库失败: " + e.getMessage());
+                        }
+                    }
+                } catch (IOException e) {
+                    System.err.println("读取错误输出时出错: " + e.getMessage());
+                }
+            });
+
+            stdoutThread.start();
+            stderrThread.start();
+            // 等待最多 5 秒获取 PID
+            long startTime = System.currentTimeMillis();
+            long timeout = 10000; // 5 秒
+            while (processIdHolder[0] == null && (System.currentTimeMillis() - startTime) < timeout) {
+                Thread.sleep(100);
+            }
+            // 确保 PID 获取成功
+            if (processIdHolder[0] == null) {
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "保存代码文件失败: " + "无法获取 Python 进程的 PID");
+                return response;
+            }
+
+            String processId = processIdHolder[0];
+            System.out.println("Python 进程 PID 获取成功: " + processId);
+
+            Map<String, String> result = new HashMap<>();
+            Infer infer = new Infer(null, inferName, scene, trainName, 1, tensorboardpathcls.getPath(), uId, ip, port, processId, inferFile.getPath(), checkpointFile.getPath());
+            inferMapper.insert(infer);
+
+            // 监听进程状态
+            Thread inferThread = new Thread(() -> {
+                try {
+                    int exitCode = pythonProcess.waitFor();
+                    System.out.println("Python 进程退出，代码: " + exitCode);
+                    UpdateWrapper<Infer> updateWrapper = new UpdateWrapper<>();
+                    updateWrapper.eq("infername", inferName).set("running", exitCode == 0 ? 0 : runStatus);
+                    if (inferMapper.update(null, updateWrapper) > 0) {
+                        System.out.println("成功更新训练进程状态");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    processMap.remove(processId);
+                }
+            });
+
+            processMap.put(processId, inferThread);
+            inferThread.start();
+
+            Map<String, String> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("processId", processId);
+            response.put("inferName", inferName);
+            response.put("message", "success");
+            return response;
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "启动 Python 进程失败: " + e.getMessage());
+            return response;
+        }
     }
 
     @Override
@@ -225,27 +297,15 @@ public class InferServcieImpl implements InferServcie {
 
         // 获取存储的进程
         Thread thread = processMap.get(processId);
-        String processPid = getPythonProcessId(processId);
-
-        // 如果找不到 Python 进程的 PID，返回错误
-        if (processPid == null) {
-            // 暂停训练时终止训练
-//            System.out.println("!!!!!!!!!!!!!!!!!!!!找不到对应线程");
-            response.put("status", "error");
-            response.put("message", "Could not find Python process");
-            return response;
-        }
         lock.lock();
         try {
             runStatus = 0;
-            // 在 Windows 系统上终止整个进程树
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                new ProcessBuilder("taskkill", "/F", "/T", "/PID", processPid).start();
-            } else {
-                // 在类 Unix 系统上终止整个进程树
-                thread.destroy(); // 尝试优雅终止
+            boolean killed = terminateProcess(processId);
+            if (!killed) {
+                response.put("status", "error");
+                response.put("message", "Failed to terminate process");
+                return response;
             }
-
             // **等待 `addTrain` 里的线程执行完毕**
             System.out.println("等待训练线程执行完数据库更新...");
             thread.join();  // **等待该线程执行完毕**
@@ -273,23 +333,15 @@ public class InferServcieImpl implements InferServcie {
 
         // 获取存储的进程
         Thread thread = processMap.get(processId);
-        String processPid = getPythonProcessId(processId);
-
-        // 如果找不到 Python 进程的 PID，返回错误
-        if (processPid == null) {
-            response.put("status", "error");
-            response.put("message", "Could not find Python process");
-            return response;
-        }
         lock.lock();
         try {
             runStatus = 2;
-            // 在 Windows 系统上终止整个进程树
-            if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                new ProcessBuilder("taskkill", "/F", "/T", "/PID", processPid).start();
-            } else {
-                // 在类 Unix 系统上终止整个进程树
-                thread.destroy(); // 尝试优雅终止
+
+            boolean killed = terminateProcess(processId);
+            if (!killed) {
+                response.put("status", "error");
+                response.put("message", "Failed to terminate process");
+                return response;
             }
 
             // **等待 `addTrain` 里的线程执行完毕**

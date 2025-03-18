@@ -94,6 +94,7 @@ public class TrainServiceImpl implements TrainService {
         checkpoint.setTimestamp(new Date());
         modelPthMapper.insert(checkpoint);
     }
+    
     @Override
     public Map<String, String> addTrain(MultiValueMap<String, String> data) {
         String trainingNamePre = data.getFirst("trainingName");
@@ -321,25 +322,23 @@ public class TrainServiceImpl implements TrainService {
             return response;
         }
 
-        System.out.println("In Kill Train processId : " + processId);
 
         // 获取存储的进程
         Thread thread = processMap.get(processId);
-//        String processPid = getPythonProcessId(processId);
-//        System.out.println("find Train PID : " + processPid);
-//
-//        // 如果找不到 Python 进程的 PID，返回错误
-//        if (processPid == null) {
-//            // 暂停训练时终止训练
-////            System.out.println("!!!!!!!!!!!!!!!!!!!!找不到对应线程");
-//            response.put("status", "error");
-//            response.put("message", "Could not find Python process");
-//            return response;
-//        }
+        String processPid = getPythonProcessId(processId);
+
+        // 如果找不到 Python 进程的 PID，返回错误
+        if (processPid == null) {
+            // 暂停训练时终止训练
+//            System.out.println("!!!!!!!!!!!!!!!!!!!!找不到对应线程");
+            response.put("status", "error");
+            response.put("message", "Could not find Python process");
+            return response;
+        }
         lock.lock();
         try {
             runStatus = 0;
-            boolean killed = terminateProcess(processId);
+            boolean killed = terminateProcess(processPid);
             if (!killed) {
                 response.put("status", "error");
                 response.put("message", "Failed to terminate process");
@@ -373,10 +372,18 @@ public class TrainServiceImpl implements TrainService {
 
         // 获取存储的进程
         Thread thread = processMap.get(processId);
+        String processPid = getPythonProcessId(processId);
+
+        // 如果找不到 Python 进程的 PID，返回错误
+        if (processPid == null) {
+            response.put("status", "error");
+            response.put("message", "Could not find Python process");
+            return response;
+        }
         lock.lock();
         try {
             runStatus = 2;
-            boolean killed = terminateProcess(processId);
+            boolean killed = terminateProcess(processPid);
             if (!killed) {
                 response.put("status", "error");
                 response.put("message", "Failed to terminate process");
