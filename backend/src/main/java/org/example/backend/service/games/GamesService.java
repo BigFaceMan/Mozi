@@ -12,6 +12,10 @@ public interface GamesService {
     public Map<String, String> signGame(ResourceInfo resourceInfo);
     public List<ResourceInfo> getAllGameNode();
     public void checkGameNode();
+
+    public void trainWs() throws Exception;
+
+    public Map<String, String> trainAcc(int speed);
     public Map<String, String> addTrain(MultiValueMap<String, String> data) throws JsonProcessingException;
     public Map<String, String> killTrain(MultiValueMap<String, String> data);
     public Map<String, String> stopTrain(MultiValueMap<String, String> data);

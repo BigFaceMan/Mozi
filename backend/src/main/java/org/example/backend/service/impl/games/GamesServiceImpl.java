@@ -3,6 +3,7 @@ package org.example.backend.service.impl.games;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.example.backend.consumer.WebSocketClient;
 import org.example.backend.mapper.ExamplesMapper;
 import org.example.backend.mapper.SceneEntityMapper;
 import org.example.backend.pojo.Examples;
@@ -29,7 +30,54 @@ public class GamesServiceImpl implements GamesService {
     private ExamplesMapper examplesMapper;
     @Autowired
     private SceneEntityMapper sceneEntityMapper;
+    @Autowired
+    private WebSocketClient webSocketClient;
     Map<String, ResourceInfo> gameNodes = new ConcurrentHashMap<>();
+    public void trainWs() {
+        try {
+            webSocketClient.connect("ws://localhost:8765");
+            HashMap<String, String> map = new HashMap<>();
+            map.put("Type", "SimCtrl");
+            map.put("Msg", "Stop");
+            LinkedList<Object> list = new LinkedList<>();
+            list.add(map);
+            HashMap<String, Object> messageMap = new HashMap<>();
+            messageMap.put("Cmds", list);
+            ObjectMapper objectMapper = new ObjectMapper();
+            String message = objectMapper.writeValueAsString(messageMap);
+            webSocketClient.sendMessage(message);
+        } catch (Exception e) {
+            System.out.println("WebSocket 连接失败");
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public Map<String, String> trainAcc(int speed) {
+        try {
+            webSocketClient.connect("ws://localhost:8765");
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("Type", "SimCtrl");
+            map.put("Msg", "Speed");
+            map.put("Speed", speed);
+            LinkedList<Object> list = new LinkedList<>();
+            list.add(map);
+            HashMap<String, Object> messageMap = new HashMap<>();
+            messageMap.put("Cmds", list);
+            ObjectMapper objectMapper = new ObjectMapper();
+            String message = objectMapper.writeValueAsString(messageMap);
+            webSocketClient.sendMessage(message);
+        } catch (Exception e) {
+            System.out.println("WebSocket 连接失败");
+            e.printStackTrace();
+            Map<String, String> res = new HashMap<>();
+            res.put("msg", "fail");
+        }
+        Map<String, String> res = new HashMap<>();
+        res.put("msg", "success");
+        return res;
+    }
+
     @Override
     public Map<String, String> signGame(ResourceInfo resourceInfo) {
         String gameKey = resourceInfo.getIp() + resourceInfo.getPort();
@@ -69,26 +117,6 @@ public class GamesServiceImpl implements GamesService {
     public List<ResourceInfo> getAllGameNode() {
         return new ArrayList<>(gameNodes.values());
     }
-
-
-//    public String getParamsJsonString(String scene) {
-//        QueryWrapper<Examples> queryWrapperExamples = new QueryWrapper<>();
-//        Examples examples = examplesMapper.selectOne(queryWrapperExamples.eq("projectname", scene));
-//        int sceneId = examples.getId();
-//        QueryWrapper<SceneEntity> queryWrapperSceneEntity = new QueryWrapper<>();
-//        List<SceneEntity> sceneEntityList = sceneEntityMapper.selectList(queryWrapperSceneEntity.eq("sceneid", sceneId));
-//        HashMap<String, Object> paramsMap = new HashMap<>();
-//        paramsMap.put("sceneEntitySelect", sceneEntityList);
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        try {
-//            return objectMapper.writeValueAsString(paramsMap); // 转换为 JSON
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return "{}"; // 出错时返回空 JSON
-//        }
-//    }
-
-
     @Override
     public Map<String, String> addTrain(MultiValueMap<String, String> data) throws JsonProcessingException {
 //        System.out.println("data is : \n" + data);
@@ -134,6 +162,23 @@ public class GamesServiceImpl implements GamesService {
 
     @Override
     public Map<String, String> killTrain(MultiValueMap<String, String> data) {
+        try {
+            webSocketClient.connect("ws://localhost:8765");
+            HashMap<String, String> map = new HashMap<>();
+            map.put("Type", "SimCtrl");
+            map.put("Msg", "Stop");
+            LinkedList<Object> list = new LinkedList<>();
+            list.add(map);
+            HashMap<String, Object> messageMap = new HashMap<>();
+            messageMap.put("Cmds", list);
+            ObjectMapper objectMapper = new ObjectMapper();
+            String message = objectMapper.writeValueAsString(messageMap);
+            webSocketClient.sendMessage(message);
+        } catch (Exception e) {
+            System.out.println("WebSocket 连接失败");
+            e.printStackTrace();
+        }
+
 //        System.out.println("data is : \n" + data);
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
@@ -161,6 +206,22 @@ public class GamesServiceImpl implements GamesService {
 
     @Override
     public Map<String, String> stopTrain(MultiValueMap<String, String> data) {
+        try {
+            webSocketClient.connect("ws://localhost:8765");
+            HashMap<String, String> map = new HashMap<>();
+            map.put("Type", "SimCtrl");
+            map.put("Msg", "Stop");
+            LinkedList<Object> list = new LinkedList<>();
+            list.add(map);
+            HashMap<String, Object> messageMap = new HashMap<>();
+            messageMap.put("Cmds", list);
+            ObjectMapper objectMapper = new ObjectMapper();
+            String message = objectMapper.writeValueAsString(messageMap);
+            webSocketClient.sendMessage(message);
+        } catch (Exception e) {
+            System.out.println("WebSocket 连接失败");
+            e.printStackTrace();
+        }
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
         HashMap<String, String> map = new HashMap<>();

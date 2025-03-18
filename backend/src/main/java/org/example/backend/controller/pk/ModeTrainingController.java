@@ -28,14 +28,15 @@ public class ModeTrainingController {
     @Autowired
     private GamesService gamesService;
 
+    @GetMapping("/train/ws/")
+    public void accTrain() throws Exception {
+        gamesService.trainWs();
+    }
 
     @PostMapping("/train/acc/")
-    public Map<String, String> accTrain(@RequestParam(defaultValue = "1") double speed) {
-        System.out.println("In Train Acc : " + Double.toString(speed));
-
-        Map<String, String> map = new HashMap<>();
-        map.put("message", "Success");
-        return map;
+    public Map<String, String> accTrain(@RequestParam(defaultValue = "1") int speed) {
+        System.out.println("In Train Acc : " + Integer.toString(speed));
+        return gamesService.trainAcc(speed);
     }
 
     @PostMapping("/train/add/")

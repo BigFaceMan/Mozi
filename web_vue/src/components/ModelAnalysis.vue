@@ -46,6 +46,7 @@
                             <th scope="col">方法</th>
                             <th scope="col">强化学习环境</th>
                             <th scope="col">训练状态</th>
+                            <th scope="col">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -91,20 +92,10 @@
                             <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button>
                             <!-- <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button> -->
                             <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '2'" @click="killTraining(training)">终止训练</button>
-                            <div class="btn-group ms-2" v-if="training.running == '1'">
-                                <button class="btn btn-sm" :style="{ backgroundColor: '#FFA500', color: 'white' }">
-                                    <i class="fas fa-tachometer-alt"></i> {{ training.speedMultiplier || 1 }}x 加速
-                                </button>
-                                <button class="btn btn-sm dropdown-toggle dropdown-toggle-split" :style="{ backgroundColor: '#FFA500', color: 'white' }" data-bs-toggle="dropdown" aria-expanded="false">
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" @click="trainAcc(training, 1)">🚀 1x 加速</a></li>
-                                    <li><a class="dropdown-item" @click="trainAcc(training, 1.5)">🚀 1.5x 加速</a></li>
-                                    <li><a class="dropdown-item" @click="trainAcc(training, 2)">⚡ 2x 加速</a></li>
-                                    <li><a class="dropdown-item" @click="trainAcc(training, 3)">🔥 3x 加速</a></li>
-                                    <li><a class="dropdown-item" @click="trainAcc(training, 10)">🔥 10x 加速</a></li>
-                                </ul>
-                            </div>
+                            <button class="btn btn-sm ms-2" style="background-color: #FFA500; color: white;"  v-if="training.running == '1'"
+                                    @click="showSpeedModal(training)">
+                                <i class="fas fa-tachometer-alt"></i> {{ training.speedMultiplier || 1 }}x 加速
+                            </button>
                         </td>
                         </tr>
                     </tbody>
@@ -125,6 +116,24 @@
             </div>
         </div>
 
+        <div class="modal fade" id="speedModal" tabindex="-1" aria-labelledby="speedModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="speedModalLabel">🚀 调整训练速度</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <input type="range" class="form-range" min="1" max="150" step="1" v-model="tempSpeedMultiplier">
+                        <p class="text-center current-speed">当前加速倍数：{{ tempSpeedMultiplier }}x</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">❌ 取消</button>
+                        <button type="button" class="btn btn-primary" @click="confirmSpeed()">✅ 确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Visualization Modal -->
         <div v-if="isVisualizationVisible" class="modal fade show" tabindex="-1" aria-labelledby="visualizationModalLabel" aria-hidden="true" style="display: block;">
             <div class="modal-dialog modal-lg">
@@ -310,9 +319,10 @@ import { ref, computed, onMounted, nextTick } from 'vue';
 import $ from 'jquery';
 import { Chart } from 'chart.js';
 import { useStore } from 'vuex';
+import { Modal } from "bootstrap";
 
 const store = useStore();
-
+const tempSpeedMultiplier = ref(1);
 const trainings = ref([]);
 const filteredTrainings = ref([]);
 const paginatedTrainings = ref([]);
@@ -321,6 +331,7 @@ const currentPage = ref(1);
 const itemsPerPage = 10;
 const tensorboardTraining = ref(null);
 const tensorboardPort = ref(6001);
+const currentAccTrain = ref([])
 
 const totalPages = computed(() => Math.ceil(trainings.value.length / itemsPerPage));
 const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
@@ -817,7 +828,7 @@ const downloadModel = (training) => {
 
 const trainAcc = (training, speed) => {
     training.speedMultiplier = speed;
-
+    // console.log("train Acc : ", speed)
     $.ajax({
         url: "http://127.0.0.1:3000/train/acc/",  // 确保后端接口正确
         type: "post",
@@ -828,7 +839,7 @@ const trainAcc = (training, speed) => {
             speed: speed,
         },
         success(resp) {
-            console.log("modify train speed : ", resp.message)
+            console.log("modify train speed : ", resp.msg)
         },
         error(err) {
             console.error("Error fetching model file:", err);
@@ -866,6 +877,21 @@ const viewSuggestions = () => {
 
     // 将随机选择的建议显示出来
     suggestionsData.value = suggestions.join('\n');
+};
+const showSpeedModal = (training) => {
+    console.log("current Train : ", training)
+    currentAccTrain.value = training
+    tempSpeedMultiplier.value = training.speedMultiplier || 1;
+    const modal = new Modal(document.getElementById("speedModal"));
+    modal.show();
+};
+const confirmSpeed = () => {
+    // console.log("confirm Speed : ", tempSpeedMultiplier.value)
+    // console.log("confirmSpeed Current train : ", currentAccTrain.value)
+    // training.speedMultiplier = tempSpeedMultiplier.value;
+    trainAcc(currentAccTrain.value, tempSpeedMultiplier.value);
+    const modal = Modal.getInstance(document.getElementById("speedModal"));
+    modal.hide();
 };
 
 const closeSuggestions = () => {
@@ -939,6 +965,62 @@ onMounted(fetchTrainings);
     }
 }
 
+.modal-content {
+    background: #f8f9fa; 
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
 
+.modal-title {
+    font-weight: bold;
+    color: #333;
+}
 
+.form-range::-webkit-slider-runnable-track {
+    background: #ddd;
+    height: 6px;
+    border-radius: 5px;
+}
+
+.form-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+
+.form-range::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.current-speed {
+    font-size: 18px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.btn-modern {
+    background: #007bff;
+    color: white;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn-modern:hover {
+    background: #0056b3;
+    box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3);
+}
+
+.btn-cancel {
+    background: #6c757d;
+}
+
+.btn-cancel:hover {
+    background: #545b62;
+}
 </style>
