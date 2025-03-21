@@ -68,7 +68,24 @@
         </option>
       </select>
     </div>
-
+    <div class="form-group mb-3">
+      <label for="enginenode">选择仿真引擎节点:</label>
+      <div class="custom-select-container">
+        <button type="button" class="form-select" @click="toggleDropdown">
+          {{ selectedNodes.length ? selectedNodes.map(node => node.nodeName).join(', ') : '请选择节点' }}
+        </button>
+        <div v-if="dropdownVisible" class="dropdown-list">
+          <ul>
+            <li v-for="(engineNode, index) in engineNodes" :key="engineNode.nodeName">
+              <label>
+                <input type="checkbox" :value="engineNode" v-model="selectedNodes" />
+                {{ '节点 ' + (index + 1) }}
+              </label>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
     <!-- 选择 PyTorch 版本 -->
     <div class="form-group mb-3">
       <label for="pytorchVersion">选择 PyTorch 版本:</label>
@@ -80,6 +97,17 @@
       </select>
     </div>
 
+    <!-- 训练轮次 -->
+    <div class="form-group mb-3">
+      <label for="trainIterations">训练时间:</label>
+      <input
+        v-model="form.trainTime"
+        id="trainIterations"
+        type="text"
+        class="form-control"
+        placeholder="1600"
+      />
+    </div>
     <!-- 训练轮次 -->
     <div class="form-group mb-3">
       <label for="trainIterations">训练轮次:</label>
@@ -159,10 +187,13 @@ import $ from 'jquery';
 const store = useStore();
 const models = ref([]);
 const gameNodes = ref([]);
+const engineNodes = ref([]);
 const situations = ref([]);
 const showConfig = ref(false);
 const trainingStatus = ref(null); // 用来存储训练状态
 const showRewardModal = ref(false);
+const selectedNodes = ref([]);
+const dropdownVisible = ref(false);
 
 // 从 Vuex 获取表单数据
 const form = reactive({ ...store.state.train.form });
@@ -172,6 +203,9 @@ const filteredModels = computed(() => {
   return models.value.filter(models => models.situationselect == form.scene);
 });
 
+const toggleDropdown = () => {
+  dropdownVisible.value = !dropdownVisible.value
+};
 // 从后端获取模型列表
 const fetchModels = () => {
   $.ajax({
@@ -205,6 +239,19 @@ const fetchModels = () => {
     success(resp) {
       gameNodes.value = resp;
       // console.log(resp)
+    }
+  });
+  $.ajax({
+    url: "http://127.0.0.1:3000/engine/getAll",
+    type: "get",
+    headers: {
+      Authorization: "Bearer " + store.state.user.token,
+    },
+    success(resp) {
+      engineNodes.value = resp;
+    },
+    error(err) {
+      console.error("获取引擎节点失败:", err);
     }
   });
 };
@@ -274,6 +321,7 @@ const startTraining = () => {
       ip: form.ip,
       port: form.port,
       modelParams: JSON.stringify(form.modelParams),
+      engineNodes: selectedNodes.value,
     },
     success(resp) {
       console.log(resp);
@@ -408,6 +456,33 @@ onMounted(fetchModels);
   justify-content: flex-end;
   margin-top: 15px;
   gap: 10px;
+}
+
+.custom-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.form-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 14px;
+  appearance: none; /* 移除默认箭头 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.form-select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* 处理自定义选择框的下拉 */
+.form-select option {
+  padding: 10px;
 }
 /* 可选自定义样式 */
 </style>

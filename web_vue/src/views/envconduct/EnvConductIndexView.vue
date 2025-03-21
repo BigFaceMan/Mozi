@@ -32,7 +32,14 @@
                             <td>{{ rexample.examplename }}</td>
                             <td>{{ rexample.createtime }}</td>
                             <td>
-                                <button class="btn btn-danger btn-sm" @click="deleteRExample(rexample.id)">🗑 删除</button>
+                                <div class="btn-group" role="group" aria-label="操作">
+                                    <button class="btn btn-outline-info btn-sm" @click="viewRExampleInfo(rexample)">
+                                    <i class="bi bi-eye"></i> 查看
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" @click="deleteRExample(rexample.id)">
+                                    <i class="bi bi-trash"></i> 删除
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -83,7 +90,7 @@
                                             <tbody>
                                                 <tr v-for="situation in pagedSituations" :key="situation.id"
                                                     :class="{ 'table-active': selectedSituationId === situation.id }"
-                                                    @click="selectSituation(situation.id)">
+                                                    @click="selectSituation(situation.id, situation.taskName)">
                                                     <td>{{ situation.id }}</td>
                                                     <td>{{ situation.taskName }}</td>
                                                 </tr>
@@ -121,7 +128,7 @@
                                             <tbody>
                                                 <tr v-for="solution in pagedSolution" :key="solution.id"
                                                     :class="{ 'table-active': selectedSolutionId === solution.id }"
-                                                    @click="selectSolution(solution.id)">
+                                                    @click="selectSolution(solution.id, solution.missionName)">
                                                     <td>{{ solution.id }}</td>
                                                     <td>{{ solution.missionName }}</td>
                                                 </tr>
@@ -270,17 +277,25 @@
                                                     </th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
+                                                <tbody>
                                                 <tr v-for="entity in pagedEntity" :key="entity.id">
                                                     <td>{{ entity.type }}</td>
                                                     <td>{{ entity.scenarioModelName }}</td>
                                                     <td class="text-center">
-                                                        <input type="checkbox" 
-                                                            :value="{ groupId: selectedGroupId, entityId: entity.id }" 
-                                                            v-model="selectedEntities">
+                                                    <input
+                                                        type="checkbox"
+                                                        :value="{
+                                                        groupId: selectedGroupId,
+                                                        groupName: selectedGroupName,
+                                                        entityId: entity.id,
+                                                        entityName: entity.scenarioModelName
+                                                        }"
+                                                        v-model="selectedEntities"
+                                                    />
                                                     </td>
                                                 </tr>
-                                            </tbody>
+                                                </tbody>
+
                                         </table>
 
                                         <div class="d-flex justify-content-center mt-3" style="margin-bottom: 5%">
@@ -305,6 +320,13 @@
                     </div>
                 </div>
             </div>
+            <div v-if="showDetail" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <SceneView :rexample="selectedRexample" @close="showDetail = false"/>
+                    </div>
+                </div>
+            </div>
         </div>
     </ContentField>
 </template>
@@ -312,6 +334,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import ContentField from '../../components/ContentField.vue';
+import SceneView from '../../components/SceneView.vue';
 import $ from "jquery";
 import store from "../../store";
 
@@ -325,11 +348,16 @@ const countrys = ref([]);
 const groups = ref([])
 const entitys = ref([]);
 const projectName = ref(null);
+const showDetail = ref(false);
+const selectedRexample = ref();
 
 const selectedEntities = ref([]); // 存储勾选的实体
 const selectedSituationId = ref(null);
+const selectedSituationName = ref(null);
 const selectedGroupId = ref(null)
+const selectedGroupName = ref(null)
 const selectedSolutionId = ref(null);
+const selectedSolutionName = ref(null);
 const selectedExampleId = ref(null);
 const selectedExampleName = ref(null);
 const selectedCountryName = ref(null);
@@ -466,11 +494,16 @@ const totalPagesEntity = computed(() => {
 });
 
 const isAllSelected = computed(() => {
-        return entitys.value.length > 0 && 
-               entitys.value.every(entity => 
-                   selectedEntities.value.some(selected => selected.entityId === entity.id)
-               );
+    return entitys.value.length > 0 && 
+        entitys.value.every(entity => 
+            selectedEntities.value.some(selected => selected.entityId === entity.id)
+        );
 });
+const viewRExampleInfo = (rexample) => {
+    selectedRexample.value = rexample;
+    // console.log("select rexample : ", selectedRexample.value)
+    showDetail.value = true;
+}
 const toggleAllEntities = () => {
     if (isAllSelected.value) {
         // 取消全选：移除当前页的所有实体
@@ -481,7 +514,9 @@ const toggleAllEntities = () => {
         // 全选：添加当前页所有实体
         const newSelections = entitys.value.map(entity => ({
             groupId: selectedGroupId.value,
-            entityId: entity.id
+            groupName: selectedGroupName.value,
+            entityId: entity.id,
+            entityName: entity.scenarioModelName
         }));
         selectedEntities.value = [...selectedEntities.value, ...newSelections.filter(newEntity =>
             !selectedEntities.value.some(selected => selected.entityId === newEntity.entityId)
@@ -571,6 +606,7 @@ const fetchSituations = () => {
 const selectGroup = (group) => {
     console.log("select : ", group)
     selectedGroupId.value = group.id
+    selectedGroupName.value = group.unitGroupName
     $.ajax({
         url: "http://127.0.0.1:3000/remote/getEntity/",
         type: "post",
@@ -678,8 +714,9 @@ const selectCountry = (country) => {
     });
 };
 // 选择想定，获取方案
-const selectSituation = (situationId) => {
+const selectSituation = (situationId, situationName) => {
     selectedSituationId.value = situationId;
+    selectedSituationName.value = situationName
     selectedSolutionId.value = null; // 清空方案
     selectedExampleId.value = null; // 清空实例
     solutions.value = [];
@@ -701,8 +738,9 @@ const selectSituation = (situationId) => {
 };
 
 // 选择方案，获取实例
-const selectSolution = (solutionId) => {
+const selectSolution = (solutionId, solutionName) => {
     selectedSolutionId.value = solutionId;
+    selectedSolutionName.value = solutionName;
     selectedExampleId.value = null; // 清空实例
     examples.value = [];
 
@@ -746,7 +784,9 @@ const submitSelection = () => {
         },
         data: {
             situationId: selectedSituationId.value,
+            situationName: selectedSituationName.value,
             solutionId: selectedSolutionId.value,
+            solutionName: selectedSolutionName.value,
             exampleId: selectedExampleId.value,
             exampleName: selectedExampleName.value,
             projectName: projectName.value,
@@ -819,12 +859,12 @@ onMounted(() => {
 
 /* 模态框内容 */
 .modal-content {
-    background: white;
+    /* background: white;
     border-radius: 10px;
     padding: 20px;
     width: 90%;
     max-width: 10000px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); */
     position: relative;
 }
 

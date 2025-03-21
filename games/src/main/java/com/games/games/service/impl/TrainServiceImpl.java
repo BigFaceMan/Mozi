@@ -12,10 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.swing.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +40,7 @@ public class TrainServiceImpl implements TrainService {
     private String  envName;
     private int runStatus = 1;
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
+
 
     private static String getPythonProcessId(String processId) throws IOException {
         String os = System.getProperty("os.name").toLowerCase();

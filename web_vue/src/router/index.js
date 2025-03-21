@@ -13,6 +13,7 @@ import LogConductView from "../views/logconduct/LogConductView"
 import GameNodesView from "../views/gameNodesConduct/GameNodesView"
 import DataAnalysisView from "../views/dataAnalysis/DataAnalysisView"
 import RmoteLogView from "../views/remoteLog/RmoteLogView"
+import EngineNodesView from "../views/gameNodesConduct/EngineNodesView"
 import store from '../store/index'
 
 const routes = [
@@ -52,6 +53,14 @@ const routes = [
     path: "/gameNodesView/",
     name: "gameNodes_index",
     component: GameNodesView,
+    meta: {
+      requestAuth: true,
+    }
+  },
+  {
+    path: "/engineNodesView/",
+    name: "engineNodes_index",
+    component: EngineNodesView,
     meta: {
       requestAuth: true,
     }

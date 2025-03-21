@@ -5,7 +5,6 @@ LastEditTime: 2025-03-18 10:16:51
 '''
 import asyncio
 import websockets
-import json
 
 async def client():
     uri = "ws://localhost:8765"

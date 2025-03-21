@@ -14,5 +14,7 @@ public class SceneEntity {
     private Integer id;
     private Integer sceneid;
     private String groupid;
+    private String groupName;
     private String entityid;
+    private String entityName;
 }

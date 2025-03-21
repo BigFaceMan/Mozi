@@ -9,6 +9,7 @@ export default {
       model: 'ddpg',
       pytorchVersion: '1.8',
       trainIterations: 1000,
+      trainTime: 1600,
       learningRate: 0.001,
       batchSize: 32,
       modelParams: '',

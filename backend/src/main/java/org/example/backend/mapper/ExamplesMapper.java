@@ -8,8 +8,8 @@ import org.example.backend.pojo.Examples;
 
 @Mapper
 public interface ExamplesMapper extends BaseMapper<Examples> {
-    @Insert("INSERT INTO examples (situationid, solutionid, exampleid, examplename, projectname, country, createtime, uid) " +
-            "VALUES (#{situationid}, #{solutionid}, #{exampleid}, #{examplename}, #{projectname}, #{country}, #{createtime}, #{uid})")
+    @Insert("INSERT INTO examples (situationid, solutionid, exampleid, examplename, projectname, country, createtime, uid, solutionname, situationname) " +
+            "VALUES (#{situationid}, #{solutionid}, #{exampleid}, #{examplename}, #{projectname}, #{country}, #{createtime}, #{uid}, #{solutionname}, #{situationname})")
     @Options(useGeneratedKeys = true, keyProperty = "id") // 关键点
-    int insert(Examples example);
+    int insertExample(Examples example);
 }

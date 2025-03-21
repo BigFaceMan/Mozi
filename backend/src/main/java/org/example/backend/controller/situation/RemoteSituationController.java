@@ -1,9 +1,11 @@
 package org.example.backend.controller.situation;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.mapper.ExamplesMapper;
 import org.example.backend.mapper.SceneEntityMapper;
+import org.example.backend.pojo.EngineInfo;
 import org.example.backend.pojo.Examples;
 import org.example.backend.pojo.SceneEntity;
 import org.example.backend.pojo.User;
@@ -16,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,10 +40,73 @@ public class RemoteSituationController {
     private String url2 = "http://127.0.0.1:4001";
     private String url3 = "http://127.0.0.1:4001";
     private String url4 = "http://127.0.0.1:4001";
+    private String url5 = "http://127.0.0.1:4001";
 //    private String url1 = "http://192.1.116.100:7210";
 //    private String url2 = "http://192.1.116.100:8082";
 //    private String url3 = "http://192.1.116.100:8081";
 //    private String url4 = "http://192.1.116.100:8002";
+//    private String url5 = "http://127.0.0.1:4001";
+    public List<Map<String, Object>> getLeafIndicator(Map<String, Object> node) {
+        if (node.get("children") == null) {
+            List<Map<String, Object>> res = new ArrayList<>();
+            res.add(node);
+            return res;
+        }
+        List<Map<String, Object>> children = (List<Map<String, Object>>) node.get("children");
+        List<Map<String, Object>> res = new ArrayList<>();
+        for (int i = 0; i < children.size(); i ++) {
+            List<Map<String, Object>> leaf = getLeafIndicator(children.get(i));
+            res.addAll(leaf);
+        }
+        return res;
+    }
+
+    @PostMapping("/remote/getExampleIndicator/")
+    public Map<String, Object> getEvalIndicator(@RequestParam String exampleId) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        response.put("msg", "成功得到指标");
+        System.out.println("In getEvalIndicator !!!! " + exampleId);
+
+        String url = url5 + "/esserver/assess/system/taskData/findDataByDeduceAsTree";
+
+        // 构造请求参数
+        int simTime = 0;
+        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+        requestBody.add("deduceId", exampleId);
+        requestBody.add("simTime", String.valueOf(simTime));
+
+        // 设置请求头
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 组装请求体
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            // 发送 POST 请求
+            String situationJson = restTemplate.postForObject(url, requestEntity, String.class);
+
+            // 解析 JSON
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> resultMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            List<Map<String, Object>> dataList = (List<Map<String, Object>>) ((Map<String, Object>) resultMap.get("data")).get("list");
+            List<Map<String, Object>> leafData = new ArrayList<>();
+            for (int i = 0; i < dataList.size(); i ++) {
+                List<Map<String, Object>> leaf = getLeafIndicator(dataList.get(i));
+                leafData.addAll(leaf);
+            }
+
+            // 将返回的结果放入 response
+            response.put("data", leafData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("code", 500);
+            response.put("msg", "请求失败：" + e.getMessage());
+        }
+
+        return response;
+    }
     @PostMapping("/remote/getSituations/")
     public Map<String, Object> getSituatioes(@RequestParam Map<String, String> data) {
 //        True
@@ -400,8 +466,11 @@ public class RemoteSituationController {
         Map<String, Object> response = new HashMap<>();
         try {
             // 解析前端传来的参数
+            System.out.println("data : " + data);
             String situationId = data.get("situationId");
+            String situationName = data.get("situationName");
             String solutionId = data.get("solutionId");
+            String solutionName = data.get("solutionName");
             String exampleId = data.get("exampleId");
             String exampleName = data.get("exampleName");
             String projectName = data.get("projectName");
@@ -422,6 +491,9 @@ public class RemoteSituationController {
             example.setExamplename(exampleName);
             example.setProjectname(projectName);
             example.setCountry(selectCountry);
+//            example.setSituationname(situationName);
+            example.setSituationname("123");
+            example.setSolutionname(solutionName);
             example.setCreatetime(new Date()); // 设置当前时间
 
 
@@ -431,7 +503,7 @@ public class RemoteSituationController {
             UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
             User user = loginUser.getUser();
             example.setUid(user.getId());
-
+            System.out.println("example is : " + example);
             // 存入数据库
             boolean isSaved = examplesMapper.insert(example) > 0;
 
@@ -452,10 +524,14 @@ public class RemoteSituationController {
                     System.out.println("entity : " + entity);
                     SceneEntity sceneEntity = new SceneEntity();
                     String entityId = entity.get("entityId");
+                    String entityName = entity.get("entityName");
                     String groupId = entity.get("groupId");
+                    String groupName = entity.get("groupName");
                     sceneEntity.setEntityid(entityId);
                     sceneEntity.setGroupid(groupId);
                     sceneEntity.setSceneid(generatedId);
+                    sceneEntity.setEntityName(entityName);
+                    sceneEntity.setGroupName(groupName);
                     sceneEntityMapper.insert(sceneEntity);
                 }
 
@@ -513,6 +589,18 @@ public class RemoteSituationController {
         return response;
     }
 
+    @GetMapping("/remote/getSceneEntitys/")
+    public Map<String, Object> getSceneEntitys(@RequestParam Map<String, String> data) {
+        String projectId = data.get("projectId");
+        QueryWrapper<SceneEntity> queryWrapperSceneEntity = new QueryWrapper<>();
+        List<SceneEntity> sceneEntityList = sceneEntityMapper.selectList(queryWrapperSceneEntity.eq("sceneid", projectId));
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("code", 200);
+        map.put("success", true);
+        map.put("message", "success");
+        map.put("data", sceneEntityList);
+        return map;
+    }
     @PostMapping("/remote/getEntitys/")
     public Map<String, Object> getEntitys(@RequestParam Map<String, String> data) {
         String exampleId = data.get("exampleId");

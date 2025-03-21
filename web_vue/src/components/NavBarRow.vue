@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2024-11-13 15:06:09
- * @LastEditTime: 2025-03-15 21:53:49
+ * @LastEditTime: 2025-03-21 16:00:40
 -->
 <template>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -29,6 +29,9 @@
         </li>
         <li class="nav-item">
           <router-link :class="route_name == 'gameNodes_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'gameNodes_index'}"> 计算节点</router-link>
+        </li>
+        <li class="nav-item">
+          <router-link :class="route_name == 'engineNodes_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'engineNodes_index'}">引擎节点</router-link>
         </li>
         <li class="nav-item">
           <router-link :class="route_name == 'help_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'help_index'}"> 帮助</router-link>

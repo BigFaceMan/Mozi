@@ -19,7 +19,9 @@ public class Examples {
     private String projectname;
     private String examplename;
     private String situationid;
+    private String situationName;
     private String solutionid;
+    private String solutionName;
     private String exampleid;
     private String country;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
