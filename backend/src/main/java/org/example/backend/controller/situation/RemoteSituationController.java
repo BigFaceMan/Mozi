@@ -494,6 +494,7 @@ public class RemoteSituationController {
 //            example.setSituationname(situationName);
             example.setSituationname("123");
             example.setSolutionname(solutionName);
+            example.setVisible(0);
             example.setCreatetime(new Date()); // 设置当前时间
 
 
@@ -549,9 +550,18 @@ public class RemoteSituationController {
 
     @PostMapping("/remote/getRExamples/")
     public Map<String, Object> getRExamples() {
+        UsernamePasswordAuthenticationToken authentication =
+                (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
+        User user = loginUser.getUser();
+        System.out.println("in get RExamples, user : " + user);
         Map<String, Object> response = new HashMap<>();
         try {
-            List<Examples> examplesList = examplesMapper.selectList(null); // 查询所有实例
+            // 查询条件：uid 等于 user.getId() 或者 visible=1
+            QueryWrapper<Examples> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("uid", user.getId()).or().eq("visible", 1);
+
+            List<Examples> examplesList = examplesMapper.selectList(queryWrapper); // 使用条件查询
             response.put("code", 200);
             response.put("success", true);
             response.put("message", "获取成功");

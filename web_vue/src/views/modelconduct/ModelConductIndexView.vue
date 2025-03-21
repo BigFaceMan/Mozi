@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-03-18 13:03:40
+ * @LastEditTime: 2025-03-21 23:13:03
 -->
 <template>
     <div class="container mt-4">
@@ -215,9 +215,22 @@
                                     <img :src="form.structureimage" alt="模型结构图片" class="mt-2" style="max-width: 100px; max-height: 100px;">
                                 </div>
                             </div>
-                            <div class="mb-3">
+                            <!-- <div class="mb-3">
                                 <label for="environment" class="form-label">深度学习环境</label>
                                 <input type="text" class="form-control" id="environment" v-model="form.environment">
+                            </div> -->
+                            <div class="mb-3">
+                            <label for="environment" class="form-label">深度学习环境</label>
+                            <select class="form-control" id="environment" v-model="form.environment">
+                                <option disabled value="">请选择一个环境</option> <!-- 默认提示 -->
+                                <option value="torch1.7">torch1.7</option>
+                                <option value="torch1.8">torch1.8</option>
+                                <option value="torch1.9">torch1.9</option>
+                                <option value="torch1.10">torch1.10</option>
+                                <option value="torch1.11">torch1.11</option>
+                                <option value="torch1.12">torch1.12</option>
+                                <option value="torch1.13">torch1.13</option>
+                            </select>
                             </div>
                             <div class="mb-3">
                                 <label for="methodSelection" class="form-label">想定选择</label>

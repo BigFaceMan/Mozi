@@ -25,6 +25,7 @@ public class Examples {
     private String country;
     private String solutionname;
     private String situationname;
+    private int visible;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
     private Date createtime;
 }

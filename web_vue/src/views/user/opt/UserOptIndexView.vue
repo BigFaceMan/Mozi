@@ -101,36 +101,69 @@
         <!-- 审计区域弹窗 -->
         <div v-if="isAuditSectionVisible" class="modal fade show audit-section-modal" tabindex="-1" style="display: block;" aria-labelledby="auditSectionModalLabel" aria-hidden="true">
             <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="auditSectionModalLabel">审计记录</h5>
-                        <button type="button" class="btn-close" @click="closeAuditSection" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>模型名称</th>
-                                    <th>方法</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="training in filteredTrainings" :key="training.id">
-                                    <td>{{ training.trainingname }}</td>
-                                    <td>{{ training.trainingname }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-success" @click="approveTraining(training)">同意</button>
-                                        <button class="btn btn-sm btn-danger ms-2" @click="rejectTraining(training)">拒绝</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @click="closeAuditSection">关闭</button>
-                    </div>
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="auditSectionModalLabel">审计记录</h5>
+                <button type="button" class="btn-close" @click="closeAuditSection" aria-label="Close"></button>
                 </div>
+                <div class="modal-body">
+                <!-- 如果有训练记录 -->
+                <div v-if="filteredTrainings.length > 0">
+                    <!-- <h6>模型审计</h6> -->
+                    <table class="table table-hover">
+                    <thead>
+                        <tr>
+                        <th>模型名称</th>
+                        <th>方法</th>
+                        <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="training in filteredTrainings" :key="training.id">
+                        <td>{{ training.trainingname }}</td>
+                        <td>{{ training.method }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success" @click="approveTraining(training)">同意</button>
+                            <button class="btn btn-sm btn-danger ms-2" @click="rejectTraining(training)">拒绝</button>
+                        </td>
+                        </tr>
+                    </tbody>
+                    </table>
+                </div>
+
+                <!-- 如果有场景记录 -->
+                <div v-if="filteredScenes.length > 0">
+                    <!-- <h6>场景审计</h6> -->
+                    <table class="table table-hover">
+                    <thead>
+                        <tr>
+                        <th>场景名称</th>
+                        <th>实例名称</th>
+                        <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="scene in filteredScenes" :key="scene.id">
+                        <td>{{ scene.projectname }}</td>
+                        <td>{{ scene.examplename }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success" @click="approveScene(scene)">同意</button>
+                            <button class="btn btn-sm btn-danger ms-2" @click="rejectScene(scene)">拒绝</button>
+                        </td>
+                        </tr>
+                    </tbody>
+                    </table>
+                </div>
+
+                <!-- 如果两者都没有，显示没有记录 -->
+                <div v-if="filteredTrainings.length === 0 && filteredScenes.length === 0">
+                    <p>没有审计记录。</p>
+                </div>
+                </div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="closeAuditSection">关闭</button>
+                </div>
+            </div>
             </div>
         </div>
     </div>
@@ -160,6 +193,7 @@ const isModalVisible = ref(false);
 const isAuditSectionVisible = ref(false);  // 控制审计区域的显示
 const currentUserId = ref(null);  // 当前被点击的用户ID
 const filteredTrainings = ref([]);  // 该用户相关的审计记录
+const filteredScenes = ref([]);  // 该用户相关的审计记录
 
 const totalPages = computed(() => Math.ceil(filteredUsers.value.length / itemsPerPage));
 
@@ -334,6 +368,26 @@ const deleteUser = (user_id) => {
 };
 
 // 获取该用户相关的 training 记录
+const fetchScenesForUser = (userId) => {
+    console.log("userId : ", userId)
+    $.ajax({
+        url: "http://127.0.0.1:3000/remote/getRExamples/",
+        type: "Post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        success(resp) {
+            console.log("Rexamples : ", resp.data);
+            // 筛选出与当前用户相关且 upload 为 1 的记录
+            filteredScenes.value = resp.data.filter(RExample => RExample.uid == userId && RExample.visible == 2);
+            console.log("filteredScene: ", filteredScenes.value);
+        },
+        error(err) {
+            console.error("Error fetching trainings:", err);
+        }
+    });
+};
+// 获取该用户相关的 training 记录
 const fetchTrainingsForUser = (userId) => {
     console.log("userId : ", userId)
     $.ajax({
@@ -359,6 +413,7 @@ const openAuditSection = (userId) => {
     currentUserId.value = userId;  // 保存当前用户的 ID
     isAuditSectionVisible.value = true;  // 显示审计区域
     fetchTrainingsForUser(userId);  // 获取该用户相关的 training 记录
+    fetchScenesForUser(userId);
 };
 
 
@@ -366,6 +421,13 @@ const closeAuditSection = () => {
     isAuditSectionVisible.value = false;
     fetchUsers();  // 重新加载用户列表
 };
+const approveScene = (Scene) => {
+    console.log("approve ", Scene)
+}
+
+const rejectScene = (Scene) => {
+    console.log("reject ", Scene)
+}
 // 同意审计
 const approveTraining = (training) => {
     console.log("uid : ", training.uid)

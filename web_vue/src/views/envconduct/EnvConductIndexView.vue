@@ -36,6 +36,15 @@
                                     <button class="btn btn-outline-info btn-sm" @click="viewRExampleInfo(rexample)">
                                     <i class="bi bi-eye"></i> 查看
                                     </button>
+                                    <button v-if="rexample.visible===0" class="btn btn-secondary btn-sm" @click="uploadRExample(rexample)">
+                                    <i class="bi bi-eye"></i> 上传
+                                    </button>
+                                    <button v-if="rexample.visible===2" class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-eye"></i> 等待审计
+                                    </button>
+                                    <button v-if="rexample.visible===1" class="btn btn-outline-success btn-sm">
+                                    <i class="bi bi-eye"></i> 已上传
+                                    </button>
                                     <button class="btn btn-outline-danger btn-sm" @click="deleteRExample(rexample.id)">
                                     <i class="bi bi-trash"></i> 删除
                                     </button>
@@ -523,7 +532,9 @@ const toggleAllEntities = () => {
         )];
     }
 };
-
+const uploadRExample = (rexample) => {
+    console.log(rexample)
+}
 const fetchCountry = (situationId) => {
     $.ajax({
         url: "http://127.0.0.1:3000/remote/getCountry/",
@@ -546,6 +557,7 @@ const fetchRExamples = () => {
     $.ajax({
         url: "http://127.0.0.1:3000/remote/getRExamples/",
         type: "POST",
+        headers: { Authorization: "Bearer " + store.state.user.token },
         success(resp) {
             if (resp.data) {
                 RExamples.value = resp.data;
