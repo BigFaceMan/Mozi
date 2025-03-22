@@ -3,8 +3,10 @@ package org.example.backend.service.impl.model;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.example.backend.mapper.ModelMapper;
 import org.example.backend.mapper.ModelPthMapper;
+import org.example.backend.mapper.TrainMapper;
 import org.example.backend.pojo.Model;
 import org.example.backend.pojo.ModelPth;
+import org.example.backend.pojo.Train;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.model.ModelOptService;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,9 +29,11 @@ public class ModelOptServiceImpl implements ModelOptService {
     private ModelMapper modelMapper;
     @Autowired
     private ModelPthMapper modelPthMapper;
+    @Autowired
+    private TrainMapper trainMapper;
 
     @Override
-    public Map<String, String> add(Map<String, String> data) {
+    public Map<String, String> add(Map<String, Object> data) throws IOException {
         UsernamePasswordAuthenticationToken authentication =
                 (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
@@ -38,21 +43,22 @@ public class ModelOptServiceImpl implements ModelOptService {
         Map<String, String> map = new HashMap<>();
 
         // 获取数据
-        String name = data.get("name");
-        String summary = data.get("summary");
-        String environment = data.get("environment");
-        String abilityStr = data.get("ability"); // 注意这里是 String 类型，后面需要转换为 Integer
-        String modelstruct = data.get("modelstruct"); // 注意这里是 String 类型，后面需要转换为 Integer
-        String modelselect = data.get("modelselect");
-        String situationselect = data.get("situationselect");
+        String name = (String) data.get("name");
+        String summary = (String) data.get("summary");
+        String environment = (String) data.get("environment");
+        String abilityStr = (String) data.get("ability"); // 注意这里是 String 类型，后面需要转换为 Integer
+        String modelstruct = (String) data.get("modelstruct"); // 注意这里是 String 类型，后面需要转换为 Integer
+        String modelselect = (String) data.get("modelselect");
+        String situationselect = (String) data.get("situationselect");
+
         System.out.println("modelstruct : " + modelstruct);
-        String structureimageBase64 = data.get("structureimage"); // Base64 编码的图片
+        String structureimageBase64 = (String) data.get("structureimage"); // Base64 编码的图片
         if (structureimageBase64 != null && structureimageBase64.startsWith("data:image")) {
             // 去掉Base64前缀（如果有）
             structureimageBase64 = structureimageBase64.split(",")[1];
         }
-        String code = data.get("code");
-        String inferCode = data.get("inferCode");
+        String code = (String) data.get("code");
+        String inferCode = (String) data.get("inferCode");
 
         // 检查必填字段是否为空
         if (name == null || name.trim().isEmpty()) {
@@ -148,6 +154,22 @@ public class ModelOptServiceImpl implements ModelOptService {
         Date now = new Date();
         Model model = new Model(null, name, summary, environment, ability, structureimagePath, code, inferCode,modelstruct, situationselect, modelselect, user.getId(), now, now);
         modelMapper.insert(model);
+
+        MultipartFile modelPth = (MultipartFile) data.get("modelPth");
+        String modelPthName = name + "_loadModel";
+        byte[] modelBytes = modelPth.getBytes();
+
+        Train train = new Train(null, modelPthName,  environment, situationselect,  name, "1", "1",  3, "1", user.getId(), 3, "1", "1", "1", "1");
+        trainMapper.insert(train);
+        Train trainQuery = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", modelPthName));
+        int trainId = Math.toIntExact(trainQuery.getId());
+        modelPthMapper.insert(new ModelPth(null, trainId, modelPthName, situationselect, modelBytes, new Date()));
+
+        // 获取原始文件名
+//        String originalFilename = modelPth.getOriginalFilename();
+//        System.out.println("上传的文件名 !!!!!!!!!!!!!!!!: " + originalFilename);
+        // 读取二进制数据
+
 
         map.put("success_message", "success");
         return map;

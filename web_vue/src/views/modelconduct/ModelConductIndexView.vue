@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-03-22 11:04:43
+ * @LastEditTime: 2025-03-22 11:22:14
 -->
 <template>
     <div class="container mt-4">
@@ -628,35 +628,67 @@ export default {
         }
 
         const addModel = () => {
-            // Define add model logic here
+            const formData = new FormData();
+            formData.append("name", form.name);
+            formData.append("summary", form.summary);
+            formData.append("environment", form.environment);
+            formData.append("ability", form.ability);
+            formData.append("structureimage", form.structureimage);
+            formData.append("code", form.code);
+            formData.append("inferCode", form.inferCode);
+            formData.append("modelPth", form.modelPth); // 这里是 File 对象
+            formData.append("modelstruct", JSON.stringify(newLayers.value));
+            formData.append("modelselect", form.methodSelection);
+            formData.append("situationselect", form.situationSelection);
+
             $.ajax({
                 url: "http://127.0.0.1:3000/model/add/",
                 type: "post",
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
                 },
-                data: {
-                    "name": form.name,
-                    "summary": form.summary,
-                    "environment": form.environment,
-                    "ability": form.ability,
-                    "structureimage": form.structureimage,
-                    "code": form.code,
-                    "inferCode": form.inferCode,
-                    "modelPth": form.modelPth,
-                    "modelstruct": JSON.stringify(newLayers.value),
-                    "modelselect": form.methodSelection,
-                    "situationselect": form.situationSelection
-                },
+                processData: false, // 重要：不要让 jQuery 处理 FormData
+                contentType: false, // 重要：让浏览器自动设置 Content-Type
+                data: formData,
                 success(resp) {
-                    console.log(resp)
-                    fetchModels()
+                    console.log(resp);
+                    fetchModels();
                 },
                 error(resp) {
-                    console.log(resp)
+                    console.log(resp);
                 }
             });
-            isModalVisible.value = false
+
+            isModalVisible.value = false;
+            // Define add model logic here
+            // $.ajax({
+            //     url: "http://127.0.0.1:3000/model/add/",
+            //     type: "post",
+            //     headers: {
+            //         Authorization: "Bearer " + store.state.user.token,
+            //     },
+            //     data: {
+            //         "name": form.name,
+            //         "summary": form.summary,
+            //         "environment": form.environment,
+            //         "ability": form.ability,
+            //         "structureimage": form.structureimage,
+            //         "code": form.code,
+            //         "inferCode": form.inferCode,
+            //         "modelPth": form.modelPth,
+            //         "modelstruct": JSON.stringify(newLayers.value),
+            //         "modelselect": form.methodSelection,
+            //         "situationselect": form.situationSelection
+            //     },
+            //     success(resp) {
+            //         console.log(resp)
+            //         fetchModels()
+            //     },
+            //     error(resp) {
+            //         console.log(resp)
+            //     }
+            // });
+            // isModalVisible.value = false
         };
 
         const updateModel = () => {
@@ -783,16 +815,17 @@ export default {
         const handleModelPthFileChange = (event) => {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
+                form.modelPth = file; // 直接存储 File 对象
+                // const reader = new FileReader();
                 
-                // 当文件读取完成时触发
-                reader.onload = () => {
-                    // 将文件的内容存储到 form.params 中
-                    form.modelPth = reader.result; // reader.result 是文件的内容
-                };
+                // // 当文件读取完成时触发
+                // reader.onload = () => {
+                //     // 将文件的内容存储到 form.params 中
+                //     form.modelPth = reader.result; // reader.result 是文件的内容
+                // };
 
-                // 读取文件内容
-                reader.readAsText(file); // 读取文件为文本，如果是二进制文件，可以使用 readAsDataURL
+                // // 读取文件内容
+                // reader.readAsText(file); // 读取文件为文本，如果是二进制文件，可以使用 readAsDataURL
             }
         };
         const handleDataFileChange = (event) => {

@@ -69,8 +69,17 @@
                                 <span v-if="training.running == '0'">已完成</span>
                                 <span v-else-if="training.running == '1'">正在训练</span>
                                 <span v-else-if="training.running == '2'">已暂停</span>
+                                <span v-else-if="training.running == '3'">外部导入模型</span>
                             </td>
                         <td>
+                            <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="training.running == '3' && training.upload == '0'" @click="addGoodModel(training)">上传模型</button>
+                            <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="training.running == '3' && training.upload == '1'">正在上传</button>
+                            <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="training.running == '3' && training.upload == '2'" @click="addGoodModel(training)">已上传</button>
+                            <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="training.running == '3' && training.upload == '3' && !training.isValidating" @click="validModel(training)">待验证</button>
+                            <button class="btn btn-sm ms-2" style="background-color: coral;" v-if="training.running == '3'" @click="generateReport(training)">生成报告</button>
+                            <button class="btn btn-sm ms-2" style="background-color:darkseagreen;" v-if="training.running == '3'" @click="modelTest(training)">模型测试</button>
+                            <button class="btn btn-sm ms-2" style="background-color: cornflowerblue;" v-if="training.running == '3'" @click="downloadModel(training)">下载</button>
+                            <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '3'" @click="deleteTraining(training)">删除模型</button>
                             <button class="btn btn-sm btn-info" v-if="training.running == '0'" @click="visualizeReport(training)">训练日志</button>
                             <button class="btn btn-sm btn-secondary ms-2" v-if="training.running == '0'" @click="viewResourceUsage(training)">资源使用报告</button>
                             <button class="btn btn-sm btn-success ms-2" v-if="training.running == '0'" @click="viewSuggestions(training)">智能建议</button>
