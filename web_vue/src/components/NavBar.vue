@@ -19,13 +19,13 @@
           <router-link :class="route_name == 'dataAnalysis_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'dataAnalysis_index'}">数据分析</router-link>
         </li>
         <li class="nav-item">
-          <router-link :class="route_name == 'logConduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'logConduct_index'}">日志管理</router-link>
-        </li>
-        <li class="nav-item">
           <router-link :class="route_name == 'gameNodes_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'gameNodes_index'}">计算节点</router-link>
         </li>
         <li class="nav-item">
           <router-link :class="route_name == 'engineNodes_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'engineNodes_index'}">引擎节点</router-link>
+        </li>
+        <li class="nav-item">
+          <router-link :class="route_name == 'logConduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'logConduct_index'}">日志管理</router-link>
         </li>
         <li class="nav-item">
           <router-link :class="route_name == 'help_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'help_index'}">帮助</router-link>

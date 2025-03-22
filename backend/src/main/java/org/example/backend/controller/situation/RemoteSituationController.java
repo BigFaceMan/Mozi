@@ -1,10 +1,12 @@
 package org.example.backend.controller.situation;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.mapper.ExamplesMapper;
 import org.example.backend.mapper.SceneEntityMapper;
+import org.example.backend.mapper.UserMapper;
 import org.example.backend.pojo.EngineInfo;
 import org.example.backend.pojo.Examples;
 import org.example.backend.pojo.SceneEntity;
@@ -34,6 +36,9 @@ public class RemoteSituationController {
     private SceneEntityMapper sceneEntityMapper;
     @Autowired
     private RestTemplate restTemplate;
+    @Autowired
+    private UserMapper userMapper;
+
 //    Fake
     private String url0 = "http://127.0.0.1:4001";
     private String url1 = "http://127.0.0.1:4001";
@@ -461,6 +466,34 @@ public class RemoteSituationController {
         }
     }
 
+    @PostMapping("/remote/uploadRExample/")
+    public Map<String, Object> uploadRExample(@RequestParam Map<String, String> data) {
+        int projectId = Integer.parseInt(data.get("projectId"));
+        UpdateWrapper<Examples> examplesUpdateWrapper = new UpdateWrapper<>();
+        int isUpdate = examplesMapper.update(null, examplesUpdateWrapper.eq("id", projectId).set("visible", 2));
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        if (isUpdate == 1) {
+            UsernamePasswordAuthenticationToken authentication =
+                    (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+            UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
+            User user = loginUser.getUser();
+            UpdateWrapper<User> userUpdateWrapper = new UpdateWrapper<>();
+            userUpdateWrapper.eq("id", user.getId()).set("uploadcnt", user.getUploadcnt() + 1);  // 加 1
+            boolean isUserUpdated = userMapper.update(null, userUpdateWrapper) > 0;  // 执行更新
+            if (isUserUpdated) {
+                System.out.println("成功更新模型上传状态，uploadcnt + 1");
+                response.put("msg", "成功更新模型上传状态");
+            } else {
+                System.out.println("更新 uploadcnt 失败");
+                response.put("msg", "更新 uploadcnt 失败");
+            }
+        } else {
+            System.out.println("未成功更新模型上传状态");
+            response.put("msg", "未成功更新模型上传状态");
+        }
+        return response;
+    }
     @PostMapping("/remote/saveRExample/")
     public Map<String, Object> saveRExample(@RequestParam Map<String, String> data) {
         Map<String, Object> response = new HashMap<>();

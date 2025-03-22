@@ -39,6 +39,12 @@ public class InfoController {
         return infoService.getlist();
     }
 
+    @PostMapping("/user/ansSceneAsk/")
+    public Map<String, String> ansSceneAsk(@RequestParam Map<String, String> data) {
+        if (this.get_urank().equals('0'))
+            return null;
+        return infoService.ansSceneAsk(data);
+    }
     @PostMapping("/user/ansAsk/")
     public Map<String, String> ansAsk(@RequestParam Map<String, String> data) {
         if (this.get_urank().equals('0'))

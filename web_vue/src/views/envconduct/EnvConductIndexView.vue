@@ -534,6 +534,23 @@ const toggleAllEntities = () => {
 };
 const uploadRExample = (rexample) => {
     console.log(rexample)
+    $.ajax({
+        url: "http://127.0.0.1:3000/remote/uploadRExample/",
+        type: "POST",
+        headers: { Authorization: "Bearer " + store.state.user.token },
+        data: {
+            projectId: rexample.id
+        },
+        success(resp) {
+            console.log("上传成功")
+            console.log(resp)
+            fetchRExamples();
+        },
+        error(resp) {
+            console.log("上传失败")
+            console.log(resp)
+        }
+    })
 }
 const fetchCountry = (situationId) => {
     $.ajax({

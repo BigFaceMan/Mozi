@@ -422,11 +422,50 @@ const closeAuditSection = () => {
     fetchUsers();  // 重新加载用户列表
 };
 const approveScene = (Scene) => {
-    console.log("approve ", Scene)
+    $.ajax({
+        url: "http://127.0.0.1:3000/user/ansSceneAsk/",
+        type: "post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            projectid: Scene.id,
+            isAccepted: 1,
+            uid: Scene.uid,
+        },
+        success(resp) {
+            console.log("Scene upload Accept:", resp);
+            fetchTrainingsForUser(currentUserId.value);  // 重新加载该用户的审计记录
+            fetchScenesForUser(currentUserId.value)
+        },
+        error(err) {
+            console.error("Error rejecting training:", err);
+        }
+    });
 }
 
 const rejectScene = (Scene) => {
     console.log("reject ", Scene)
+    $.ajax({
+        url: "http://127.0.0.1:3000/user/ansSceneAsk/",
+        type: "post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            projectid: Scene.id,
+            isAccepted: 0,
+            uid: Scene.uid,
+        },
+        success(resp) {
+            console.log("Training rejected:", resp);
+            fetchTrainingsForUser(currentUserId.value);  // 重新加载该用户的审计记录
+            fetchScenesForUser(currentUserId.value)
+        },
+        error(err) {
+            console.error("Error rejecting training:", err);
+        }
+    });
 }
 // 同意审计
 const approveTraining = (training) => {

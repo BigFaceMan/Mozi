@@ -238,6 +238,10 @@ const fetchModels = () => {
     },
     success(resp) {
       gameNodes.value = resp;
+
+      console.log("提出 resp : ", resp)
+      form.ip = gameNodes.value[0].ip;
+      form.port = gameNodes.value[0].port;
       // console.log(resp)
     }
   });
