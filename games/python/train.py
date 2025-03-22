@@ -48,16 +48,17 @@ output_size = 1  # 默认 1
 model = SimpleModel(input_size, output_size)
 
 # 训练模拟过程
-for i in range(100):
-    print("Itera:", i)
-    if i == 2:
-        sys.stderr.write("This is an error message\n")
-    writer.add_scalar("Iteration Value", i, i)  # 记录 TensorBoard 数据
-    # 每 50 轮保存一次模型
-    if i % 5 == 0 or i == 99:
-        print(f"Checkpoint saved: {args.checkpointpath}")
-        torch.save(model.state_dict(), args.checkpointpath)
-    time.sleep(3)
+for i in range(1000):
+    print(i, flush=True)
+    # print("Itera:", i)
+    # if i == 2:
+    #     sys.stderr.write("This is an error message\n")
+    # writer.add_scalar("Iteration Value", i, i)  # 记录 TensorBoard 数据
+    # # 每 50 轮保存一次模型
+    # if i % 5 == 0 or i == 99:
+    #     print(f"Checkpoint saved: {args.checkpointpath}")
+    #     torch.save(model.state_dict(), args.checkpointpath)
+    # time.sleep(3)
 
 writer.close()
 print("Training completed.")

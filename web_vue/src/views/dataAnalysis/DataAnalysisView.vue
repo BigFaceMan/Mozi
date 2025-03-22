@@ -61,6 +61,7 @@
 
 <script>
 import { ref } from 'vue';
+import $ from "jquery";
 
 export default {
   setup() {
@@ -80,19 +81,56 @@ export default {
         predictFile.value = event.target.files[0];
       }
     };
-
     const startPrediction = () => {
+      if (!inputFile.value || !outputFile.value || !predictFile.value) {
+        alert("请先选择所有文件！");
+        return;
+      }
+
+      console.log("here!!!!!!!!!!")
       loading.value = true; // 显示加载状态
 
+      const formData = new FormData();
+      formData.append("inputFile", inputFile.value);
+      formData.append("outputFile", outputFile.value);
+      formData.append("predictFile", predictFile.value);
+      formData.append("model", selectedModel.value);
+
       setTimeout(() => {
-        // 模拟返回假数据
-        predictionResult.value = {
-          model: selectedModel.value,
-          predictions: [1.23, 2.34, 3.45, 4.56, 5.67], // 假数据
-        };
-        loading.value = false; // 隐藏加载状态
+        $.ajax({
+          url: "http://127.0.0.1:3000/regress/",
+          type: "POST", 
+          data: formData,
+          processData: false, // 不要处理 FormData
+          contentType: false, // 让浏览器自动设置 `multipart/form-data`
+          success(resp) {
+            console.log("上传成功", resp);
+            predictionResult.value = resp; // 显示预测结果
+            loading.value = false;
+          },
+          error(err) {
+            console.error("上传失败", err);
+            alert("预测失败！");
+            loading.value = false;
+          }
+        });
       }, 2000); // 模拟延迟
     };
+
+    // const startPrediction = () => {
+    //   loading.value = true; // 显示加载状态
+
+
+    //   setTimeout(() => {
+    //     // 模拟返回假数据
+    //     predictionResult.value = {
+    //       model: selectedModel.value,
+    //       predictions: [1.23, 2.34, 3.45, 4.56, 5.67], // 假数据
+    
+    //     };
+    //     loading.value = false; // 隐藏加载状态
+    //   }, 2000); // 模拟延迟
+    // };
 
     return {
       inputFile,

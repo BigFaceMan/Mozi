@@ -16,7 +16,9 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -25,6 +27,10 @@ import java.util.concurrent.locks.ReentrantLock;
 public class TrainServiceImpl implements TrainService {
     // 用于存储子线程的映射
     private final ConcurrentHashMap<String, Thread> processMap = new ConcurrentHashMap<>();
+
+    // 维护多个日志队列，每个 processId 一个队列
+    private static final Map<String, BlockingQueue<String>> logQueueMap = new ConcurrentHashMap<>();
+    private static final Map<String, BlockingQueue<String>> errorQueueMap = new ConcurrentHashMap<>();
     private final Lock lock = new ReentrantLock();
     @Autowired
     private TrainMapper trainMapper;
@@ -189,7 +195,7 @@ public class TrainServiceImpl implements TrainService {
                     String line;
                     while ((line = reader.readLine()) != null) {
                         System.out.println("Python 输出: " + line);
-
+                        System.out.flush();
                         // 获取 PID
                         if (line.startsWith("PID :")) {
                             synchronized (processIdHolder) {
@@ -198,12 +204,16 @@ public class TrainServiceImpl implements TrainService {
                                 System.out.println("PID : " + processIdHolder[0]);
                             }
                         }
-
-                        TrainLog trainLog = new TrainLog(null, userName, trainingName, line, new Date());
-                        trainLogMapper.insert(trainLog);
+                        synchronized (processIdHolder) {
+                            if (processIdHolder[0] != null && logQueueMap.containsKey(processIdHolder[0])) {
+                                logQueueMap.get(processIdHolder[0]).put(line);
+                            }
+                        }
                     }
                 } catch (IOException e) {
                     System.err.println("读取标准输出时出错: " + e.getMessage());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             });
 
@@ -213,15 +223,17 @@ public class TrainServiceImpl implements TrainService {
                     String line;
                     while ((line = errorReader.readLine()) != null) {
                         System.err.println("Python 错误: " + line);
-                        try {
-                            ExceptionLog exceptionLog = new ExceptionLog(null, userName, line, new Date());
-                            exceptionLogMapper.insert(exceptionLog);
-                        } catch (Exception e) {
-                            System.err.println("插入数据库失败: " + e.getMessage());
+                        System.out.flush();
+                        synchronized (processIdHolder) {
+                            if (processIdHolder[0] != null && errorQueueMap.containsKey(processIdHolder[0])) {
+                                errorQueueMap.get(processIdHolder[0]).put(line);
+                            }
                         }
                     }
                 } catch (IOException e) {
                     System.err.println("读取错误输出时出错: " + e.getMessage());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             });
 
@@ -239,9 +251,41 @@ public class TrainServiceImpl implements TrainService {
                 response.put("message", "保存代码文件失败: " + "无法获取 Python 进程的 PID");
                 return response;
             }
-
             String processId = processIdHolder[0];
+            logQueueMap.put(processId, new LinkedBlockingQueue<>());
+            errorQueueMap.put(processId, new LinkedBlockingQueue<>());
             System.out.println("Python 进程 PID 获取成功: " + processId);
+
+            Thread dbThread = new Thread(() -> {
+                try {
+                    BlockingQueue<String> queue = logQueueMap.get(processId);
+                    while (true) {
+                        String log = queue.take();  // 读取该进程的日志
+                        TrainLog trainLog = new TrainLog(null, userName, trainingName, log, new Date());
+                        trainLogMapper.insert(trainLog);
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println("数据库写入线程被中断: " + e.getMessage());
+                }
+            });
+//            dbThread.setDaemon(true);
+            dbThread.start();
+
+// 处理错误日志
+            Thread errorDbThread = new Thread(() -> {
+                try {
+                    BlockingQueue<String> queue = errorQueueMap.get(processId);
+                    while (true) {
+                        String errorLog = queue.take();
+                        ExceptionLog exceptionLog = new ExceptionLog(null, userName, errorLog, new Date());
+                        exceptionLogMapper.insert(exceptionLog);
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println("数据库写入线程被中断: " + e.getMessage());
+                }
+            });
+//            errorDbThread.setDaemon(true);
+            errorDbThread.start();
 
             // 记录到数据库
             Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointPath, 1, tensorboardPath, uId, 3, ip, port, processId, trainFile.getPath(), paramsJson);
@@ -263,9 +307,20 @@ public class TrainServiceImpl implements TrainService {
                         }
                         System.out.println("成功更新训练进程状态");
                     }
+                    // 训练完成后删除队列，避免占用内存
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
+                    while (!logQueueMap.get(processId).isEmpty() || !errorQueueMap.get(processId).isEmpty()) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    logQueueMap.remove(processId);
+                    errorQueueMap.remove(processId);
+                    System.out.println("删除队列成功!!!!!!!!!!!");
                     processMap.remove(processId);
                 }
             });
@@ -324,17 +379,6 @@ public class TrainServiceImpl implements TrainService {
 
         // 获取存储的进程
         Thread thread = processMap.get(processId);
-//        String processPid = getPythonProcessId(processId);
-//        System.out.println("find Train PID : " + processPid);
-//
-//        // 如果找不到 Python 进程的 PID，返回错误
-//        if (processPid == null) {
-//            // 暂停训练时终止训练
-////            System.out.println("!!!!!!!!!!!!!!!!!!!!找不到对应线程");
-//            response.put("status", "error");
-//            response.put("message", "Could not find Python process");
-//            return response;
-//        }
         lock.lock();
         try {
             runStatus = 0;
@@ -344,8 +388,7 @@ public class TrainServiceImpl implements TrainService {
                 response.put("message", "Failed to terminate process");
                 return response;
             }
-//
-            // **等待 `addTrain` 里的线程执行完毕**
+
             System.out.println("等待训练线程执行完数据库更新...");
             thread.join();  // **等待该线程执行完毕**
             System.out.println("训练线程已结束，数据库更新完成");
@@ -368,8 +411,6 @@ public class TrainServiceImpl implements TrainService {
             response.put("message", "Invalid processId");
             return response;
         }
-
-
         // 获取存储的进程
         Thread thread = processMap.get(processId);
         lock.lock();
@@ -381,7 +422,6 @@ public class TrainServiceImpl implements TrainService {
                 response.put("message", "Failed to terminate process");
                 return response;
             }
-//
             // **等待 `addTrain` 里的线程执行完毕**
             System.out.println("等待训练线程执行完数据库更新...");
             thread.join();  // **等待该线程执行完毕**
@@ -652,28 +692,6 @@ public class TrainServiceImpl implements TrainService {
 //                    break;
                 }
             }
-//            System.out.println("TensorBoard PID using port 6001 is: " + pid);
-
-//            if (pid != null && !pid.isEmpty()) {
-//                ProcessBuilder killProcessBuilder;
-//                if (os.contains("win")) {
-//                    // Windows 使用 taskkill 杀死进程
-//                    killProcessBuilder = new ProcessBuilder("cmd.exe", "/c", "taskkill /PID " + pid + " /F");
-//                } else {
-//                    // Linux 使用 kill 命令
-//                    killProcessBuilder = new ProcessBuilder("/bin/bash", "-c", "kill -9 " + pid);
-//                }
-//
-//                Process killProcess = killProcessBuilder.start();
-//                int exitCode = killProcess.waitFor();
-//                if (exitCode == 0) {
-//                    System.out.println("Successfully killed process with PID " + pid);
-//                } else {
-//                    System.out.println("Failed to kill process with PID " + pid);
-//                }
-//            } else {
-//                System.out.println("No process found on port " + port);
-//            }
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
