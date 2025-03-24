@@ -58,7 +58,7 @@ for i in range(1000):
     # if i % 5 == 0 or i == 99:
     #     print(f"Checkpoint saved: {args.checkpointpath}")
     #     torch.save(model.state_dict(), args.checkpointpath)
-    # time.sleep(3)
+    time.sleep(3)
 
 writer.close()
 print("Training completed.")

@@ -8,6 +8,7 @@ export default {
         urank: "",
         phone: "",
         email: "",
+        permissions: {},
         is_login: false,
     },
     getters: {
@@ -19,7 +20,9 @@ export default {
             state.urank = user.urank;
             state.phone = user.phone;
             state.email = user.email;
+            state.permissions = user.permissions;
             state.is_login = user.is_login;
+            console.log("updat user permissions : ", user.permissions)
         },
         updateToken(state, token) {
             state.token = token;

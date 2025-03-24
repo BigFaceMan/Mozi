@@ -23,7 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 public class RemoteEnginesController {
-    Map<String, EngineInfo> engineNodes = new ConcurrentHashMap<>();
+    Map<String, EngineInfo> engineFreeNodes = new ConcurrentHashMap<>();
+    Map<String, EngineInfo> engineUsingNodes = new ConcurrentHashMap<>();
     @Autowired
     RestTemplate restTemplate;
     @Value("${enginePlatformUrl}")
@@ -43,26 +44,44 @@ public class RemoteEnginesController {
                     .get("engine") == null ? new HashMap<>() : (Map) ((Map) ((Map) remoteMap.get("data")).get("mapDto")).get("engine");
 
             List<Map<String, Object>> engineList = (List<Map<String, Object>>) data.get("freeList");
+            List<Map<String, Object>> engineUsingList = (List<Map<String, Object>>) data.get("usingList");
 
             // 先清空 engineNodes
-            engineNodes.clear();
-
+            engineFreeNodes.clear();
+            engineUsingNodes.clear();
+            int index = 0;
             for (Map<String, Object> engine : engineList) {
                 EngineInfo engineInfo = new EngineInfo();
                 engineInfo.setEngineId((Integer) engine.get("engineId"));
                 engineInfo.setIp(engine.get("ip").toString());
                 engineInfo.setPort(engine.get("port").toString());
                 engineInfo.setNodeName(engine.get("nodeName").toString());
-
                 // 将新的数据加入 Map
-                engineNodes.put(engine.get("nodeName").toString(), engineInfo);
+                engineFreeNodes.put(Integer.toString(index), engineInfo);
+                index ++;
+            }
+            index = 0;
+            for (Map<String, Object> engine : engineUsingList) {
+                EngineInfo engineInfo = new EngineInfo();
+                engineInfo.setEngineId((Integer) engine.get("engineId"));
+                engineInfo.setIp(engine.get("ip").toString());
+                engineInfo.setPort(engine.get("port").toString());
+                engineInfo.setNodeName(engine.get("nodeName").toString());
+                // 将新的数据加入 Map
+                engineUsingNodes.put(Integer.toString(index), engineInfo);
+                index ++;
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     @GetMapping("/engine/getAll")
-    public List<EngineInfo> getEngineInfo() {
-        return new ArrayList<>(engineNodes.values());
+    public Map<String, Object> getEngineInfo() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        response.put("msg", "得到引擎节点");
+        response.put("freeList", new ArrayList<>(engineFreeNodes.values()));
+        response.put("usingList", new ArrayList<>(engineUsingNodes.values()));
+        return response;
     }
 }

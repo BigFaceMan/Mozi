@@ -20,4 +20,5 @@ public class User {
     private String email;
     private Integer uploadcnt;
     private String userid;
+    private Integer roleid;
 }

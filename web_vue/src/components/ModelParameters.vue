@@ -252,7 +252,7 @@ const fetchModels = () => {
       Authorization: "Bearer " + store.state.user.token,
     },
     success(resp) {
-      engineNodes.value = resp;
+      engineNodes.value = resp.freeList;
     },
     error(err) {
       console.error("获取引擎节点失败:", err);

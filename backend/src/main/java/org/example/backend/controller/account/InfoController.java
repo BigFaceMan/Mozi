@@ -28,7 +28,7 @@ public class InfoController {
         return user.getUrank();
     }
     @GetMapping("/user/account/info/")
-    public Map<String, String> getinfo() {
+    public Map<String, Object> getinfo() {
         return infoService.getinfo();
     }
 

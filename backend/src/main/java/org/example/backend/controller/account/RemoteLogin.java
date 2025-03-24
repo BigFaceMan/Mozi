@@ -18,7 +18,8 @@ public class RemoteLogin {
         System.out.println("已经入getToken");
         String userName = map.get("userName");
         String userId = map.get("userId");
+        String roleId = map.get("roleId");
         String password = "123456";
-        return loginService.getRemoteToken(userName, password, userId);
+        return loginService.getRemoteToken(userName, password, userId, roleId);
     }
 }

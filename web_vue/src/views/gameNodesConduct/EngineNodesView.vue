@@ -1,9 +1,31 @@
 <template>
   <div class="container py-5">
     <h2 class="text-center mb-4 title">🚀 计算引擎节点</h2>
+    
     <div class="row justify-content-center">
-      <div class="col-lg-4 col-md-6 col-sm-12" v-for="(node, index) in engineNodes" :key="index">
+      <div class="col-12">
+        <h3 class="text-center text-success">🟢 空闲节点</h3>
+      </div>
+      <div class="col-lg-4 col-md-6 col-sm-12" v-for="(node, index) in engineNodes" :key="'free-' + index">
         <div class="card engine-card shadow-lg">
+          <div class="card-body text-center">
+            <h5 class="card-title">🖥️ 节点 {{ index + 1 }}</h5>
+            <ul class="list-group list-group-flush text-start">
+              <li class="list-group-item"><strong>📌 引擎名称:</strong> {{ node.nodeName }}</li>
+              <li class="list-group-item"><strong>🌐 IP 地址:</strong> {{ node.ip }}</li>
+              <li class="list-group-item"><strong>🔌 端口:</strong> {{ node.port }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row justify-content-center mt-5">
+      <div class="col-12">
+        <h3 class="text-center text-danger">🔴 占用节点</h3>
+      </div>
+      <div class="col-lg-4 col-md-6 col-sm-12" v-for="(node, index) in engineUsingNodes" :key="'used-' + index">
+        <div class="card engine-card shadow-lg used">
           <div class="card-body text-center">
             <h5 class="card-title">🖥️ 节点 {{ index + 1 }}</h5>
             <ul class="list-group list-group-flush text-start">
@@ -25,6 +47,7 @@ import $ from 'jquery';
 
 const store = useStore();
 const engineNodes = ref([]);
+const engineUsingNodes = ref([]);
 
 const fetchEngineNodes = () => {
   $.ajax({
@@ -34,7 +57,9 @@ const fetchEngineNodes = () => {
       Authorization: "Bearer " + store.state.user.token,
     },
     success(resp) {
-      engineNodes.value = resp;
+      engineNodes.value = resp.freeList;
+      console.log("空闲节点 : ", engineNodes.value)
+      engineUsingNodes.value = resp.usingList;
     },
     error(err) {
       console.error("获取引擎节点失败:", err);
@@ -101,5 +126,9 @@ onMounted(fetchEngineNodes);
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.used {
+  background: linear-gradient(135deg, #ffe6e6, #ffcccc);
 }
 </style>

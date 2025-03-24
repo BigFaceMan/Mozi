@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 public interface InfoService {
-    public Map<String, String> getinfo();
+    public Map<String, Object> getinfo();
     public List<User> getlist();
     public Map<String, String> ansSceneAsk(Map<String, String> data);
     Map<String, String> ansAsk(Map<String, String> data);

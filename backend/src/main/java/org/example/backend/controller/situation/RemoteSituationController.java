@@ -13,6 +13,7 @@ import org.example.backend.pojo.SceneEntity;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -38,19 +39,25 @@ public class RemoteSituationController {
     private RestTemplate restTemplate;
     @Autowired
     private UserMapper userMapper;
-
 //    Fake
-    private String url0 = "http://127.0.0.1:4001";
-    private String url1 = "http://127.0.0.1:4001";
-    private String url2 = "http://127.0.0.1:4001";
-    private String url3 = "http://127.0.0.1:4001";
-    private String url4 = "http://127.0.0.1:4001";
-    private String url5 = "http://127.0.0.1:4001";
+    @Value("${url0}")
+    private String url0;
+    @Value("${url1}")
+    private String url1;
+    @Value("${url2}")
+    private String url2;
+    @Value("${url3}")
+    private String url3;
+    @Value("${url4}")
+    private String url4;
+    @Value("${url5}")
+    private String url5;
 //    private String url1 = "http://192.1.116.100:7210";
 //    private String url2 = "http://192.1.116.100:8082";
 //    private String url3 = "http://192.1.116.100:8081";
 //    private String url4 = "http://192.1.116.100:8002";
 //    private String url5 = "http://127.0.0.1:4001";
+    private Map<String, List<Object>> situationCache = new HashMap<>();
     public List<Map<String, Object>> getLeafIndicator(Map<String, Object> node) {
         if (node.get("children") == null) {
             List<Map<String, Object>> res = new ArrayList<>();
@@ -117,6 +124,18 @@ public class RemoteSituationController {
 //        True
 //        String url = "http://192.1.116.100:7210/wwe/task/page";
 //        Fake
+        String cacheKey = "situationRecords"; // 缓存数据的键
+        List<Object> recordsCache = situationCache.get(cacheKey); // 尝试从缓存中获取数据
+
+        if (recordsCache != null) {
+            // 如果缓存中有数据，直接返回缓存的数据
+            Map<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("success", true);
+            resMap.put("message", "success");
+            resMap.put("data", recordsCache);
+            return resMap;
+        }
         String url = url1 + "/wwe/task/page?pageIndex=1";
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -139,6 +158,7 @@ public class RemoteSituationController {
                 List<Object> recordsI = (List<Object>) dataIMap.get("records");
                 records.addAll(recordsI);
             }
+            situationCache.put(cacheKey, records);
 
             Map<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);

@@ -1,6 +1,5 @@
 package org.ssp.remoteapi.demos.web.Controller;
 
-import com.sun.org.glassfish.gmbal.ParameterNames;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,6 +16,7 @@ public class EngineController {
         HashMap<Object, Object> mapDto = new HashMap<>();
         HashMap<Object, Object> engine = new HashMap<>();
         List<Map<String, Object>> freeList  = new LinkedList<>();
+        List<Map<String, Object>> usingList  = new LinkedList<>();
         for (int i = 0; i < 10; i++) {
             HashMap<String, Object> map = new HashMap<>();
             map.put("engineId", i);
@@ -26,6 +26,7 @@ public class EngineController {
             freeList.add(map);
         }
         engine.put("freeList", freeList);
+        engine.put("usingList", freeList);
         mapDto.put("engine", engine);
         data.put("mapDto", mapDto);
 //        data.put("mapDto", mapDto.put("engine", engine.put("freeList", freeList)));
@@ -58,6 +59,52 @@ public class EngineController {
         response.put("message", "成功");
         response.put("data", data);
         return toJsonString(response);
+    }
+    @GetMapping("/sys/menu/queryMenusByRole")
+    public String queryMenusByRole(
+            @RequestParam String roleId,
+            @RequestParam String serviceName
+    ) {
+        // 这里可以根据 roleId 和 serviceName 进行数据库查询
+        List<Map<String, Object>> menuList = getPermissions();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", menuList);
+        Map<String, Object> response = new HashMap<>();
+        response.put("msg", "success");
+        response.put("code", 0);
+        response.put("data", data);
+        return toJsonString(response);
+    }
+
+    private List<Map<String, Object>> getPermissions() {
+        // 所有页面默认权限为 "查看,编辑"
+        String defaultPermission = "编辑,导出";
+
+        // 定义所有菜单项
+//        String[] menuNames = {
+//                "home", "remoteLog_index", "pk_index", "dataAnalysis_index",
+//                "gameNodes_index", "engineNodes_index", "logConduct_index",
+//                "envconduct_index", "modeltrain_index", "modelconduct_index",
+//                "help_index", "useropt_index", "userinfo_index",
+//                "user_account_login", "user_account_register"
+//        };
+
+        String[] menuNames = {
+                "home", "remoteLog_index", "pk_index", "dataAnalysis_index",
+                "gameNodes_index", "engineNodes_index", "logConduct_index",
+                "envconduct_index", "modeltrain_index", "modelconduct_index",
+                "useropt_index", "userinfo_index"
+        };
+        List<Map<String, Object>> menuList = new ArrayList<>();
+        for (String menuName : menuNames) {
+            Map<String, Object> menuItem = new HashMap<>();
+            menuItem.put("name", menuName);
+            menuItem.put("function", defaultPermission);
+            menuList.add(menuItem);
+        }
+
+        return menuList;
     }
 
     private String listToJson(List<?> list) {

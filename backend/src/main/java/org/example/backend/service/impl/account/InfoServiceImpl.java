@@ -2,6 +2,8 @@ package org.example.backend.service.impl.account;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.mapper.ExamplesMapper;
 import org.example.backend.mapper.TrainMapper;
 import org.example.backend.mapper.UserMapper;
@@ -11,11 +13,20 @@ import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.account.InfoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
+import javax.swing.text.StyledEditorKit;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,15 +44,19 @@ public class InfoServiceImpl implements InfoService {
 
     @Autowired
     private TrainMapper trainMapper;
+    @Autowired
+    private RestTemplate restTemplate;
+    @Value("${url6}")
+    private String url6;
     @Override
-    public Map<String, String> getinfo() {
+    public Map<String, Object> getinfo() {
         UsernamePasswordAuthenticationToken authentication =
                 (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
         User user = loginUser.getUser();
 
-        Map<String, String> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         map.put("error_message", "success");
         map.put("id", user.getId().toString());
         map.put("username", user.getUsername());
@@ -49,6 +64,62 @@ public class InfoServiceImpl implements InfoService {
         map.put("phone", user.getPhone());
         map.put("email", user.getEmail());
         map.put("uploadcnt", user.getUploadcnt().toString());
+        Map<String, Object> permission = new HashMap();
+        // 定义所有菜单项
+        String[] menuNames = {
+                "home", "remoteLog_index", "pk_index", "dataAnalysis_index",
+                "gameNodes_index", "engineNodes_index", "logConduct_index",
+                "envconduct_index", "modeltrain_index", "modelconduct_index",
+                "help_index", "useropt_index", "userinfo_index",
+                "user_account_login", "user_account_register"
+        };
+        if (user.getRoleid() != -1) {
+            String url = url6 + "/sys/menu/queryMenusByRole?roleId=" + user.getRoleid()+"&serviceName=zhinengti";
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+                HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+                // 尝试发送请求并获取响应
+                String situationJson = restTemplate.getForObject(url, String.class);
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Object> mapRemote = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>(){});
+                List<Map<String, Object>> data = (List<Map<String, Object>>) ((Map<String, Object>) mapRemote.get("data")).get("list");
+                for (String menuName : menuNames) {
+                    Boolean finded = false;
+                    HashMap<String, Boolean> power = new HashMap<>();
+                    power.put("view", false);
+                    power.put("edit", false);
+                    power.put("export", false);
+                    for (Map<String, Object> menuItem : data) {
+                        if (menuItem.get("name").equals(menuName)) {
+                            String function = (String) menuItem.get("function");
+                            power.put("view", true);
+                            if (function.indexOf("编辑") != -1){
+                                power.put("view", true);
+                            }
+                            if (function.indexOf("导出") != -1){
+                                power.put("export", true);
+                            }
+                            finded = true;
+                            break;
+                        }
+                    }
+                    permission.put(menuName, power);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            for (String menuName : menuNames) {
+                HashMap<String, Boolean> power = new HashMap<>();
+                power.put("view", true);
+                power.put("edit", true);
+                power.put("export", true);
+                permission.put(menuName, power);
+            }
+        }
+        map.put("permissions", permission);
         return map;
     }
 
@@ -222,7 +293,7 @@ public class InfoServiceImpl implements InfoService {
         }
 
         String encodedPassword = passwordEncoder.encode(password);
-        User user = new User(null, username, encodedPassword, urank, phone, email, 0, null);
+        User user = new User(null, username, encodedPassword, urank, phone, email, 0, null, -1);
 //        User user = new User(null, username, encodedPassword);
         userMapper.insert(user);
 

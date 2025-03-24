@@ -74,7 +74,7 @@ public class LoginServiceImpl implements LoginService {
     }
 
     @Override
-    public Map<String, String> getRemoteToken(String username, String password, String userId) {
+    public Map<String, String> getRemoteToken(String username, String password, String userId, String roleId) {
         // 记录接收到的用户名和密码（可选择记录，避免泄露密码）
         logger.info("Received remote login attempt for username: {}", username);
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -82,7 +82,7 @@ public class LoginServiceImpl implements LoginService {
         List<User> users = userMapper.selectList(queryWrapper);
         if (users.isEmpty()) {
             String encodedPassword = passwordEncoder.encode(password);
-            User user = new User(null, username, encodedPassword, "1", "12345", "12345", 0, userId);
+            User user = new User(null, username, encodedPassword, "1", "12345", "12345", 0, userId, Integer.parseInt(roleId));
             userMapper.insert(user);
             System.out.println("inert reomte user");
         }
