@@ -13,6 +13,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -162,9 +163,8 @@ public class TrainServiceImpl implements TrainService {
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
         String paramsJson = isWindows ? params.replace("\"", "\\\"") : params.replace("'", "\\'");
         String quote = isWindows ? "\"" : "'";
-
+        System.out.println("GameNode Got ParamsJson: " + paramsJson);
         System.out.println("Conda Env Name: " + envName);
-
         try {
             String[] command;
             if (isWindows) {

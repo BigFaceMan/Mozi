@@ -63,8 +63,8 @@
       <select id="gamenode" class="form-select" @change="selectGameNode">
         <option v-for="(gameNode, index) in gameNodes" :key="gameNode.ip + gameNode.port"
          :value="gameNode.ip+':'+ gameNode.port">
+			{{ '节点 ' + (index + 1) + (index === 0 ? ' ⭐最优节点⭐' : '') }}
             <!-- {{ gameNode.ip }} - {{ gameNode.port }} -->
-          {{ '节点 ' + (index + 1) }}
         </option>
       </select>
     </div>
@@ -79,15 +79,33 @@
             <li v-for="(engineNode, index) in engineNodes" :key="engineNode.nodeName">
               <label>
                 <input type="checkbox" :value="engineNode" v-model="selectedNodes" />
-                {{ '节点 ' + (index + 1) }}
+                  {{ '节点 ' + (index + 1) }}
               </label>
             </li>
           </ul>
         </div>
       </div>
     </div>
-    <!-- 选择 PyTorch 版本 -->
+	<!-- 选择训练设备 -->
+	<div class="form-group mb-3">
+	<label for="trainDevice">选择训练设备:</label>
+	<select v-model="form.trainDevice" id="trainDevice" class="form-select">
+		<option value="cpu">CPU</option>
+		<option value="gpu">GPU</option>
+	</select>
+	</div>
+
+  <!-- 选择 PyTorch 版本 -->
     <div class="form-group mb-3">
+      <label for="pytorchVersion">选择 PyTorch 版本:</label>
+      <select v-model="form.pytorchVersion" id="pytorchVersion" class="form-select">
+        <option v-for="version in pytorchVersions" :key="version" :value="version">
+          {{ version }}
+        </option>
+      </select>
+    </div>
+
+    <!-- <div class="form-group mb-3">
       <label for="pytorchVersion">选择 PyTorch 版本:</label>
       <select v-model="form.pytorchVersion" id="pytorchVersion" class="form-select">
         <option value="1.6">1.6</option>
@@ -95,7 +113,7 @@
         <option value="1.9">1.9</option>
         <option value="1.10">1.10</option>
       </select>
-    </div>
+    </div> -->
 
     <!-- 训练轮次 -->
     <div class="form-group mb-3">
@@ -145,20 +163,20 @@
     </div>
 
     <!-- 选择评估指标 -->
-    <div class="form-group mb-3">
-      <label for="evaluationMetrics">选择评估指标:</label>
-      <div>
-        <label v-for="metric in evaluationMetrics" :key="metric" class="form-check-label me-3">
-          <input
-            type="checkbox"
-            class="form-check-input"
-            v-model="form.selectedMetrics"
-            :value="metric"
-          />
-          {{ metric }}
-        </label>
-      </div>
-    </div>
+	<div class="form-group mb-3">
+	<label for="evaluationMetrics">选择评估指标:</label>
+	<div>
+		<label v-for="metric in evaluationMetrics" :key="metric.value" class="form-check-label me-3">
+		<input
+			type="checkbox"
+			class="form-check-input"
+			v-model="form.selectedMetrics"
+			:value="metric.value"
+		/>
+		{{ metric.label }}
+		</label>
+	</div>
+	</div>
 
 
   <div class="d-flex align-items-center gap-3 mt-3">
@@ -197,10 +215,34 @@ const dropdownVisible = ref(false);
 
 // 从 Vuex 获取表单数据
 const form = reactive({ ...store.state.train.form });
-const evaluationMetrics = ref(['精度', '速度', '稳定性', '资源消耗'])
+// const evaluationMetrics = ref(['精度', '速度', '稳定性', '资源消耗'])
+const evaluationMetrics = ref([ { label: '精度', value: 'accuracy' },
+  { label: '速度', value: 'speed' },
+  { label: '稳定性', value: 'stability' },
+  { label: '资源消耗', value: 'resource_consumption' }
+]);
 
 const filteredModels = computed(() => {
   return models.value.filter(models => models.situationselect == form.scene);
+});
+const pytorchVersions = computed(() => {
+  const model = filteredModels.value.find(item => item.name === form.model);
+  console.log('当前模型:', model);
+  if (model && model.environment) {
+	const currentVersionS = model.environment.replace('torch', '');
+    const currentVersion = parseFloat(model.environment.replace('torch1.', ''));
+	console.log('当前版本String:', currentVersionS);
+	console.log('当前版本float:', currentVersion);
+    const versions = [];
+    for (let i = currentVersion - 2; i <= currentVersion + 2; i++) {
+		console.log('当前版本:', i);
+    //   if (i >= 1.2 && i <= 1.10) { // 只显示在允许的版本范围内
+        versions.push(`torch1.${i}`);
+    //   }
+    }
+    return versions;
+  }
+  return [];
 });
 
 const toggleDropdown = () => {
@@ -237,9 +279,18 @@ const fetchModels = () => {
       Authorization: "Bearer " + store.state.user.token,
     },
     success(resp) {
+
+      resp.sort((a, b) => {
+        if (b.gpuMemorySize !== a.gpuMemorySize) {
+          return b.gpuMemorySize - a.gpuMemorySize; // GPU 显存越大越优先
+        }
+        if (a.memoryUsage !== b.memoryUsage) {
+          return a.memoryUsage - b.memoryUsage; // 内存使用率越小越优先
+        }
+        return a.gpuUsage - b.gpuUsage; // GPU 使用率越小越优先
+      });
       gameNodes.value = resp;
 
-      console.log("提出 resp : ", resp)
       form.ip = gameNodes.value[0].ip;
       form.port = gameNodes.value[0].port;
       // console.log(resp)
@@ -305,7 +356,7 @@ const startTraining = () => {
   // 延时1.5秒后更新为“已为您分配 GPU 和 GPU”
 
   setTimeout(() => {
-    trainingStatus.value = "已为您分配 GPU 和 GPU, 通过gRPC连接到服务器...";
+    trainingStatus.value = "已为您分配 CPU 和 GPU, 通过gRPC连接到服务器...";
   }, 1500);
 
   // 进行后端请求，开始训练
@@ -317,15 +368,20 @@ const startTraining = () => {
       Authorization: "Bearer " + store.state.user.token,
     },
     data: {
-      trainingName: form.trainingName,
-      scene: form.scene,
-      model: form.model,
-      pytorchVersion: form.pytorchVersion,
-      trainIters: form.trainIterations, 
-      ip: form.ip,
-      port: form.port,
-      modelParams: JSON.stringify(form.modelParams),
-      engineNodes: selectedNodes.value,
+		trainingName: form.trainingName,
+		scene: form.scene,
+		model: form.model,
+		trainTime: form.trainTime,
+		pytorchVersion: form.pytorchVersion,
+		trainIters: form.trainIterations, 
+		learningRate: form.learningRate,
+		batchSize: form.batchSize,
+		selectedMetrics: JSON.stringify(form.selectedMetrics),
+		trainDevice: form.trainDevice,
+		ip: form.ip,
+		port: form.port,
+		modelParams: JSON.stringify(form.modelParams),
+		engineNodes: selectedNodes.value,
     },
     success(resp) {
       console.log(resp);

@@ -435,6 +435,8 @@ const approveScene = (Scene) => {
         },
         success(resp) {
             console.log("Scene upload Accept:", resp);
+            const username = store.state.user.username || "用户"; // 确保 username 不是 undefined
+            alert(username + " 已签署, 发布成功");
             fetchTrainingsForUser(currentUserId.value);  // 重新加载该用户的审计记录
             fetchScenesForUser(currentUserId.value)
         },
@@ -483,6 +485,8 @@ const approveTraining = (training) => {
         },
         success(resp) {
             console.log("Training approved:", resp);
+            const username = store.state.user.username || "用户"; // 确保 username 不是 undefined
+            alert(username + " 已签署, 发布成功");
             fetchTrainingsForUser(currentUserId.value);  // 重新加载该用户的审计记录
         },
         error(err) {

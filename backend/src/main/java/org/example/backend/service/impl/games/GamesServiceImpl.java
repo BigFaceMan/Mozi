@@ -1,6 +1,7 @@
 package org.example.backend.service.impl.games;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.example.backend.consumer.WebSocketClient;
@@ -138,7 +139,29 @@ public class GamesServiceImpl implements GamesService {
         HashMap<String, Object> paramsMap = new HashMap<>();
         paramsMap.put("sceneEntitySelect", sceneEntityList);
         paramsMap.put("trainIters", data.getFirst("trainIters"));
+        paramsMap.put("trainBatchSize", data.getFirst("trainBatchSize"));
+        paramsMap.put("batchSize", data.getFirst("batchSize"));
+        paramsMap.put("learningRate", data.getFirst("learningRate"));
+        String selectMetricsStr = data.getFirst("selectedMetrics");
+        // 使用 ObjectMapper 将字符串解析为 List<String>
         ObjectMapper objectMapper = new ObjectMapper();
+        List<String> selectMetrics = null;
+
+        try {
+            // 将 selectMetricsStr 转换为 List<String>
+            selectMetrics = objectMapper.readValue(selectMetricsStr, new TypeReference<List<String>>() {
+            });
+            System.out.println("selectedMetrics : " + selectMetrics);
+            paramsMap.put("selectedMetrics", selectMetrics);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        paramsMap.put("selectedMetrics", selectMetrics);
+        paramsMap.put("trainEpochs", data.getFirst("trainEpochs"));
+        paramsMap.put("trainTime", data.getFirst("trainTime"));
+//        System.out.println("selectedMetrics : " + data.getFirst("selectedMetrics"));
+//        selectedMetrics : ["精度","速度","稳定性", "资源消耗"]
+//        ObjectMapper objectMapper = new ObjectMapper();
         String params = objectMapper.writeValueAsString(paramsMap); // 转换为 JSON
         data.add("params", params);
 

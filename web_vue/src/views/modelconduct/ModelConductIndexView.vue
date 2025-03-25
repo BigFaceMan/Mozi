@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-03-22 11:22:14
+ * @LastEditTime: 2025-03-25 15:36:01
 -->
 <template>
     <div class="container mt-4">
@@ -226,7 +226,7 @@
                             <div class="mb-3">
                             <label for="environment" class="form-label">深度学习环境</label>
                             <select class="form-control" id="environment" v-model="form.environment">
-                                <option disabled value="">请选择一个环境</option> <!-- 默认提示 -->
+                                <option disabled value="">请选择一个基准环境</option> <!-- 默认提示 -->
                                 <option value="torch1.7">torch1.7</option>
                                 <option value="torch1.8">torch1.8</option>
                                 <option value="torch1.9">torch1.9</option>
@@ -234,25 +234,21 @@
                                 <option value="torch1.11">torch1.11</option>
                                 <option value="torch1.12">torch1.12</option>
                                 <option value="torch1.13">torch1.13</option>
+                                <option value="torch1.14">torch1.14</option>
+                                <option value="torch1.15">torch1.15</option>
+                                <option value="torch1.16">torch1.16</option>
+                                <option value="torch1.17">torch1.17</option>
+                                <option value="torch1.18">torch1.18</option>
                             </select>
                             </div>
                             <div class="mb-3">
-                                <label for="methodSelection" class="form-label">想定选择</label>
+                                <label for="methodSelection" class="form-label">场景选择</label>
                                 <select class="form-control" id="situationSelection" v-model="form.situationSelection">
                                     <option v-for="situation in situations" :key="situation.id" :value="situation.projectname">
                                         {{ situation.projectname }}
                                     </option>
                                 </select>
                             </div>
-                            <!-- <div class="mb-3">
-                                <label for="methodSelection" class="form-label">方法选择</label>
-                                <select class="form-control" id="methodSelection" v-model="form.methodSelection" @change="updateStructureImage">
-                                    <option v-for="method in methodOptions" :key="method.value" :value="method.value">
-                                        {{ method.label }}
-                                    </option>
-                                </select>
-                            </div> -->
-
                             <div class="mb-3">
                                 <label for="ability" class="form-label">方法能力</label>
                                 <input type="text" class="form-control" id="ability" v-model="form.ability">
@@ -521,7 +517,8 @@ export default {
                 },
                 success(resp) {
                     situations.value = resp.data;
-                    console.log(resp.data)
+                    situations.value.push({ id: -1, projectname: "回归预测任务" });
+                    // console.log(resp.data)
                 }, error(resp) {
                     console.log(resp)
                     console.log("提取环境错误")

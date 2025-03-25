@@ -50,7 +50,7 @@ public class RegressController {
 
             // 返回结果
             response.put("message", "预测成功");
-            response.put("model", "Linear Regression");
+            response.put("model", model);
 //            response.put("coefficients", Map.of("a", a, "b", b));
             response.put("predictions", Y_predict);
 

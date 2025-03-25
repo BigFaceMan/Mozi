@@ -11,21 +11,27 @@
               <label for="inputFile" class="form-label">选择输入文件</label>
               <input type="file" class="form-control" id="inputFile" @change="handleFileChange('input', $event)" required>
             </div>
-
             <!-- 输出文件 -->
             <div class="col-md-4 mb-4">
               <label for="outputFile" class="form-label">选择输出文件</label>
               <input type="file" class="form-control" id="outputFile" @change="handleFileChange('output', $event)" required>
             </div>
-
             <!-- 预测文件 -->
             <div class="col-md-4 mb-4">
               <label for="predictFile" class="form-label">选择预测文件</label>
               <input type="file" class="form-control" id="predictFile" @change="handleFileChange('predict', $event)" required>
             </div>
           </div>
-
           <div class="mb-4">
+            <label for="modelSelect" class="form-label">选择回归模型</label>
+            <select class="form-select form-select-lg" id="modelSelect" v-model="selectedModel" required>
+              <option v-for="model in regressModels" :key="model.id" :value="model.name">
+                {{ model.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- <div class="mb-4">
             <label for="modelSelect" class="form-label">选择回归模型</label>
             <select class="form-select form-select-lg" id="modelSelect" v-model="selectedModel" required>
               <option value="linear">线性回归</option>
@@ -34,7 +40,7 @@
               <option value="Network">Neural Network</option>
               <option value="CNN">CNN</option>
             </select>
-          </div>
+          </div> -->
 
           <!-- 开始预测按钮 -->
           <div class="d-flex justify-content-center">
@@ -60,15 +66,18 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import $ from "jquery";
+import { useStore } from 'vuex';
 
 export default {
   setup() {
+    const store = useStore();
     const inputFile = ref(null);
     const outputFile = ref(null);
     const predictFile = ref(null);
-    const selectedModel = ref('linear');
+    const selectedModel = ref(null);
+    const regressModels = ref([]);
     const predictionResult = ref(null);
     const loading = ref(false);
 
@@ -87,7 +96,6 @@ export default {
         return;
       }
 
-      console.log("here!!!!!!!!!!")
       loading.value = true; // 显示加载状态
 
       const formData = new FormData();
@@ -95,7 +103,6 @@ export default {
       formData.append("outputFile", outputFile.value);
       formData.append("predictFile", predictFile.value);
       formData.append("model", selectedModel.value);
-
       setTimeout(() => {
         $.ajax({
           url: "http://127.0.0.1:3000/regress/",
@@ -117,6 +124,27 @@ export default {
       }, 2000); // 模拟延迟
     };
 
+    onMounted(() => {
+      fetchRegressModel();
+    })
+    const fetchRegressModel = () => {
+          $.ajax({
+              url: "http://127.0.0.1:3000/model/getlist/",
+              type: "get",
+              headers: {
+                  Authorization: "Bearer " + store.state.user.token,
+              },
+              success(resp) {
+                  regressModels.value = resp.filter((item) => item.situationselect === "回归预测任务");
+                  if (regressModels.value.length > 0) {
+                    selectedModel.value = regressModels.value[0].name; // 设置默认选项
+                  }
+                  // console.log("获取回归模型成功", regressModels.value);
+              }
+          });
+
+    }
+
     // const startPrediction = () => {
     //   loading.value = true; // 显示加载状态
 
@@ -136,11 +164,13 @@ export default {
       inputFile,
       outputFile,
       predictFile,
+      regressModels,
       selectedModel,
       predictionResult,
       loading,
       handleFileChange,
       startPrediction,
+      fetchRegressModel
     };
   },
 };

@@ -82,6 +82,15 @@ const fetchGameNodes = () => {
       Authorization: "Bearer " + store.state.user.token,
     },
     success(resp) {
+      resp.sort((a, b) => {
+        if (b.gpuMemorySize !== a.gpuMemorySize) {
+          return b.gpuMemorySize - a.gpuMemorySize; // GPU 显存越大越优先
+        }
+        if (a.memoryUsage !== b.memoryUsage) {
+          return a.memoryUsage - b.memoryUsage; // 内存使用率越小越优先
+        }
+        return a.gpuUsage - b.gpuUsage; // GPU 使用率越小越优先
+      });
       gameNodes.value = resp;
     }
   });

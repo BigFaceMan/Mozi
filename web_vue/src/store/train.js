@@ -12,6 +12,7 @@ export default {
       trainTime: 1600,
       learningRate: 0.001,
       batchSize: 32,
+      trainDevice: 'gpu',
       modelParams: '',
       selectedMetrics: [],
       ip: '', 
