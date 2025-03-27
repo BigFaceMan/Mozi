@@ -588,13 +588,13 @@ public class TrainServiceImpl implements TrainService {
                     // Windows 下使用 cmd.exe
                     command = new String[]{
                             "cmd.exe", "/c",
-                            "conda activate " + envName + " && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
+                            "conda activate " + envName + " && python -m tensorboard.main --logdir=" + tensorboardpath + " --port=" + finalPort
                     };
                 } else {
                     // Linux 下使用 /bin/bash
                     command = new String[]{
                             "/bin/bash", "-c",
-                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName + " && tensorboard --logdir=" + tensorboardpath + " --port=" + finalPort
+                            "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName + " && python -m tensorboard.main --logdir=" + tensorboardpath + " --port=" + finalPort
                     };
                 }
                 // 使用 ProcessBuilder 启动 TensorBoard
