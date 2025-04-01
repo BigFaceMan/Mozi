@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2024-11-12 11:01:55
- * @LastEditTime: 2024-12-13 12:08:20
+ * @LastEditTime: 2025-03-28 22:32:27
 -->
 <template>
         <div class="d-flex">
@@ -9,6 +9,7 @@
             <div class="sidebar p-3">
                 <div class="menu-background">
                     <button @click="right_states = 'parameters'" class="btn btn-primary custom-btn">创建模型</button>
+                    <button @click="right_states = 'train'" class="btn btn-primary custom-btn">训练列表</button>
                     <button @click="right_states = 'analysis'" class="btn btn-primary custom-btn">模型列表</button>
                 </div>
             </div>
@@ -17,6 +18,7 @@
             <div class="content flex-grow-1 p-3" style="margin-top: 10px; margin-right: 10px" >
                 <!-- 根据 right_states 的值显示不同的组件 -->
                 <ModelParameters v-if="right_states === 'parameters'" />
+                <ModelTraining v-if="right_states === 'train'" />
                 <ModelAnalysis v-if="right_states === 'analysis'" />
             </div>
         </div>
@@ -25,11 +27,13 @@
 <script>
 import ModelParameters from '../../components/ModelParameters.vue'
 import ModelAnalysis from '../../components/ModelAnalysis.vue'
+import ModelTraining from '../../components/ModelTraining.vue';
 import { ref } from 'vue';
 
 export default {
     components: {
         ModelParameters,
+        ModelTraining,
         ModelAnalysis
     },
     // data() {

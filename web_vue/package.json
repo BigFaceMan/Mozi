@@ -28,13 +28,15 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
+    "@vitejs/plugin-legacy": "^6.0.2",
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-plugin-router": "~5.0.0",
     "@vue/cli-plugin-vuex": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
     "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3"
+    "eslint-plugin-vue": "^8.0.3",
+    "terser": "^5.39.0"
   },
   "eslintConfig": {
     "root": true,
@@ -53,7 +55,6 @@
   "browserslist": [
     "> 1%",
     "last 2 versions",
-    "not dead",
-    "not ie 11"
+    "not ie <= 6"
   ]
 }

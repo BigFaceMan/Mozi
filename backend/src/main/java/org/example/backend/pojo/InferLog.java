@@ -13,7 +13,6 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("znt.infer_log")
 public class InferLog {
     @TableId(type = IdType.AUTO)
     private Integer id;

@@ -13,7 +13,6 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("znt.train_log")
 public class TrainLog {
     @TableId(type = IdType.AUTO)
     private Integer id;

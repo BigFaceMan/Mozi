@@ -14,7 +14,6 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("znt.examples")
 public class Examples {
     @TableId(type = IdType.AUTO)
     private Integer id;

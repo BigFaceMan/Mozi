@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("znt.train")
 public class Train {
     @TableId(type = IdType.AUTO)
     private Long id;

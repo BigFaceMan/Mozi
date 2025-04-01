@@ -13,7 +13,6 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("znt.exception_log")
 public class ExceptionLog {
     @TableId(type = IdType.AUTO)
     private Integer id;

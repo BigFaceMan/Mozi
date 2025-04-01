@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("znt.infer")
 public class Infer {
     @TableId(type = IdType.AUTO)
     private Long id;

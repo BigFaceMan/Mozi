@@ -544,8 +544,7 @@ public class RemoteSituationController {
             example.setExamplename(exampleName);
             example.setProjectname(projectName);
             example.setCountry(selectCountry);
-//            example.setSituationname(situationName);
-            example.setSituationname("123");
+            example.setSituationname(situationName);
             example.setSolutionname(solutionName);
             example.setVisible(0);
             example.setCreatetime(new Date()); // 设置当前时间
