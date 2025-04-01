@@ -37,93 +37,55 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">模型列表</h5>
-  <table class="table table-hover">
-        <thead>
-          <tr>
-            <th scope="col">模型名</th>
-            <th scope="col">场景</th>
-            <th scope="col">方法</th>
-            <th scope="col">强化学习环境</th>
-            <th scope="col">训练状态</th>
-            <th scope="col">操作</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr v-for="group in groupedTrainings" :key="group.key">
-            <!-- 主行（显示 latestTraining） -->
-            <td>
-                <button 
-                class="btn btn-sm btn-outline-primary me-2" 
-                @click="toggleGroup(group.key)"
-                >
-                <i v-if="expandedGroups[group.key]" class="fas fa-chevron-up"></i>
-                <i v-else class="fas fa-chevron-down"></i>
-                </button>
-                {{ group.latestTraining.trainingname.split("_")[0] }}
-            </td>
-            <td>{{ group.latestTraining.scene }}</td>
-            <td>{{ group.latestTraining.model }}</td>
-            <td>{{ group.latestTraining.pytorchversion }}</td>
-            <td>
-              <span v-if="group.latestTraining.running === 0">训练完成</span>
-              <span v-else-if="group.latestTraining.running === 2">已暂停</span>
-              <span v-else-if="group.latestTraining.running === 3">外部导入模型</span>
-            </td>
-            <td>
-                <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="group.latestTraining.running == '3' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
-                <button class="btn btn-sm ms-2" style="background-color: coral;" v-if="group.latestTraining.running == '3'" @click="generateReport(group.latestTraining)">生成报告</button>
-                <button class="btn btn-sm ms-2" style="background-color:darkseagreen;" v-if="group.latestTraining.running == '3'" @click="modelTest(group.latestTraining)">模型测试</button>
-                <button class="btn btn-sm ms-2" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '3'" @click="downloadModel(group.latestTraining)">下载</button>
-                <button class="btn btn-sm btn-danger ms-2" v-if="group.latestTraining.running == '3'" @click="deleteTraining(group.latestTraining)">删除模型</button>
-                <button class="btn btn-sm btn-info" v-if="group.latestTraining.running == '0'" @click="visualizeReport(group.latestTraining)">训练日志</button>
-                <button class="btn btn-sm btn-secondary ms-2" v-if="group.latestTraining.running == '0'" @click="viewResourceUsage(group.latestTraining)">资源使用报告</button>
-                <button class="btn btn-sm btn-success ms-2" v-if="group.latestTraining.running == '0'" @click="viewSuggestions(group.latestTraining)">智能建议</button>
-                <button class="btn btn-sm btn-warning ms-2" v-if="group.latestTraining.running == '0'" @click="viewTrainingReplay(group.latestTraining)">训练回放</button>
-                <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '0'" @click="addGoodModel(group.latestTraining)">上传模型</button>
-                <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '1'">正在上传</button>
-                <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
-                <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '3' && !group.latestTraining.isValidating" @click="validModel(group.latestTraining)">待验证</button>
-                <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="group.latestTraining.isValidating" >正在验证</button>
-                <button class="btn btn-sm ms-2" style="background-color: coral;" v-if="group.latestTraining.running == '0'" @click="generateReport(group.latestTraining)">生成报告</button>
-                <button class="btn btn-sm ms-2" style="background-color:darkseagreen;" v-if="group.latestTraining.running == '0'" @click="modelTest(group.latestTraining)">模型测试</button>
-                <button class="btn btn-sm ms-2" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '0'" @click="downloadModel(group.latestTraining)">下载</button>
-                <button class="btn btn-sm btn-danger ms-2" v-if="group.latestTraining.running == '0'" @click="deleteTraining(group.latestTraining)">删除模型</button>
-            </td>
-          </tr>
-            <!-- 额外的 <tr> 来展开子内容 -->
-            <!-- <tr v-if="expandedGroups[group.key]">
-            <td colspan="6">
-                <table class="table table-sm">
-                <thead>
+                <table class="table table-hover">
+                    <thead>
                     <tr>
-                    <th>训练名称</th>
-                    <th>场景</th>
-                    <th>模型</th>
-                    <th>PyTorch 版本</th>
-                    <th>状态</th>
-                    <th>操作</th>
+                        <th scope="col">模型名</th>
+                        <th scope="col">场景</th>
+                        <th scope="col">方法</th>
+                        <th scope="col">强化学习环境</th>
+                        <th scope="col">训练状态</th>
+                        <th scope="col">操作</th>
                     </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="training in group.trainings" :key="training.id">
-                    <td>{{ training.trainingname.split("_")[0] }}</td>
-                    <td>{{ training.scene }}</td>
-                    <td>{{ training.model }}</td>
-                    <td>{{ training.pytorchversion }}</td>
-                    <td>
-                        <span v-if="training.running === 1">正在训练</span>
-                        <span v-else-if="training.running === 2">已暂停</span>
-                        <span v-else-if="training.running === 3">外部导入模型</span>
-                    </td>
-                    <td>  </td>
+                    </thead>
+                    <tbody>
+                    <tr v-for="group in groupedTrainings" :key="group.key">
+                        <!-- 主行（显示 latestTraining） -->
+                        <td>
+                            {{ group.latestTraining.trainingname.split("_")[0] }}
+                        </td>
+                        <td>{{ group.latestTraining.scene }}</td>
+                        <td>{{ group.latestTraining.model }}</td>
+                        <td>{{ group.latestTraining.pytorchversion }}</td>
+                        <td>
+                        <span v-if="group.latestTraining.running === 0">训练完成</span>
+                        <span v-else-if="group.latestTraining.running === 2">已暂停</span>
+                        <span v-else-if="group.latestTraining.running === 3">外部导入模型</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '3' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color: coral;" v-if="group.latestTraining.running == '3'" @click="generateReport(group.latestTraining)">生成报告</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:darkseagreen;" v-if="group.latestTraining.running == '3'" @click="modelTest(group.latestTraining)">模型测试</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '3'" @click="downloadModel(group.latestTraining)">下载</button>
+                            <button class="btn btn-sm btn-danger ms-1 mb-1" v-if="group.latestTraining.running == '3'" @click="deleteTraining(group.latestTraining)">删除模型</button>
+                            <button class="btn btn-sm btn-info" v-if="group.latestTraining.running == '0'" @click="visualizeReport(group.latestTraining)">训练日志</button>
+                            <button class="btn btn-sm btn-warning ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="openTrainingDetails(group)"> 模型回滚 </button>
+                            <button class="btn btn-sm btn-secondary ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewResourceUsage(group.latestTraining)">资源使用报告</button>
+                            <button class="btn btn-sm btn-success ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewSuggestions(group.latestTraining)">智能建议</button>
+                            <button class="btn btn-sm btn-warning ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewTrainingReplay(group.latestTraining)">训练回放</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '0'" @click="addGoodModel(group.latestTraining)">上传模型</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '1'">正在上传</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '3' && !group.latestTraining.isValidating" @click="validModel(group.latestTraining)">待验证</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.isValidating" >正在验证</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color: coral;" v-if="group.latestTraining.running == '0'" @click="generateReport(group.latestTraining)">生成报告</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color:darkseagreen;" v-if="group.latestTraining.running == '0'" @click="modelTest(group.latestTraining)">模型测试</button>
+                            <button class="btn btn-sm ms-1 mb-1" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '0'" @click="downloadModel(group.latestTraining)">下载</button>
+                            <button class="btn btn-sm btn-danger ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="deleteTraining(group.latestTraining)">删除模型</button>
+                        </td>
                     </tr>
-                </tbody>
+                    </tbody>
                 </table>
-            </td>
-            </tr> -->
-        </tbody>
-      </table>
                 <!-- Pagination Controls -->
                 <nav>
                     <ul class="pagination justify-content-center">
@@ -139,6 +101,57 @@
             </div>
         </div>
 
+        <div
+        class="modal fade"
+        id="groupTrainingsModal"
+        tabindex="-1"
+        aria-labelledby="groupTrainingsModalLabel"
+        aria-hidden="true"
+        >
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="groupTrainingsModalLabel">模型历史记录</h5>
+                <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+                ></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                <thead>
+                    <tr>
+                    <th>训练名称</th>
+                    <th>场景</th>
+                    <th>模型</th>
+                    <th>PyTorch 版本</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="training in selectedGroup" :key="training.id">
+                    <td>{{ training.trainingname}}</td>
+                    <td>{{ training.scene }}</td>
+                    <td>{{ training.model }}</td>
+                    <td>{{ training.pytorchversion }}</td>
+                    <td>
+                        <span v-if="training.running === 0">训练完成</span>
+                        <span v-else-if="training.running === 2">已暂停</span>
+                        <span v-else-if="training.running === 3">外部导入模型</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-success ms-1 mb-1" @click="rollBack(training)">回滚到当前版本</button>
+                    </td>
+                    </tr>
+                </tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+        </div>
         <div class="modal fade" id="speedModal" tabindex="-1" aria-labelledby="speedModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -355,6 +368,7 @@ const itemsPerPage = 10;
 const tensorboardTraining = ref(null);
 const tensorboardPort = ref(6001);
 const currentAccTrain = ref([])
+const selectedGroup = ref(null);
 
 const totalPages = computed(() => Math.ceil(trainings.value.length / itemsPerPage));
 const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${tensorboardPort.value}`);
@@ -388,14 +402,28 @@ const groupedTrainings = computed(() => {
 });
 
 
-const toggleGroup = (key) => {
-    console.log("key is : ", key)
-    console.log("key is : ", groupedTrainings.value.filter(train => train.key === key))
-    if (expandedGroups.value[key] === undefined) {
-        expandedGroups.value[key] = false;
+const openTrainingDetails = (group) => {
+    selectedGroup.value = group.trainings;
+    console.log("selectedGroup : ", selectedGroup.value.trainings)
+    const modal = new Modal(document.getElementById('groupTrainingsModal'));
+    modal.show();
+}
+const rollBack = (training) => {
+    console.log("rollBack : ", training);
+
+    // 确保正确获取模态框元素
+    const modalElement = document.getElementById('groupTrainingsModal');
+    if (!modalElement) {
+        console.error("模态框元素未找到");
+        return;
     }
-    expandedGroups.value[key] = !expandedGroups.value[key];
+    alert("回滚成功")
+
+    // 获取 Modal 实例并隐藏模态框
+    const modal = Modal.getInstance(modalElement) || Modal(modalElement);
+    modal.hide();
 };
+
 
 
 
