@@ -71,10 +71,10 @@
                             <button class="btn btn-sm btn-info ms-2" v-if="training.running == '1'" @click="visualizeReport(training)">训练日志</button>
                             <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '1'" @click="stopTraining(training)">暂停训练</button>
                             <button class="btn btn-sm ms-2" style="background-color: chocolate;" v-if="training.running == '1'" @click="restartTraining()">训练重启</button>
-                            <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '1'" @click="killTraining(training)">终止训练</button>
-                            <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button>
+                            <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '1'" @click="killTraining(training)">关闭训练</button>
+                            <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">恢复训练</button>
                             <!-- <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button> -->
-                            <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '2'" @click="killTraining(training)">终止训练</button>
+                            <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '2'" @click="killTraining(training)">关闭训练</button>
                             <button class="btn btn-sm ms-2" style="background-color: #FFA500; color: white;"  v-if="training.running == '1'"
                                     @click="showSpeedModal(training)">
                                 <i class="fas fa-tachometer-alt"></i> {{ training.speedMultiplier || 1 }}x 加速

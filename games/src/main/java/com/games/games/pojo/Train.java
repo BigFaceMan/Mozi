@@ -27,4 +27,5 @@ public class Train {
     private String processid;
     private String trainpypath;
     private String params;
+    private Integer mversion;
 }

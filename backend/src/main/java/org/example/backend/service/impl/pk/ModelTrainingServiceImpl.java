@@ -75,8 +75,8 @@ public class ModelTrainingServiceImpl implements ModelTrainingService {
 
         Map<String, String> result = new HashMap<>();
         String pyPath = "";
-        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, user.getId(), 3, "1", "1", "1", pyPath);
-        trainMapper.insert(train);
+//        Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointpath, 1, tensorboardpath, user.getId(), 3, "1", "1", "1", pyPath, 0, 0, 0, 0, 0, 0, 0, 0);
+//        trainMapper.insert(train);
         putTrain(data);
         result.put( "error_message", "success");
         return result;

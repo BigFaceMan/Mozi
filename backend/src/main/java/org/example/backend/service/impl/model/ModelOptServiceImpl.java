@@ -1,6 +1,8 @@
 package org.example.backend.service.impl.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import org.apache.logging.log4j.message.ReusableMessage;
 import org.example.backend.mapper.ModelMapper;
 import org.example.backend.mapper.ModelPthMapper;
 import org.example.backend.mapper.TrainMapper;
@@ -10,10 +12,12 @@ import org.example.backend.pojo.Train;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.model.ModelOptService;
+import org.example.backend.utils.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -159,7 +163,7 @@ public class ModelOptServiceImpl implements ModelOptService {
         String modelPthName = name + "_loadModel";
         byte[] modelBytes = modelPth.getBytes();
 
-        Train train = new Train(null, modelPthName,  environment, situationselect,  name, "1", "1",  3, "1", user.getId(), 3, "1", "1", "1", "1");
+        Train train = new Train(null, modelPthName,  environment, situationselect,  name, "1", "1",  3, "1", user.getId(), 3, "1", "1", "1", "1", "1", 1);
         trainMapper.insert(train);
         Train trainQuery = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", modelPthName));
         int trainId = Math.toIntExact(trainQuery.getId());
@@ -327,6 +331,27 @@ public class ModelOptServiceImpl implements ModelOptService {
 
         map.put("success_message", "success");
         return map;
+    }
+
+    @Override
+    @Transactional
+    public Result<String> rollback(Map<String, String> data) {
+        String scene = data.get("scene");
+        String model = data.get("model");
+        Integer trainId = Integer.parseInt(data.get("trainId"));
+        
+        UpdateWrapper<Train> trainUpdateWrapper = new UpdateWrapper<>();
+        trainUpdateWrapper.eq("scene", scene).eq("model", model).eq("mversion", 1);
+        Train trainUpdate = new Train();
+        trainUpdate.setMversion(0);
+        trainMapper.update(trainUpdate, trainUpdateWrapper);
+
+        Train trainNow = new Train();
+        trainNow.setId(trainId);
+        trainNow.setMversion(1);
+        trainMapper.updateById(trainNow);
+
+        return Result.success();
     }
 
     @Override

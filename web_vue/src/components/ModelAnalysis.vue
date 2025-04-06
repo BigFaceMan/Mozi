@@ -6,31 +6,6 @@
                 <input type="text" class="form-control" placeholder="查找模型..." v-model="searchQuery" @input="filterTrainings">
                 <button class="btn btn-outline-secondary" type="button" @click="resetSearch">重置</button>
             </div>
-            <div class="ml-auto">
-                <button
-                    v-if="!isComparing"
-                    class="btn btn-primary"
-                    @click="openComparison"
-                >
-                    模型对比
-                </button>
-
-                <button
-                    v-if="isComparing"
-                    class="btn btn-start-comparison"
-                    @click="startComparison"
-                >
-                    开始对比
-                </button>
-
-                <button
-                    v-if="isComparing"
-                    class="btn btn-cancel-comparison"
-                    @click="toggleComparison"
-                >
-                    取消对比
-                </button>
-            </div>
 
         </div>
         <!-- Training Records Table -->
@@ -108,21 +83,47 @@
         aria-labelledby="groupTrainingsModalLabel"
         aria-hidden="true"
         >
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="groupTrainingsModalLabel">模型历史记录</h5>
-                <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-                ></button>
+        <div class="modal-dialog modal-xl">
+        <div class="modal-content shadow-lg rounded-3">
+            <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="groupTrainingsModalLabel">模型历史记录</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+
             <div class="modal-body">
-                <table class="table table-sm">
-                <thead>
+            <!-- 顶部操作按钮区 -->
+            <div class="d-flex justify-content-end mb-3 gap-2">
+                <button
+                v-if="!isComparing"
+                class="btn btn-outline-primary"
+                @click="openComparison"
+                >
+                <i class="bi bi-bar-chart-steps me-1"></i> 模型对比
+                </button>
+
+                <button
+                v-if="isComparing"
+                class="btn btn-success"
+                @click="startComparison"
+                >
+                <i class="bi bi-play-circle me-1"></i> 开始对比
+                </button>
+
+                <button
+                v-if="isComparing"
+                class="btn btn-outline-secondary"
+                @click="toggleComparison"
+                >
+                <i class="bi bi-x-circle me-1"></i> 取消对比
+                </button>
+            </div>
+
+            <!-- 模型列表表格 -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-light">
                     <tr>
+                    <th v-if="isComparing">选择</th>
                     <th>训练名称</th>
                     <th>场景</th>
                     <th>模型</th>
@@ -133,17 +134,38 @@
                 </thead>
                 <tbody>
                     <tr v-for="training in selectedGroup" :key="training.id">
-                    <td>{{ training.trainingname}}</td>
+                    <td v-if="isComparing">
+                        <input
+                        type="checkbox"
+                        v-model="selectedModels"
+                        :value="training"
+                        :disabled="selectedModels.length >= 2 && !selectedModels.includes(training)"
+                        />
+                    </td>
+                    <td>{{ training.trainingname }}</td>
                     <td>{{ training.scene }}</td>
                     <td>{{ training.model }}</td>
                     <td>{{ training.pytorchversion }}</td>
                     <td>
-                        <span v-if="training.running === 0">训练完成</span>
-                        <span v-else-if="training.running === 2">已暂停</span>
-                        <span v-else-if="training.running === 3">外部导入模型</span>
+                        <span class="badge bg-success" v-if="training.running === 0">训练完成</span>
+                        <span class="badge bg-warning text-dark" v-else-if="training.running === 2">已暂停</span>
+                        <span class="badge bg-info text-dark" v-else-if="training.running === 3">外部导入模型</span>
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-success ms-1 mb-1" @click="rollBack(training)">回滚到当前版本</button>
+                        <button
+                        v-if="training.mversion === 1"
+                        class="btn btn-sm btn-outline-secondary"
+                        disabled
+                        >
+                        当前版本
+                        </button>
+                        <button
+                        v-else
+                        class="btn btn-sm btn-outline-success"
+                        @click="rollBack(training)"
+                        >
+                        回滚到当前版本
+                        </button>
                     </td>
                     </tr>
                 </tbody>
@@ -151,6 +173,8 @@
             </div>
             </div>
         </div>
+        </div>
+
         </div>
         <div class="modal fade" id="speedModal" tabindex="-1" aria-labelledby="speedModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -396,7 +420,7 @@ const groupedTrainings = computed(() => {
     });
 
     return Object.entries(groups).map(([key, trainings]) => {
-        const latestTraining = trainings.find(t => t.latest) || trainings[0];
+        const latestTraining = trainings.find(t => t.mversion==1) || trainings[0];
         return { key, trainings, latestTraining };
     });
 });
@@ -410,6 +434,29 @@ const openTrainingDetails = (group) => {
 }
 const rollBack = (training) => {
     console.log("rollBack : ", training);
+    $.ajax({
+        url: "http://127.0.0.1:3000/model/rollback/",
+        type: "post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            trainId: training.id,
+            scene: training.scene,
+            model: training.model,
+        },
+        success(resp) {
+            if (resp.code == 200) {
+                console.log("回滚成功", resp);
+                fetchTrainings();
+            } else {
+                console.error("回滚失败", resp);
+            }
+        },
+        error(err) {
+            console.error("Error fetching trainings:", err);
+        }
+    });
 
     // 确保正确获取模态框元素
     const modalElement = document.getElementById('groupTrainingsModal');

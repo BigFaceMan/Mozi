@@ -1,8 +1,8 @@
 package org.example.backend.controller.model;
 
-import kotlin.ParameterName;
 import org.example.backend.pojo.Model;
 import org.example.backend.service.model.ModelOptService;
+import org.example.backend.utils.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,9 +57,16 @@ public class ModelOptController {
         return modelOptService.remove(data);
     }
 
+
+
     @GetMapping("/model/getlist/")
     public List<Model> getlist() {
         return modelOptService.getList();
+    }
+
+    @PostMapping("/model/rollback/")
+    public Result<String> rollback(@RequestParam Map<String, String> data) {
+        return modelOptService.rollback(data);
     }
 
     @GetMapping("/model/trainPth/")

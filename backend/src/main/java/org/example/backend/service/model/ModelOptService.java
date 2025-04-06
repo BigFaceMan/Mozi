@@ -1,6 +1,7 @@
 package org.example.backend.service.model;
 
 import org.example.backend.pojo.Model;
+import org.example.backend.utils.Result;
 
 import java.io.IOException;
 import java.util.List;
@@ -14,6 +15,7 @@ public interface ModelOptService {
     Map<String, String> remove(Map<String, String> data);
 
     Map<String, String> update(Map<String, String> data);
+    Result<String> rollback(Map<String, String> data);
 
     byte[] getModelPth(Integer trainId);
 }

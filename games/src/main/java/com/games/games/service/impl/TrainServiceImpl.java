@@ -286,9 +286,16 @@ public class TrainServiceImpl implements TrainService {
             });
 //            errorDbThread.setDaemon(true);
             errorDbThread.start();
-
+            QueryWrapper<Train> trainQueryWrapper = new QueryWrapper<>();
+            trainQueryWrapper.eq("scene", scene).eq("model", model);
+            List<Train> trains = trainMapper.selectList(trainQueryWrapper);
+            Train train;
+            if (trains.isEmpty()) {
+                train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointPath, 1, tensorboardPath, uId, 3, ip, port, processId, trainFile.getPath(), paramsJson, 1);
+            } else {
+                train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointPath, 1, tensorboardPath, uId, 3, ip, port, processId, trainFile.getPath(), paramsJson, 0);
+            }
             // 记录到数据库
-            Train train = new Train(null, trainingName, pytorchVersion, scene, model, modelParams, checkpointPath, 1, tensorboardPath, uId, 3, ip, port, processId, trainFile.getPath(), paramsJson);
             trainMapper.insert(train);
 
             // 监听进程状态

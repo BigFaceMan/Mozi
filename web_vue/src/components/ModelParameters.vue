@@ -182,7 +182,7 @@
   <div class="d-flex align-items-center gap-3 mt-3">
     <button class="btn btn-secondary" @click="showRewardModal = true">配置奖励目标</button>
     <button @click="saveConfig" class="btn btn-primary">保存配置</button>
-    <button @click="startTraining" class="btn btn-primary">开始训练</button>
+    <button @click="startTraining" class="btn btn-primary">启动训练</button>
   </div>
   <!-- 显示训练进度 -->
   <div v-if="trainingStatus" class="mt-3">

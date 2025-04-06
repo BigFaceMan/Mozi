@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Train {
     @TableId(type = IdType.AUTO)
-    private Long id;
+    private Integer id;
     private String trainingname;
     private String pytorchversion;
     private String scene;
@@ -27,4 +27,6 @@ public class Train {
     private String port;
     private String processid;
     private String trainpypath;
+    private String params;
+    private Integer mversion;
 }

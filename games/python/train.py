@@ -8,6 +8,8 @@ import argparse
 import sys
 import json
 import os
+import torch
+from torch.utils.tensorboard import SummaryWriter
 
 # 创建解析器以支持命令行参数
 parser = argparse.ArgumentParser(description="Train model and record iterations using TensorBoard.")
@@ -25,6 +27,37 @@ print("checkpointPaht is : ", args.checkpointpath)
 print(f"Get process params: {args.params}")
 params = json.loads(args.params)
 print("params dict:", params)
-for i in range(10):
-    print(i)
+
+# 初始化 TensorBoard SummaryWriter
+writer = SummaryWriter(log_dir=args.tensorboardpath)
+
+# 定义一个简单的 PyTorch 模型
+class SimpleModel(torch.nn.Module):
+    def __init__(self, input_size, output_size):
+        super(SimpleModel, self).__init__()
+        self.fc = torch.nn.Linear(input_size, output_size)
+
+    def forward(self, x):
+        return self.fc(x)
+
+# 从参数中获取输入和输出维度，提供默认值
+input_size = 10  # 默认 10
+output_size = 1  # 默认 1
+
+# 初始化模型
+model = SimpleModel(input_size, output_size)
+
+# 训练模拟过程
+for i in range(100):
+    print("Itera:", i)
+    if i == 2:
+        sys.stderr.write("This is an error message\n")
+    writer.add_scalar("Iteration Value", i, i)  # 记录 TensorBoard 数据
+    # 每 50 轮保存一次模型
+    if i % 5 == 0 or i == 99:
+        print(f"Checkpoint saved: {args.checkpointpath}")
+        torch.save(model.state_dict(), args.checkpointpath)
     time.sleep(3)
+
+writer.close()
+print("Training completed.")
