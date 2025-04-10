@@ -59,7 +59,7 @@ public class RemoteSituationController {
 //    private String url5 = "http://127.0.0.1:4001";
     private Map<String, List<Object>> situationCache = new HashMap<>();
     public List<Map<String, Object>> getLeafIndicator(Map<String, Object> node) {
-        if (node.get("children") == null) {
+        if (node.get("isLeaf").toString().equals("1")) {
             List<Map<String, Object>> res = new ArrayList<>();
             res.add(node);
             return res;

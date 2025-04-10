@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import sun.awt.image.ImageWatched;
 
 import java.util.*;
 
@@ -70,10 +71,12 @@ public class EngineController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("list", menuList);
+        LinkedList<Map<String, Object>> dataList = new LinkedList<>();
+        dataList.add(data);
         Map<String, Object> response = new HashMap<>();
         response.put("msg", "success");
         response.put("code", 0);
-        response.put("data", data);
+        response.put("data", dataList);
         return toJsonString(response);
     }
 

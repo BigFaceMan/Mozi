@@ -84,7 +84,7 @@ public class InfoServiceImpl implements InfoService {
                 String situationJson = restTemplate.getForObject(url, String.class);
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, Object> mapRemote = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>(){});
-                List<Map<String, Object>> data = (List<Map<String, Object>>) ((Map<String, Object>) mapRemote.get("data")).get("list");
+                List<Map<String, Object>> data = (List<Map<String, Object>>) (((List<Map<String, Object>>) mapRemote.get("data")).get(0)).get("list");
                 for (String menuName : menuNames) {
                     Boolean finded = false;
                     HashMap<String, Boolean> power = new HashMap<>();

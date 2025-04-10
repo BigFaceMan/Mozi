@@ -55,6 +55,11 @@ public class ModeTrainingController {
         return modelTrainingService.upLoadModel(data);
     }
 
+    @GetMapping("/train/info/")
+    public Map<String, Object> getTrainInfo(@RequestParam MultiValueMap<String, String> data) {
+        return modelTrainingService.getTrainInfo(data);
+    }
+
 
     @PostMapping("/train/validataModel/")
     public Map<String, String> validateModel(@RequestParam MultiValueMap<String, String> data) {

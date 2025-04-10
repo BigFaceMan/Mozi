@@ -4,11 +4,9 @@ import java.io.File;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import org.example.backend.mapper.LogmessageMapper;
-import org.example.backend.mapper.TrainLogMapper;
-import org.example.backend.mapper.TrainMapper;
-import org.example.backend.mapper.UserMapper;
+import org.example.backend.mapper.*;
 import org.example.backend.pojo.Train;
+import org.example.backend.pojo.TrainInfo;
 import org.example.backend.pojo.TrainLog;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
@@ -38,7 +36,7 @@ public class ModelTrainingServiceImpl implements ModelTrainingService {
     @Autowired
     private TrainLogMapper trainLogMapper;
     @Autowired
-    private LogmessageMapper logmessageMapper;
+    private TrainInfoMapper trainInfoMapper;
     private Process tensorBoardProcess = null;
 
     private static final ConcurrentHashMap<String, Thread> runningThreads = new ConcurrentHashMap<>();
@@ -371,6 +369,19 @@ public class ModelTrainingServiceImpl implements ModelTrainingService {
 //
 //        int rows = trainLogMapper.insert(trainLog);
 //        result.put("status", rows > 0 ? "success" : "failure");
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getTrainInfo(MultiValueMap<String, String> data) {
+        int trainId = Integer.parseInt(data.getFirst("trainId"));
+        QueryWrapper<TrainInfo> infoQueryWrapper = new QueryWrapper<>();
+        infoQueryWrapper.eq("trainid", trainId);
+        List<TrainInfo> trainInfoList = trainInfoMapper.selectList(infoQueryWrapper);
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", "200");
+        result.put("data", trainInfoList);
+        result.put("msg", "success");
         return result;
     }
 

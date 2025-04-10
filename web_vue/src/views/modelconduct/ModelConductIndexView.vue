@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-03-25 15:36:01
+ * @LastEditTime: 2025-04-07 10:22:01
 -->
 <template>
     <div class="container mt-4">
@@ -58,6 +58,7 @@
                         <li class="page-item" :class="{ disabled: currentPage.value === 1 }">
                             <button class="page-link" @click="goToPage(currentPage - 1)">上一页</button>
                         </li>
+                        <span class="page-link">{{ currentPage }} / {{ totalPages }} 页</span>
                         <li class="page-item" :class="{ disabled: currentPage.value === totalPages }">
                             <button class="page-link" @click="goToPage(currentPage + 1)">下一页</button>
                         </li>

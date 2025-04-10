@@ -44,7 +44,7 @@
                             <button class="btn btn-sm ms-1 mb-1" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '3'" @click="downloadModel(group.latestTraining)">下载</button>
                             <button class="btn btn-sm btn-danger ms-1 mb-1" v-if="group.latestTraining.running == '3'" @click="deleteTraining(group.latestTraining)">删除模型</button>
                             <button class="btn btn-sm btn-info" v-if="group.latestTraining.running == '0'" @click="visualizeReport(group.latestTraining)">训练日志</button>
-                            <button class="btn btn-sm btn-warning ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="openTrainingDetails(group)"> 模型回滚 </button>
+                            <button class="btn btn-sm btn-warning ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="openTrainingDetails(group)"> 历史模型 </button>
                             <button class="btn btn-sm btn-secondary ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewResourceUsage(group.latestTraining)">资源使用报告</button>
                             <button class="btn btn-sm btn-success ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewSuggestions(group.latestTraining)">智能建议</button>
                             <button class="btn btn-sm btn-warning ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewTrainingReplay(group.latestTraining)">训练回放</button>
@@ -67,6 +67,7 @@
                         <li class="page-item" :class="{ disabled: currentPage.value === 1 }">
                             <button class="page-link" @click="goToPage(currentPage - 1)">上一页</button>
                         </li>
+                        <span class="page-link">{{ currentPage }} / {{ totalPages }} 页</span>
                         <li class="page-item" :class="{ disabled: currentPage.value === totalPages}">
                             <button class="page-link" @click="goToPage(currentPage + 1)">下一页</button>
                         </li>
@@ -75,6 +76,16 @@
         <!-- Start Comparison Button -->
             </div>
         </div>
+
+      <!-- <button @click="toggleModal">切换图表</button> -->
+      <!-- 模态框 -->
+        <div v-if="showChart" class="modal-overlay" @click="colseTrainingReplay">
+            <div class="modal-content" @click.stop>
+            <button @click="colseTrainingReplay" class="close-btn">关闭</button>
+            <LineChart :key="chartKey" :training="chartTrain" />
+            </div>
+        </div>
+
 
         <div
         class="modal fade"
@@ -93,6 +104,30 @@
             <div class="modal-body">
             <!-- 顶部操作按钮区 -->
             <div class="d-flex justify-content-end mb-3 gap-2">
+                <button
+                v-if="!isBatch"
+                class="btn btn-outline-primary"
+                @click="openBatch"
+                >
+                <i class="bi bi-bar-chart-steps me-1"></i> 批量操作
+                </button>
+
+                <button
+                v-if="isBatch"
+                class="btn btn-danger"
+                @click="deleteSelectedModels"
+                >
+                <i class="bi bi-play-circle me-1"></i> 批量删除
+                </button>
+
+                <button
+                v-if="isBatch"
+                class="btn btn-outline-secondary"
+                @click="toggleComparison"
+                >
+                <i class="bi bi-x-circle me-1"></i> 取消
+                </button>
+
                 <button
                 v-if="!isComparing"
                 class="btn btn-outline-primary"
@@ -134,7 +169,7 @@
                 </thead>
                 <tbody>
                     <tr v-for="training in selectedGroup" :key="training.id">
-                    <td v-if="isComparing">
+                    <td v-if="isComparing || isBatch">
                         <input
                         type="checkbox"
                         v-model="selectedModels"
@@ -376,6 +411,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import LineChart from './LineChart.vue';
 import $ from 'jquery';
 import { Chart } from 'chart.js';
 import { useStore } from 'vuex';
@@ -399,6 +435,7 @@ const tensorboardUrl = computed(() => `http://${tensorboardTraining.value.ip}:${
 
 
 const isComparing = ref(false);
+const isBatch = ref(false);
 const selectedModels = ref([]);
 const isComparisonVisible = ref(false);
 const ComparisonResults = ref([]);
@@ -483,11 +520,15 @@ const rollBack = (training) => {
 // };
 
 
+const openBatch = () => {
+    isBatch.value = true;
+}
 const openComparison = () => {
     isComparing.value = true;
 }
 const toggleComparison = () => {
     isComparing.value = false;
+    isBatch.value = false;
     selectedModels.value = [];
 };
 
@@ -498,6 +539,7 @@ const closeComparison = () => {
     selectedModels.value = [];
     ComparisonResults.value = [];
 };
+
 
 const startComparison = () => {
     if (selectedModels.value.length < 2) {
@@ -590,6 +632,35 @@ const resourceUsageData = ref({});
 const suggestionsData = ref('');
 const lossChart = ref(null);
 const isModelTestVisible = ref(false);
+
+const deleteSelectedModels = () => {
+  if (confirm(`确定要删除选中的 ${selectedModels.value.length} 个模型吗？`)) {
+    const deletePromises = selectedModels.value.map(training =>
+      $.ajax({
+        url: "http://127.0.0.1:3000/train/remove/",
+        type: "post",
+        headers: {
+          Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+          id: training.id,
+        }
+      })
+    );
+
+    Promise.all(deletePromises)
+      .then(() => {
+        alert("删除成功！");
+        selectedModels.value.length = 0;  // 清空选择
+        fetchTrainings();
+      })
+      .catch(err => {
+        console.error("批量删除出错:", err);
+        alert("部分或全部模型删除失败，请检查控制台");
+      });
+  }
+};
+
 
 const visualizeReport = (training) => {
     isVisualizationVisible.value = true;
@@ -775,41 +846,18 @@ const validModel = (training) => {
         }
     });
 }
+const showChart = ref(false);
+const chartKey = ref(0);
+const chartTrain = ref(null)
 const viewTrainingReplay = (training) => {
-    tensorboardTraining.value = training;
-    isTrainingReplayVisible.value = true;
-    isLoading.value = true;
-
-    $.ajax({
-        url: "http://127.0.0.1:3000/train/addTensorboard/",  // Use the appropriate endpoint for replay data
-        type: "post",
-        headers: {
-            Authorization: "Bearer " + store.state.user.token,
-        },
-        data: {
-            tensorboardpath: tensorboardTraining.value.tensorboardpath,
-            ip: tensorboardTraining.value.ip,
-            port: tensorboardTraining.value.port,
-        },
-        success(resp) {
-            // Process the raw training log data for replay visualization
-            console.log(resp)
-            tensorboardPort.value = resp.tPort;
-            if (resp.error_message === 'success') {
-                isLoading.value = false;
-                console.log("success")
-                // console.log(tensorboardTraining.value)
-                console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
-                console.log(tensorboardUrl.value)
-            } else {
-                isLoading.value = true;
-            }
-        },
-        error(err) {
-            console.error("Error fetching replay data:", err);
-        }
-    });
+    chartTrain.value = training;
+    showChart.value = !showChart.value;
+    chartKey.value += 1; // 每次切换时，强制重新渲染图表
 };
+const colseTrainingReplay = () => {
+    showChart.value = false;
+};
+
 
 
 const closeTrainingReplay = () => {
@@ -1079,5 +1127,49 @@ onMounted(fetchTrainings);
 
 .btn-cancel:hover {
     background: #545b62;
+}
+
+.manual-container {
+  text-align: center;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 90%; /* 使模态框宽度更大，最大宽度为视口的 90% */
+  width: 800px;  /* 设置固定宽度，增加宽度 */
+  max-height: 90vh; /* 限制模态框的最大高度为视口高度的 90% */
+  overflow-y: auto; /* 使内容区域可滚动 */
+}
+
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background-color: darkred;
 }
 </style>

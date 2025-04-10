@@ -17,6 +17,7 @@ public interface ModelTrainingService {
 
     Map<String, String> deleteTensorboard();
     Map<String, String> addTrainLog(MultiValueMap<String, String> data);
+    Map<String, Object> getTrainInfo(MultiValueMap<String, String> data);
 
     void putTrain(MultiValueMap<String, String> data);
 

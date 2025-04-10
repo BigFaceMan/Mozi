@@ -7,6 +7,7 @@
                 <button class="btn btn-outline-secondary" type="button" @click="resetSearch">重置</button>
             </div>
         </div>
+
         <!-- Training Records Table -->
         <div class="card">
             <div class="card-body">
@@ -90,12 +91,21 @@
                         <li class="page-item" :class="{ disabled: currentPage.value === 1 }">
                             <button class="page-link" @click="goToPage(currentPage - 1)">上一页</button>
                         </li>
+                        <span v-if="totalPages > 0" class="page-link">{{ currentPage }} / {{ totalPages }} 页</span>
                         <li class="page-item" :class="{ disabled: currentPage.value === totalPages}">
                             <button class="page-link" @click="goToPage(currentPage + 1)">下一页</button>
                         </li>
                     </ul>
                 </nav>
         <!-- Start Comparison Button -->
+            </div>
+        </div>
+
+
+        <div v-if="showChart" class="modal-overlay" @click="colseTrainingReplay">
+            <div class="modal-content" @click.stop>
+            <button @click="colseTrainingReplay" class="close-btn">关闭</button>
+            <LineChart :key="chartKey" :training="chartTrain" />
             </div>
         </div>
 
@@ -299,6 +309,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import LineChart from './LineChart.vue';
 import $ from 'jquery';
 import { Chart } from 'chart.js';
 import { useStore } from 'vuex';
@@ -666,41 +677,55 @@ const validModel = (training) => {
         }
     });
 }
-const viewTrainingReplay = (training) => {
-    tensorboardTraining.value = training;
-    isTrainingReplayVisible.value = true;
-    isLoading.value = true;
 
-    $.ajax({
-        url: "http://127.0.0.1:3000/train/addTensorboard/",  // Use the appropriate endpoint for replay data
-        type: "post",
-        headers: {
-            Authorization: "Bearer " + store.state.user.token,
-        },
-        data: {
-            tensorboardpath: tensorboardTraining.value.tensorboardpath,
-            ip: tensorboardTraining.value.ip,
-            port: tensorboardTraining.value.port,
-        },
-        success(resp) {
-            // Process the raw training log data for replay visualization
-            console.log(resp)
-            tensorboardPort.value = resp.tPort;
-            if (resp.error_message === 'success') {
-                isLoading.value = false;
-                console.log("success")
-                // console.log(tensorboardTraining.value)
-                console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
-                console.log(tensorboardUrl.value)
-            } else {
-                isLoading.value = true;
-            }
-        },
-        error(err) {
-            console.error("Error fetching replay data:", err);
-        }
-    });
+const showChart = ref(false);
+const chartKey = ref(0);
+const chartTrain = ref(null)
+const viewTrainingReplay = (training) => {
+    chartTrain.value = training;
+    console.log(training)
+    showChart.value = !showChart.value;
+    chartKey.value += 1; // 每次切换时，强制重新渲染图表
 };
+const colseTrainingReplay = () => {
+    showChart.value = false;
+};
+// const viewTrainingReplay = (training) => {
+
+//     // tensorboardTraining.value = training;
+//     // isTrainingReplayVisible.value = true;
+//     // isLoading.value = true;
+
+//     // $.ajax({
+//     //     url: "http://127.0.0.1:3000/train/addTensorboard/",  // Use the appropriate endpoint for replay data
+//     //     type: "post",
+//     //     headers: {
+//     //         Authorization: "Bearer " + store.state.user.token,
+//     //     },
+//     //     data: {
+//     //         tensorboardpath: tensorboardTraining.value.tensorboardpath,
+//     //         ip: tensorboardTraining.value.ip,
+//     //         port: tensorboardTraining.value.port,
+//     //     },
+//     //     success(resp) {
+//     //         // Process the raw training log data for replay visualization
+//     //         console.log(resp)
+//     //         tensorboardPort.value = resp.tPort;
+//     //         if (resp.error_message === 'success') {
+//     //             isLoading.value = false;
+//     //             console.log("success")
+//     //             // console.log(tensorboardTraining.value)
+//     //             console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
+//     //             console.log(tensorboardUrl.value)
+//     //         } else {
+//     //             isLoading.value = true;
+//     //         }
+//     //     },
+//     //     error(err) {
+//     //         console.error("Error fetching replay data:", err);
+//     //     }
+//     // });
+// };
 
 
 const closeTrainingReplay = () => {
@@ -977,5 +1002,50 @@ onMounted(fetchTrainings);
 
 .btn-cancel:hover {
     background: #545b62;
+}
+
+
+.manual-container {
+  text-align: center;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 90%; /* 使模态框宽度更大，最大宽度为视口的 90% */
+  width: 800px;  /* 设置固定宽度，增加宽度 */
+  max-height: 90vh; /* 限制模态框的最大高度为视口高度的 90% */
+  overflow-y: auto; /* 使内容区域可滚动 */
+}
+
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background-color: darkred;
 }
 </style>

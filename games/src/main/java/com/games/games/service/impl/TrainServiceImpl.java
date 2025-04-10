@@ -31,6 +31,7 @@ public class TrainServiceImpl implements TrainService {
 
     // 维护多个日志队列，每个 processId 一个队列
     private static final Map<String, BlockingQueue<String>> logQueueMap = new ConcurrentHashMap<>();
+    private static final Map<String, BlockingQueue<String>> infoQueueMap = new ConcurrentHashMap<>();
     private static final Map<String, BlockingQueue<String>> errorQueueMap = new ConcurrentHashMap<>();
     private final Lock lock = new ReentrantLock();
     @Autowired
@@ -39,6 +40,8 @@ public class TrainServiceImpl implements TrainService {
     private ModelMapper modelMapper;
     @Autowired
     private TrainLogMapper trainLogMapper;
+    @Autowired
+    private TrainInfoMapper trainInfoMapper;
     @Autowired
     private ExceptionLogMapper exceptionLogMapper;
     @Autowired
@@ -206,7 +209,11 @@ public class TrainServiceImpl implements TrainService {
                         }
                         synchronized (processIdHolder) {
                             if (processIdHolder[0] != null && logQueueMap.containsKey(processIdHolder[0])) {
-                                logQueueMap.get(processIdHolder[0]).put(line);
+                                if (line.startsWith("trainInfo")) {
+                                    infoQueueMap.get(processIdHolder[0]).put(line);
+                                } else {
+                                    logQueueMap.get(processIdHolder[0]).put(line);
+                                }
                             }
                         }
                     }
@@ -254,6 +261,7 @@ public class TrainServiceImpl implements TrainService {
             String processId = processIdHolder[0];
             logQueueMap.put(processId, new LinkedBlockingQueue<>());
             errorQueueMap.put(processId, new LinkedBlockingQueue<>());
+            infoQueueMap.put(processId, new LinkedBlockingQueue<>());
             System.out.println("Python 进程 PID 获取成功: " + processId);
 
             Thread dbThread = new Thread(() -> {
@@ -270,6 +278,7 @@ public class TrainServiceImpl implements TrainService {
             });
 //            dbThread.setDaemon(true);
             dbThread.start();
+
 
 // 处理错误日志
             Thread errorDbThread = new Thread(() -> {
@@ -297,6 +306,34 @@ public class TrainServiceImpl implements TrainService {
             }
             // 记录到数据库
             trainMapper.insert(train);
+            int trainId = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", trainingName)).getId();
+
+//            loss... info
+            Thread infoDbThread = new Thread(() -> {
+                try {
+                    BlockingQueue<String> queue = infoQueueMap.get(processId);
+                    while (true) {
+                        String log = queue.take();  // 读取该进程的日志
+                        String[] parts = log.split(" ");
+//                        step accuracy speed stability loss reward
+                        if (parts.length < 7) {
+                            continue; // 如果日志格式不正确，跳过
+                        }
+                        int step = Integer.parseInt(parts[1]);
+                        float accuracy = Float.parseFloat(parts[2]);
+                        float speed = Float.parseFloat(parts[3]);
+                        float stability = Float.parseFloat(parts[4]);
+                        float loss = Float.parseFloat(parts[5]);
+                        float reward = Float.parseFloat(parts[6]);
+
+                        TrainInfo trainInfo = new TrainInfo(null, trainId, step, accuracy, speed, stability, loss, reward);
+                        trainInfoMapper.insert(trainInfo);
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println("loss写入线程被中断: " + e.getMessage());
+                }
+            });
+            infoDbThread.start();
 
             // 监听进程状态
             Thread trainingThread = new Thread(() -> {
@@ -318,7 +355,7 @@ public class TrainServiceImpl implements TrainService {
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    while (!logQueueMap.get(processId).isEmpty() || !errorQueueMap.get(processId).isEmpty()) {
+                    while (!logQueueMap.get(processId).isEmpty() || !errorQueueMap.get(processId).isEmpty() || !infoQueueMap.get(processId).isEmpty()) {
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e) {
