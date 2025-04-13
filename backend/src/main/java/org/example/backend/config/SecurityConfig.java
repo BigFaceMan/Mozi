@@ -38,10 +38,34 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers("/user/account/token/", "/user/account/register/", "/train/**", "/trainlog/add/", "/games/sign/", "/games/get/all/", "/testConnection", "/remote/**", "/model/**", "/log/remote/", "/engine/**", "/regress/**").permitAll()
+                .antMatchers(
+                        "/doc.html",
+                        "/user/account/token/",
+                        "/user/account/register/",
+                        "/train/**",
+                        "/trainlog/add/",
+                        "/games/sign/",
+                        "/games/get/all/",
+                        "/testConnection",
+                        "/remote/**",
+                        "/model/**",
+                        "/log/remote/",
+                        "/engine/**",
+                        "/regress/**",
+                        "/webjars/**",
+                        "/js/**",
+                        "/favicon.ico",
+                        "/static/**",
+                        "/v2/api-docs",
+                        "/v3/api-docs",
+                        "/swagger-resources/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**"
+                ).permitAll()
                 .antMatchers(HttpMethod.OPTIONS).permitAll()
                 .anyRequest().authenticated();
 
+        // 加载 JWT 过滤器
         http.addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter.class);
     }
 

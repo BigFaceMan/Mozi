@@ -109,7 +109,7 @@ public class InferServcieImpl implements InferServcie {
         String algName = train.getModel();
         QueryWrapper<Model> queryModelWrapper = new QueryWrapper<Model>();
         Model modelTrain = modelMapper.selectOne(queryModelWrapper.eq("name", algName));
-        String inferCode = modelTrain.getInferCode();
+        String inferCode = "123";
         // 创建训练脚本保存路径
         File inferFile = new File(projectPath, "infer.py");
         // 将代码写入 train.py 文件

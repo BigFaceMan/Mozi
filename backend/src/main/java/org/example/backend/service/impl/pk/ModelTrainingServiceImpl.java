@@ -396,10 +396,12 @@ public class ModelTrainingServiceImpl implements ModelTrainingService {
         if (user.getUrank().equals("0")) {
             System.out.println("根据当前uid来查找对应的模型信息");
             QueryWrapper<Train> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("uid", user.getId()).or().eq("upload", 2);  // 过滤出 uid 等于 user.getId() 的记录
+            queryWrapper.eq("uid", user.getId()).or().eq("upload", 2).eq("type", 0);  // 过滤出 uid 等于 user.getId() 的记录
             trainList = trainMapper.selectList(queryWrapper);
         } else {
-            trainList = trainMapper.selectList(null);
+            QueryWrapper<Train> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("type", 0);  // 过滤出 uid 等于 user.getId() 的记录
+            trainList = trainMapper.selectList(queryWrapper);
         }
         Collections.reverse(trainList);  // 反转列表
         return trainList;

@@ -2,6 +2,7 @@ package org.example.backend.controller.infer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.backend.pojo.Infer;
+import org.example.backend.pojo.Train;
 import org.example.backend.pojo.User;
 import org.example.backend.service.games.GamesService;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
@@ -68,7 +69,7 @@ public class InferController {
     }
 
     @GetMapping("/infer/getlist/")
-    public List<Infer> getList() {
+    public List<Train> getList() {
         return inferService.getList();
     }
 

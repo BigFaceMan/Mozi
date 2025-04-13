@@ -22,7 +22,6 @@ public class Model {
     private Integer ability;
     private String structureimage;
     private String code;
-    private String inferCode;
     private String modelstruct;
     private String situationselect;
     private String modelselect;

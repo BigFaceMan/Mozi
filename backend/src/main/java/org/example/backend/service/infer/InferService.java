@@ -21,7 +21,7 @@ public interface InferService {
     Map<String, String> continueInfer(MultiValueMap<String, String> data);
 
     Map<String, String> killInfer(MultiValueMap<String, String> data);
-    List<Infer> getList();
+    List<Train> getList();
 
     Map<String, String> removeInfer(Map<String, String> data);
 }

@@ -62,7 +62,7 @@ public class ModelOptServiceImpl implements ModelOptService {
             structureimageBase64 = structureimageBase64.split(",")[1];
         }
         String code = (String) data.get("code");
-        String inferCode = (String) data.get("inferCode");
+//        String inferCode = (String) data.get("inferCode");
 
         // 检查必填字段是否为空
         if (name == null || name.trim().isEmpty()) {
@@ -156,18 +156,22 @@ public class ModelOptServiceImpl implements ModelOptService {
         // 这里可以进行其他的逻辑处理，比如存储数据等
         // 示例代码，假设数据存储成功
         Date now = new Date();
-        Model model = new Model(null, name, summary, environment, ability, structureimagePath, code, inferCode,modelstruct, situationselect, modelselect, user.getId(), now, now);
+        Model model = new Model(null, name, summary, environment, ability, structureimagePath, code, modelstruct, situationselect, modelselect, user.getId(), now, now);
         modelMapper.insert(model);
 
-        MultipartFile modelPth = (MultipartFile) data.get("modelPth");
-        String modelPthName = name + "_loadModel";
-        byte[] modelBytes = modelPth.getBytes();
 
-        Train train = new Train(null, modelPthName,  environment, situationselect,  name, "1", "1",  3, "1", user.getId(), 3, "1", "1", "1", "1", "1", 1);
-        trainMapper.insert(train);
-        Train trainQuery = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", modelPthName));
-        int trainId = Math.toIntExact(trainQuery.getId());
-        modelPthMapper.insert(new ModelPth(null, trainId, modelPthName, situationselect, modelBytes, new Date()));
+
+        if (data.get("modelPth") != null) {
+            MultipartFile modelPth = (MultipartFile) data.get("modelPth");
+            String modelPthName = name + "_loadModel";
+            byte[] modelBytes = modelPth.getBytes();
+
+//        Train train = new Train(null, modelPthName,  environment, situationselect,  name, "1", "1",  3, "1", user.getId(), 3, "1", "1", "1", "1", "1", 1);
+//        trainMapper.insert(train);
+            Train trainQuery = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", modelPthName));
+            int trainId = Math.toIntExact(trainQuery.getId());
+            modelPthMapper.insert(new ModelPth(null, trainId, modelPthName, situationselect, modelBytes, new Date()));
+        }
 
         // 获取原始文件名
 //        String originalFilename = modelPth.getOriginalFilename();

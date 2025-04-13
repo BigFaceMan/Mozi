@@ -26,11 +26,10 @@ public class ModelOptController {
         @RequestParam("ability") String ability,
         @RequestParam("structureimage") String structureimage,
         @RequestParam("code") String code,
-        @RequestParam("inferCode") String inferCode,
         @RequestParam("modelstruct") String modelstruct,
         @RequestParam("modelselect") String modelselect,
         @RequestParam("situationselect") String situationselect,
-        @RequestParam("modelPth") MultipartFile modelPth) throws IOException {
+        @RequestParam(value = "modelPth", required = false) MultipartFile modelPth) throws IOException {
         Map<String, Object> data = new HashMap<>();
         data.put("name", name);
         data.put("summary", summary);
@@ -38,7 +37,7 @@ public class ModelOptController {
         data.put("ability", ability);
         data.put("structureimage", structureimage);
         data.put("code", code);
-        data.put("inferCode", inferCode);
+//        data.put("inferCode", inferCode);
         data.put("modelstruct", modelstruct);
         data.put("modelselect", modelselect);
         data.put("situationselect", situationselect);

@@ -68,6 +68,6 @@ for i in range(trainRangeL, trainRangeR):
         print(f"Checkpoint saved: {args.checkpointpath}")
         torch.save(model.state_dict(), args.checkpointpath)
     time.sleep(3)
-time.sleep(30)
+
 # writer.close()
 print("Training completed.")

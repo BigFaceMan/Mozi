@@ -2,6 +2,7 @@ package org.example.backend.controller.situation;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.catalina.Engine;
 import org.example.backend.pojo.EngineInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +33,8 @@ public class RemoteEnginesController {
     @Scheduled(fixedRate = 4000) // 每40秒检查一次
     public void getEngineStatus() {
 //        System.out.println("EngineUrl : " + enginePlatformUrl);
-        String url = enginePlatformUrl + "/xtserver/node/getAllNodeByType";
+//        String url = enginePlatformUrl + "/xtserver/node/getAllNodeByType";
+        String url = enginePlatformUrl + "/node/getAllNodeByType";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         try {
@@ -41,7 +43,7 @@ public class RemoteEnginesController {
             Map<String, Object> remoteMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
             Map<String, Object> data = ((remoteMap.get("data") == null ? new HashMap<>() : (Map) remoteMap.get("data")).get("mapDto") == null
                     ? new HashMap<>() : (Map) ((Map) remoteMap.get("data")).get("mapDto"))
-                    .get("engine") == null ? new HashMap<>() : (Map) ((Map) ((Map) remoteMap.get("data")).get("mapDto")).get("engine");
+                    .get("dkyCaiji") == null ? new HashMap<>() : (Map) ((Map) ((Map) remoteMap.get("data")).get("mapDto")).get("dkyCaiji");
 
             List<Map<String, Object>> engineList = (List<Map<String, Object>>) data.get("freeList");
             List<Map<String, Object>> engineUsingList = (List<Map<String, Object>>) data.get("usingList");
@@ -52,7 +54,7 @@ public class RemoteEnginesController {
             int index = 0;
             for (Map<String, Object> engine : engineList) {
                 EngineInfo engineInfo = new EngineInfo();
-                engineInfo.setEngineId((Integer) engine.get("engineId"));
+                engineInfo.setEngineId(engine.get("id").toString());
                 engineInfo.setIp(engine.get("ip").toString());
                 engineInfo.setPort(engine.get("port").toString());
                 engineInfo.setNodeName(engine.get("nodeName").toString());
@@ -63,7 +65,7 @@ public class RemoteEnginesController {
             index = 0;
             for (Map<String, Object> engine : engineUsingList) {
                 EngineInfo engineInfo = new EngineInfo();
-                engineInfo.setEngineId((Integer) engine.get("engineId"));
+                engineInfo.setEngineId(engine.get("id").toString());
                 engineInfo.setIp(engine.get("ip").toString());
                 engineInfo.setPort(engine.get("port").toString());
                 engineInfo.setNodeName(engine.get("nodeName").toString());
@@ -74,6 +76,9 @@ public class RemoteEnginesController {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    public List<EngineInfo> getFreeEngineList() {
+        return new ArrayList<>(engineFreeNodes.values());
     }
     @GetMapping("/engine/getAll")
     public Map<String, Object> getEngineInfo() {

@@ -3,7 +3,9 @@ package org.example.backend.service.impl.infer;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import org.example.backend.mapper.InferMapper;
+import org.example.backend.mapper.TrainMapper;
 import org.example.backend.pojo.Infer;
+import org.example.backend.pojo.Train;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.infer.InferService;
@@ -23,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 public class InferServiceImpl implements InferService {
     @Autowired
     private InferMapper inferMapper;
+    @Autowired
+    private TrainMapper trainMapper;
 
     private Process tensorBoardProcess = null;
     private static final ConcurrentHashMap<String, Thread> runningThreads = new ConcurrentHashMap<>();
@@ -220,20 +224,22 @@ public class InferServiceImpl implements InferService {
     }
 
     @Override
-    public List<Infer> getList() {
+    public List<Train> getList() {
         UsernamePasswordAuthenticationToken authentication =
                 (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
 
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();
         User user = loginUser.getUser();
-        List<Infer> trainList;
+        List<Train> trainList;
         if (user.getUrank().equals("0")) {
             System.out.println("根据当前uid来查找对应的推理信息");
-            QueryWrapper<Infer> queryWrapper = new QueryWrapper<>();
-            queryWrapper.eq("uid", user.getId());  // 过滤出 uid 等于 user.getId() 的记录
-            trainList = inferMapper.selectList(queryWrapper);
+            QueryWrapper<Train> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("uid", user.getId()).eq("type", 1);  // 过滤出 uid 等于 user.getId() 的记录
+            trainList = trainMapper.selectList(queryWrapper);
         } else {
-            trainList = inferMapper.selectList(null);
+            QueryWrapper<Train> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("type", 1);  // 过滤出 uid 等于 user.getId() 的记录
+            trainList = trainMapper.selectList(queryWrapper);
         }
         Collections.reverse(trainList);  // 反转列表
         return trainList;

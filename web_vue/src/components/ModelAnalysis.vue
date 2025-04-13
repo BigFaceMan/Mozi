@@ -56,6 +56,7 @@
                             <button class="btn btn-sm ms-1 mb-1" style="background-color: coral;" v-if="group.latestTraining.running == '0'" @click="generateReport(group.latestTraining)">生成报告</button>
                             <button class="btn btn-sm ms-1 mb-1" style="background-color:darkseagreen;" v-if="group.latestTraining.running == '0'" @click="modelTest(group.latestTraining)">模型测试</button>
                             <button class="btn btn-sm ms-1 mb-1" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '0'" @click="downloadModel(group.latestTraining)">下载</button>
+                            <button class="btn btn-sm btn-success ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="continueTraining(group.latestTraining)">继续训练</button>
                             <button class="btn btn-sm btn-danger ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="deleteTraining(group.latestTraining)">删除模型</button>
                         </td>
                     </tr>
@@ -859,6 +860,32 @@ const colseTrainingReplay = () => {
 };
 
 
+const continueTraining = (training) => {
+    $.ajax({
+        url: "http://127.0.0.1:3000/train/continue/",  // Use the appropriate endpoint for replay data
+        type: "post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            trainId: training.id,
+            trainingName: training.trainingname,
+            ip: training.ip,
+            port: training.port,
+            processId: training.processid,
+            tensorboardpath: training.tensorboardpath
+        },
+        success(resp) {
+            // Process the raw training log data for replay visualization
+            console.log(resp)
+            fetchTrainings();
+            alert("已继续训练")
+        },
+        error(err) {
+            console.error("Error fetching replay data:", err);
+        }
+    });
+};
 
 const closeTrainingReplay = () => {
     isTrainingReplayVisible.value = false;

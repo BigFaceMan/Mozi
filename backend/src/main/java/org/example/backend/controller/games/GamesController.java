@@ -20,6 +20,14 @@ public class GamesController {
         return gamesService.signGame(resourceInfo);
     }
 
+    @PostMapping("/games/removeEngineBytUid/")
+    public Map<String, String> removeEngines(@RequestParam String tUid) {
+        gamesService.removeTrainEngines(tUid);
+        Map<String, String> resp = new HashMap<>();
+        resp.put("code", "200");
+        resp.put("msg", "success");
+        return resp;
+    }
     @GetMapping("/games/get/all/")
     public List<ResourceInfo> gameGetAllNodes() {
         return gamesService.getAllGameNode();

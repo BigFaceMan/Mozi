@@ -21,6 +21,7 @@ public class TrainController {
 
     @PostMapping("/train/add/")
     public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) {
+        data.add("type", "0");
         return trainService.addTrain(data);
     }
 

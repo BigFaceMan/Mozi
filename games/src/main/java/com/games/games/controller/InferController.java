@@ -1,6 +1,7 @@
 package com.games.games.controller;
 
 import com.games.games.service.InferServcie;
+import com.games.games.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,15 +15,17 @@ import java.util.Map;
 public class InferController {
     @Autowired
     private InferServcie inferService;
-
+    @Autowired
+    private TrainService trainService;
     @PostMapping("/infer/add/")
     public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) {
-        return inferService.addInfer(data);
+        data.add("type", "1");
+        return trainService.addTrain(data);
     }
 
     @PostMapping("/infer/kill/")
     public Map<String, String> killTrain(@RequestParam MultiValueMap<String, String> data) throws IOException {
-        return inferService.killInfer(data);
+        return trainService.killTrain(data);
     }
 
     @PostMapping("/infer/stop/")

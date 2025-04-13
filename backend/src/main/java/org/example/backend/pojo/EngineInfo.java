@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EngineInfo {
-    private int engineId;
+    private String engineId;
     private String nodeName;
     private String ip;
     private String port;

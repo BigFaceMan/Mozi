@@ -23,7 +23,7 @@
                     </thead>
                     <tbody>
                         <tr v-for="training in paginatedTrainings" :key="training.id">
-                            <td>{{ training.infername.split("_")[0] }}</td>
+                            <td>{{ training.trainingname.split("_")[0] }}</td>
                             <td>
                                 {{ training.scene }}
                             </td>
@@ -66,6 +66,12 @@
             </div>
         </div>
 
+        <div v-if="showChart" class="modal-overlay" @click="colseTrainingReplay">
+            <div class="modal-content" @click.stop>
+            <button @click="colseTrainingReplay" class="close-btn">关闭</button>
+            <LineChart :key="chartKey" :training="chartTrain" />
+            </div>
+        </div>
         <div v-if="isInstrcVisible" class="modal fade show" tabindex="-1" aria-labelledby="visualizationModalLabel" aria-hidden="true" style="display: block;">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -245,6 +251,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
+import LineChart from './LineChart.vue';
 import $ from 'jquery';
 import { Chart } from 'chart.js';
 import store from '@/store';
@@ -475,40 +482,52 @@ const stopTraining = (training) => {
     });
 };
 
+const showChart = ref(false);
+const chartKey = ref(0);
+const chartTrain = ref(null)
 const viewTrainingReplay = (training) => {
-    isTrainingReplayVisible.value = true;
-    tensorboardTraining.value = training;
-    isLoading.value = true;
-
-    $.ajax({
-        url: "http://127.0.0.1:3000/infer/addTensorboard/",  // Use the appropriate endpoint for replay data
-        type: "post",
-        headers: {
-            Authorization: "Bearer " + store.state.user.token,
-        },
-        data: {
-            tensorboardpath: training.tensorboardpath,
-            ip: tensorboardTraining.value.ip,
-            port: tensorboardTraining.value.port,
-        },
-        success(resp) {
-            console.log(resp)
-            tensorboardPort.value = resp.tPort;
-            if (resp.error_message === 'success') {
-                isLoading.value = false;
-                console.log("success")
-                // console.log(tensorboardTraining.value)
-                console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
-                console.log(tensorboardUrl.value)
-            } else {
-                isLoading.value = true;
-            }
-        },
-        error(err) {
-            console.error("Error fetching replay data:", err);
-        }
-    });
+    chartTrain.value = training;
+    showChart.value = !showChart.value;
+    chartKey.value += 1; // 每次切换时，强制重新渲染图表
 };
+const colseTrainingReplay = () => {
+    showChart.value = false;
+};
+
+// const viewTrainingReplay = (training) => {
+//     isTrainingReplayVisible.value = true;
+//     tensorboardTraining.value = training;
+//     isLoading.value = true;
+
+//     $.ajax({
+//         url: "http://127.0.0.1:3000/infer/addTensorboard/",  // Use the appropriate endpoint for replay data
+//         type: "post",
+//         headers: {
+//             Authorization: "Bearer " + store.state.user.token,
+//         },
+//         data: {
+//             tensorboardpath: training.tensorboardpath,
+//             ip: tensorboardTraining.value.ip,
+//             port: tensorboardTraining.value.port,
+//         },
+//         success(resp) {
+//             console.log(resp)
+//             tensorboardPort.value = resp.tPort;
+//             if (resp.error_message === 'success') {
+//                 isLoading.value = false;
+//                 console.log("success")
+//                 // console.log(tensorboardTraining.value)
+//                 console.log(tensorboardTraining.value.ip + ':' + tensorboardPort.value)
+//                 console.log(tensorboardUrl.value)
+//             } else {
+//                 isLoading.value = true;
+//             }
+//         },
+//         error(err) {
+//             console.error("Error fetching replay data:", err);
+//         }
+//     });
+// };
 
 
 const killTraining = (training) => {
@@ -520,6 +539,7 @@ const killTraining = (training) => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
+            trainId: training.id,
             inferName: training.infername,
             ip: training.ip, 
             port: training.port,

@@ -381,10 +381,11 @@ const startTraining = () => {
       ip: form.ip,
       port: form.port,
       modelParams: JSON.stringify(form.modelParams),
-      engineNodes: selectedNodes.value,
+      needEngines: selectedNodes.value.length,
     },
     success(resp) {
       console.log(resp);
+      trainingStatus.value = resp.msg;
       fetchModels();
     },
     error(resp) {

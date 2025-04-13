@@ -47,6 +47,7 @@
                                 <span v-else-if="training.running == '3'">外部导入模型</span>
                             </td>
                         <td>
+                            <span v-if="training.running == '8'">正在重启</span>
                             <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="training.running == '3' && training.upload == '0'" @click="addGoodModel(training)">上传模型</button>
                             <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="training.running == '3' && training.upload == '1'">正在上传</button>
                             <button class="btn btn-sm ms-2" style="background-color:teal;" v-if="training.running == '3' && training.upload == '2'" @click="addGoodModel(training)">已上传</button>
@@ -71,7 +72,7 @@
                             <button class="btn btn-sm btn-success ms-2" v-if="training.running == '1'" @click="viewTrainingReplay(training)">实时监控</button>
                             <button class="btn btn-sm btn-info ms-2" v-if="training.running == '1'" @click="visualizeReport(training)">训练日志</button>
                             <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '1'" @click="stopTraining(training)">暂停训练</button>
-                            <button class="btn btn-sm ms-2" style="background-color: chocolate;" v-if="training.running == '1'" @click="restartTraining()">训练重启</button>
+                            <button class="btn btn-sm ms-2" style="background-color: chocolate;" v-if="training.running == '1'" @click="restartTraining(training)">训练重启</button>
                             <button class="btn btn-sm btn-danger ms-2" v-if="training.running == '1'" @click="killTraining(training)">关闭训练</button>
                             <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">恢复训练</button>
                             <!-- <button class="btn btn-sm btn-warning ms-2" v-if="training.running == '2'" @click="continueTraining(training)">继续训练</button> -->
@@ -478,6 +479,7 @@ const stopTraining = (training) => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
+            trainId: training.id,
             trainingName: training.trainingname,
             ip: training.ip, 
             port: training.port,
@@ -497,6 +499,7 @@ const stopTraining = (training) => {
 
 
 const killTraining = (training) => {
+    console.log("kill trian : ", training)
     $.ajax({
         url: "http://127.0.0.1:3000/train/kill/",  // Use the appropriate endpoint for replay data
         type: "post",
@@ -504,6 +507,7 @@ const killTraining = (training) => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
+            trainId: training.id,
             trainingName: training.trainingname,
             ip: training.ip, 
             port: training.port,
@@ -572,9 +576,60 @@ const deleteTraining = (training) => {
         });
     }
 };
-const restartTraining = () => {
-    fetchTrainings()
-}
+const restartTraining = (training) => {
+    training.running = 8;
+
+    // 第一步：先 kill
+    $.ajax({
+        url: "http://127.0.0.1:3000/train/kill/",
+        type: "post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            trainingName: training.trainingname,
+            tUid: training.tuid,
+            ip: training.ip,
+            port: training.port,
+            processId: training.processid
+        },
+        success(resp) {
+            console.log("Kill 成功:", resp);
+
+            // 第二步：延迟 2 秒再 continue
+            setTimeout(() => {
+                $.ajax({
+                    url: "http://127.0.0.1:3000/train/continue/",
+                    type: "post",
+                    headers: {
+                        Authorization: "Bearer " + store.state.user.token,
+                    },
+                    data: {
+                        trainId: training.id,
+                        trainingName: training.trainingname,
+                        ip: training.ip,
+                        port: training.port,
+                        processId: training.processid,
+                        tensorboardpath: training.tensorboardpath
+                    },
+                    success(resp) {
+                        console.log("Continue 成功:", resp);
+                        fetchTrainings();
+                        alert(training.trainingname + " 重启成功");
+                    },
+                    error(err) {
+                        console.error("Continue 出错:", err);
+                    }
+                });
+            }, 0); // 延迟 2 秒
+        },
+        error(err) {
+            console.error("Kill 出错:", err);
+        }
+    });
+
+};
+
 const continueTraining = (training) => {
     $.ajax({
         url: "http://127.0.0.1:3000/train/continue/",  // Use the appropriate endpoint for replay data
@@ -583,6 +638,7 @@ const continueTraining = (training) => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
+            trainId: training.id,
             trainingName: training.trainingname,
             ip: training.ip,
             port: training.port,
@@ -816,6 +872,7 @@ const trainAcc = (training, speed) => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
+            trainIdStr: training.id,
             speed: speed,
         },
         success(resp) {

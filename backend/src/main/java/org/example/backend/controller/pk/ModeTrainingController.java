@@ -34,13 +34,13 @@ public class ModeTrainingController {
     }
 
     @PostMapping("/train/acc/")
-    public Map<String, String> accTrain(@RequestParam(defaultValue = "1") int speed) {
+    public Map<String, String> accTrain(@RequestParam String tUid, @RequestParam(defaultValue = "1") int speed ){
         System.out.println("In Train Acc : " + Integer.toString(speed));
-        return gamesService.trainAcc(speed);
+        return gamesService.trainAcc(tUid, speed);
     }
 
     @PostMapping("/train/add/")
-    public Map<String, String> addTrain(@RequestParam MultiValueMap<String, String> data) throws JsonProcessingException {
+    public Map<String, Object> addTrain(@RequestParam MultiValueMap<String, String> data) throws JsonProcessingException {
         UsernamePasswordAuthenticationToken authentication =
                 (UsernamePasswordAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl loginUser = (UserDetailsImpl) authentication.getPrincipal();

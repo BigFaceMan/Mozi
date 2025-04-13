@@ -14,9 +14,10 @@ public interface GamesService {
     public void checkGameNode();
 
     public void trainWs() throws Exception;
+    public void removeTrainEngines(String tUid);
 
-    public Map<String, String> trainAcc(int speed);
-    public Map<String, String> addTrain(MultiValueMap<String, String> data) throws JsonProcessingException;
+    public Map<String, String> trainAcc(String tUid, int speed);
+    public Map<String, Object> addTrain(MultiValueMap<String, String> data) throws JsonProcessingException;
     public Map<String, String> killTrain(MultiValueMap<String, String> data);
     public Map<String, String> stopTrain(MultiValueMap<String, String> data);
     public Map<String, String> continueTrain(MultiValueMap<String, String> data);

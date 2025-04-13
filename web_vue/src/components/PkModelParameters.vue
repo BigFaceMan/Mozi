@@ -27,7 +27,7 @@
     <div class="form-group mb-3">
       <label for="model">选择模型:</label>
       <select v-model="form.model" id="model" class="form-select">
-        <option v-for="training in filteredTrainings" :key="training.id" :value="training.trainingname">
+        <option v-for="training in filteredTrainings" :key="training.id" :value="training.id">
           {{ training.trainingname }}
         </option>
       </select>
@@ -141,14 +141,15 @@ const startTraining = () => {
             Authorization: "Bearer " + store.state.user.token,
         },
         data: {
-            inferName: form.trainingName,
+            trainingName: form.trainingName,
             scene: form.scene,
-            model: form.model,
+            trainId: form.model,
             ip: form.ip,
             port: form.port
         },
         success(resp) {
             console.log(resp)
+            alert("对战开始！")
             fetchModels()
         },
         error(resp) {

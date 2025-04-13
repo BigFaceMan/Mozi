@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-04-07 10:22:01
+ * @LastEditTime: 2025-04-13 17:05:22
 -->
 <template>
     <div class="container mt-4">
@@ -70,80 +70,91 @@
 
 
         <div v-if="isModalEditVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="modelModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modelModalLabel">编辑方法</h5>
-                        <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+            <div class="modal-dialog modal-lg"> <!-- 放大一点 -->
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header bg-primary text-white rounded-top-4">
+                        <h5 class="modal-title" id="modelModalLabel">
+                            {{ isEditing ? '编辑方法' : '新增方法' }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @click="closeModal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body px-4 py-3">
                         <form>
-                            <div class="mb-3">
-                                <label for="name" class="form-label">方法名</label>
-                                <input type="text" class="form-control" id="name" v-model="form.name">
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">选择方法文件</label>
-                                <input type="file" class="form-control" id="modelSelection" @change="handleFileChange" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="summary" class="form-label">方法简介</label>
-                                <textarea class="form-control" id="summary" v-model="form.summary" rows="4"></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="structureimage" class="form-label">方法结构图片</label>
-                                <input type="file" class="form-control" id="structureimage" @change="handleImageUpload">
-                                <div v-if="form.structureimage">
-                                    <img :src="form.structureimage" alt="模型结构图片" class="mt-2" style="max-width: 100px; max-height: 100px;">
+                            <div class="row g-3">
+                                <!-- 方法名 -->
+                                <div class="col-md-6">
+                                    <label for="name" class="form-label fw-semibold">方法名</label>
+                                    <input type="text" class="form-control" id="name" v-model="form.name" placeholder="请输入方法名称">
                                 </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">深度学习环境</label>
-                                <input type="text" class="form-control" id="environment" v-model="form.environment">
-                            </div>
-                            <div class="mb-3">
-                                <label for="methodSelection" class="form-label">想定实例选择</label>
-                                <select class="form-control" id="situationSelection" v-model="form.situationSelection">
-                                    <option v-for="situation in situations" :key="situation.id" :value="situation.name">
-                                        {{ situation.projectname }}
-                                    </option>
-                                </select>
-                            </div>
-                            <!-- <div class="mb-3">
-                                <label for="methodSelection" class="form-label">方法选择</label>
-                                <select class="form-control" id="methodSelection" v-model="form.methodSelection" @change="updateStructureImage">
-                                    <option v-for="method in methodOptions" :key="method.value" :value="method.value">
-                                        {{ method.label }}
-                                    </option>
-                                </select>
-                            </div> -->
 
-                            <div class="mb-3">
-                                <label for="ability" class="form-label">方法能力</label>
-                                <input type="text" class="form-control" id="ability" v-model="form.ability">
-                            </div>
-                            <div class="mb-3">
-                                <label for="code" class="form-label">方法代码</label>
-                                <VAceEditor
-                                    v-model:value="form.code"
-                                    lang="python"
-                                    theme="textmate"
-                                    @init="editorInit"
-                                    style="height: 300px; width: 100%;"
-                                />
+                                <!-- 深度学习环境 -->
+                                <div class="col-md-6">
+                                    <label for="environment" class="form-label fw-semibold">深度学习环境</label>
+                                    <input type="text" class="form-control" id="environment" v-model="form.environment" placeholder="如 PyTorch 1.12, CUDA 11.3">
+                                </div>
+
+                                <!-- 选择方法文件 -->
+                                <div class="col-md-6">
+                                    <label for="modelSelection" class="form-label fw-semibold">上传模型文件</label>
+                                    <input type="file" class="form-control" id="modelSelection" @change="handleFileChange">
+                                </div>
+
+                                <!-- 想定实例选择 -->
+                                <div class="col-md-6">
+                                    <label for="situationSelection" class="form-label fw-semibold">想定实例选择</label>
+                                    <select class="form-select" id="situationSelection" v-model="form.situationSelection">
+                                        <option disabled value="">请选择想定实例</option>
+                                        <option v-for="situation in situations" :key="situation.id" :value="situation.name">
+                                            {{ situation.projectname }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- 方法能力 -->
+                                <div class="col-12">
+                                    <label for="ability" class="form-label fw-semibold">方法能力</label>
+                                    <input type="text" class="form-control" id="ability" v-model="form.ability" placeholder="例如：异常检测、图像识别等">
+                                </div>
+
+                                <!-- 方法简介 -->
+                                <div class="col-12">
+                                    <label for="summary" class="form-label fw-semibold">方法简介</label>
+                                    <textarea class="form-control" id="summary" v-model="form.summary" rows="3" placeholder="请输入方法的功能、用途、实现方式等"></textarea>
+                                </div>
+
+                                <!-- 方法结构图片 -->
+                                <div class="col-12">
+                                    <label for="structureimage" class="form-label fw-semibold">结构图片</label>
+                                    <input type="file" class="form-control" id="structureimage" @change="handleImageUpload">
+                                    <div v-if="form.structureimage" class="mt-2">
+                                        <img :src="form.structureimage" alt="模型结构图" class="img-thumbnail" style="max-height: 120px;">
+                                    </div>
+                                </div>
+
+                                <!-- 方法代码 -->
+                                <div class="col-12">
+                                    <label for="code" class="form-label fw-semibold">方法代码</label>
+                                    <VAceEditor
+                                        v-model:value="form.code"
+                                        lang="python"
+                                        theme="textmate"
+                                        @init="editorInit"
+                                        style="height: 300px; width: 100%; border-radius: 8px; border: 1px solid #dee2e6;"
+                                    />
+                                </div>
                             </div>
                         </form>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @click="closeModal">取消</button>
-                        <button v-if="isEditing" type="button" class="btn btn-primary" @click="saveModel">保存更改</button>
-                        <button v-else type="button" class="btn btn-primary" @click="saveModel">新增方法</button>
+                    <div class="modal-footer bg-light border-top-0 px-4 py-3">
+                        <button type="button" class="btn btn-outline-secondary" @click="closeModal">取消</button>
+                        <button type="button" class="btn btn-primary" @click="saveModel">
+                            {{ isEditing ? '保存更改' : '新增方法' }}
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+
 
         <!-- Add/Edit Model Modal -->
         <div v-if="isModalAddVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="modelModalAddLabel" aria-hidden="true">
@@ -179,102 +190,90 @@
 
         <!-- Add/Edit Model Modal -->
         <div v-if="isModalVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="modelModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modelModalLabel">添加方法</h5>
-                        <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content shadow-lg rounded-4 border-0">
+            <div class="modal-header bg-primary text-white rounded-top-4">
+                <h5 class="modal-title" id="modelModalLabel">添加方法</h5>
+                <button type="button" class="btn-close btn-close-white" @click="closeModal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                <div class="row">
+                    <!-- 左半部分 -->
+                    <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">方法名</label>
+                        <input type="text" class="form-control" id="name" v-model="form.name">
                     </div>
-                    <div class="modal-body">
-                        <form>
-                            <div class="mb-3">
-                                <label for="name" class="form-label">方法名</label>
-                                <input type="text" class="form-control" id="name" v-model="form.name">
-                            </div>
 
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">选择方法文件</label>
-                                <input type="file" class="form-control" id="modelSelection" @change="handleFileChange" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">选择推理文件</label>
-                                <input type="file" class="form-control" id="modelSelection" @change="handleInferFileChange" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">选择模型文件</label>
-                                <input type="file" class="form-control" id="modelSelection" @change="handleModelPthFileChange" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="environment" class="form-label">选择数据文件</label>
-                                <input type="file" class="form-control" id="modelSelection" @change="handleDataFileChange" />
-                            </div>
-                            <div class="mb-3">
-                                <label for="summary" class="form-label">方法简介</label>
-                                <textarea class="form-control" id="summary" v-model="form.summary" rows="4"></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="structureimage" class="form-label">方法结构图片</label>
-                                <input type="file" class="form-control" id="structureimage" @change="handleImageUpload">
-                                <div v-if="form.structureimage">
-                                    <img :src="form.structureimage" alt="模型结构图片" class="mt-2" style="max-width: 100px; max-height: 100px;">
-                                </div>
-                            </div>
-                            <!-- <div class="mb-3">
-                                <label for="environment" class="form-label">深度学习环境</label>
-                                <input type="text" class="form-control" id="environment" v-model="form.environment">
-                            </div> -->
-                            <div class="mb-3">
-                            <label for="environment" class="form-label">深度学习环境</label>
-                            <select class="form-control" id="environment" v-model="form.environment">
-                                <option disabled value="">请选择一个基准环境</option> <!-- 默认提示 -->
-                                <option value="torch1.7">torch1.7</option>
-                                <option value="torch1.8">torch1.8</option>
-                                <option value="torch1.9">torch1.9</option>
-                                <option value="torch1.10">torch1.10</option>
-                                <option value="torch1.11">torch1.11</option>
-                                <option value="torch1.12">torch1.12</option>
-                                <option value="torch1.13">torch1.13</option>
-                                <option value="torch1.14">torch1.14</option>
-                                <option value="torch1.15">torch1.15</option>
-                                <option value="torch1.16">torch1.16</option>
-                                <option value="torch1.17">torch1.17</option>
-                                <option value="torch1.18">torch1.18</option>
-                            </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="methodSelection" class="form-label">场景选择</label>
-                                <select class="form-control" id="situationSelection" v-model="form.situationSelection">
-                                    <option v-for="situation in situations" :key="situation.id" :value="situation.projectname">
-                                        {{ situation.projectname }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="ability" class="form-label">方法能力</label>
-                                <input type="text" class="form-control" id="ability" v-model="form.ability">
-                            </div>
-                            <!-- <div class="mb-3">
-                                <label for="code" class="form-label">方法代码</label>
-                                <VAceEditor
-                                    v-model:value="form.code"
-                                    lang="python"
-                                    theme="textmate"
-                                    @init="editorInit"
-                                    style="height: 300px; width: 100%;"
-                                />
-                            </div>
-                            <button type="button" class="btn btn-info" @click="openLayerVisualizationModal">可视化添加</button> -->
-                        </form>
+                    <div class="mb-3">
+                        <label class="form-label">选择方法文件</label>
+                        <input type="file" class="form-control" @change="handleFileChange" />
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @click="closeModal">取消</button>
-                        <button v-if="isEditing" type="button" class="btn btn-primary" @click="saveModel">保存更改</button>
-                        <button v-else type="button" class="btn btn-primary" @click="saveModel">新增方法</button>
+
+                    <div class="mb-3">
+                        <label class="form-label">导入模型</label>
+                        <input type="file" class="form-control" @change="handleModelPthFileChange" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">选择数据文件</label>
+                        <input type="file" class="form-control" @change="handleDataFileChange" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">方法能力</label>
+                        <input type="text" class="form-control" v-model="form.ability">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">场景选择</label>
+                        <select class="form-control" v-model="form.situationSelection">
+                        <option v-for="situation in situations" :key="situation.id" :value="situation.projectname">
+                            {{ situation.projectname }}
+                        </option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">深度学习环境</label>
+                        <select class="form-control" v-model="form.environment">
+                        <option disabled value="">请选择一个基准环境</option>
+                        <option v-for="i in 12" :key="i" :value="`torch1.${6 + i}`">
+                            {{ `torch1.${6 + i}` }}
+                        </option>
+                        </select>
+                    </div>
+                    </div>
+
+                    <!-- 右半部分 -->
+                    <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">方法简介</label>
+                        <textarea class="form-control" v-model="form.summary" rows="9" placeholder="简要描述该方法的核心思路和应用场景..."></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">方法结构图片</label>
+                        <input type="file" class="form-control" @change="handleImageUpload">
+                        <div v-if="form.structureimage" class="mt-2">
+                        <img :src="form.structureimage" alt="模型结构图片" style="max-width: 100%; max-height: 200px; border: 1px solid #ddd; border-radius: 6px;">
+                        </div>
+                    </div>
                     </div>
                 </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" @click="closeModal">取消</button>
+                <button v-if="isEditing" type="button" class="btn btn-success" @click="saveModel">保存更改</button>
+                <button v-else type="button" class="btn btn-primary" @click="saveModel">新增方法</button>
+            </div>
             </div>
         </div>
+        </div>
+
 
         <!-- Visualization Modal -->
         <div v-if="isVisualizationVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="visualizationModalLabel" aria-hidden="true">
@@ -625,7 +624,79 @@ export default {
             isModalAddVisible.value = false
         }
 
+        // const addModel = () => {
+        //     const formData = new FormData();
+        //     formData.append("name", form.name);
+        //     formData.append("summary", form.summary);
+        //     formData.append("environment", form.environment);
+        //     formData.append("ability", form.ability);
+        //     formData.append("structureimage", form.structureimage);
+        //     formData.append("code", form.code);
+        //     // formData.append("inferCode", form.inferCode);
+        //     if (form.modelPth) {
+        //         formData.append("modelPth", form.modelPth); // 这里是 File 对象
+        //     }
+        //     // formData.append("modelPth", form.modelPth); // 这里是 File 对象
+        //     formData.append("modelstruct", JSON.stringify(newLayers.value));
+        //     formData.append("modelselect", form.methodSelection);
+        //     formData.append("situationselect", form.situationSelection);
+
+        //     $.ajax({
+        //         url: "http://127.0.0.1:3000/model/add/",
+        //         type: "post",
+        //         headers: {
+        //             Authorization: "Bearer " + store.state.user.token,
+        //         },
+        //         processData: false, // 重要：不要让 jQuery 处理 FormData
+        //         contentType: false, // 重要：让浏览器自动设置 Content-Type
+        //         data: formData,
+        //         success(resp) {
+        //             console.log(resp);
+        //             fetchModels();
+        //         },
+        //         error(resp) {
+        //             console.log(resp);
+        //         }
+        //     });
+        //     form.modelPth = null; // 清空 File 对象
+        //     isModalVisible.value = false;
+        // };
         const addModel = () => {
+            // 简单校验逻辑
+            if (!form.name) {
+                alert("请输入模型名称");
+                return;
+            }
+            if (!form.summary) {
+                alert("请输入模型简介");
+                return;
+            }
+            if (!form.environment) {
+                alert("请输入运行环境");
+                return;
+            }
+            if (!form.ability) {
+                alert("请输入模型能力");
+                return;
+            }
+            if (!form.structureimage) {
+                alert("请输入结构图地址");
+                return;
+            }
+            if (!form.code) {
+                alert("请输入模型代码");
+                return;
+            }
+            // if (!form.methodSelection) {
+            //     alert("请选择模型类别");
+            //     return;
+            // }
+            if (!form.situationSelection) {
+                alert("请选择适用场景");
+                return;
+            }
+
+            // 构建 FormData
             const formData = new FormData();
             formData.append("name", form.name);
             formData.append("summary", form.summary);
@@ -633,8 +704,9 @@ export default {
             formData.append("ability", form.ability);
             formData.append("structureimage", form.structureimage);
             formData.append("code", form.code);
-            formData.append("inferCode", form.inferCode);
-            formData.append("modelPth", form.modelPth); // 这里是 File 对象
+            if (form.modelPth) {
+                formData.append("modelPth", form.modelPth); // 上传文件（可选）
+            }
             formData.append("modelstruct", JSON.stringify(newLayers.value));
             formData.append("modelselect", form.methodSelection);
             formData.append("situationselect", form.situationSelection);
@@ -645,11 +717,12 @@ export default {
                 headers: {
                     Authorization: "Bearer " + store.state.user.token,
                 },
-                processData: false, // 重要：不要让 jQuery 处理 FormData
-                contentType: false, // 重要：让浏览器自动设置 Content-Type
+                processData: false,
+                contentType: false,
                 data: formData,
                 success(resp) {
                     console.log(resp);
+                    alert("添加成功!!!")
                     fetchModels();
                 },
                 error(resp) {
@@ -657,37 +730,10 @@ export default {
                 }
             });
 
+            form.modelPth = null; // 清空上传文件
             isModalVisible.value = false;
-            // Define add model logic here
-            // $.ajax({
-            //     url: "http://127.0.0.1:3000/model/add/",
-            //     type: "post",
-            //     headers: {
-            //         Authorization: "Bearer " + store.state.user.token,
-            //     },
-            //     data: {
-            //         "name": form.name,
-            //         "summary": form.summary,
-            //         "environment": form.environment,
-            //         "ability": form.ability,
-            //         "structureimage": form.structureimage,
-            //         "code": form.code,
-            //         "inferCode": form.inferCode,
-            //         "modelPth": form.modelPth,
-            //         "modelstruct": JSON.stringify(newLayers.value),
-            //         "modelselect": form.methodSelection,
-            //         "situationselect": form.situationSelection
-            //     },
-            //     success(resp) {
-            //         console.log(resp)
-            //         fetchModels()
-            //     },
-            //     error(resp) {
-            //         console.log(resp)
-            //     }
-            // });
-            // isModalVisible.value = false
         };
+
 
         const updateModel = () => {
             // Define update model logic here
@@ -707,14 +753,15 @@ export default {
                 },
                 success(resp) {
                     console.log(resp)
+                    alert("更新成功!!!")
+                    isModalEditVisible.value = false
+                    isEditing.value = false;
                     fetchModels()
                 },
                 error(resp) {
                     console.log(resp)
                 }
             });
-            isModalVisible.value = false
-            isEditing.value = false;
         };
 
         const deleteModel = (model_id) => {

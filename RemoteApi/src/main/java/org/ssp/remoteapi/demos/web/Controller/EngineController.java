@@ -4,7 +4,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import sun.awt.image.ImageWatched;
 
 import java.util.*;
 
@@ -39,6 +38,45 @@ public class EngineController {
         return toJsonString(response);
     }
 
+    @GetMapping("/node/getAllNodeByType")
+    public String getDkyCaiji() {
+        System.out.println("getDkyCaiji");
+        HashMap<Object, Object> data = new HashMap<>();
+        HashMap<Object, Object> mapDto = new HashMap<>();
+        HashMap<Object, Object> engine = new HashMap<>();
+        List<Map<String, Object>> freeList  = new LinkedList<>();
+        List<Map<String, Object>> usingList  = new LinkedList<>();
+        for (int i = 0; i < 10; i++) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("id", i);
+            map.put("engineId", i);
+            map.put("nodeName", "engine" + i);
+            map.put("ip", "127.0.0.1");
+            map.put("port", "4001");
+            freeList.add(map);
+        }
+        engine.put("freeList", freeList);
+        engine.put("usingList", freeList);
+        mapDto.put("dkyCaiji", engine);
+        data.put("mapDto", mapDto);
+//        data.put("mapDto", mapDto.put("engine", engine.put("freeList", freeList)));
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        response.put("success", true);
+        response.put("message", "成功");
+        response.put("data", data);
+        return toJsonString(response);
+    }
+
+//    String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " 1234&id=0";
+
+    @GetMapping("/node/startOneNode")
+    public String startOneNode() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("code", 200);
+        response.put("data", "127.0.0.1");
+        return toJsonString(response);
+    }
     @PostMapping("/esserver/assess/system/taskData/findDataByDeduceAsTree")
     public String getEvals(@RequestParam String deduceId, @RequestParam int simTime) {
         System.out.println("getEvals : " + deduceId);

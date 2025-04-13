@@ -29,4 +29,6 @@ public class Train {
     private String trainpypath;
     private String params;
     private Integer mversion;
+    private Integer step;
+    private Integer type;
 }
