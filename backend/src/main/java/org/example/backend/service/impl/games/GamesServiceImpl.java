@@ -382,7 +382,110 @@ public class GamesServiceImpl implements GamesService {
         // 返回响应结果
         return response.getBody();
     }
+    @Override
+    public Map<String, Object> continueAfFinTrain(MultiValueMap<String, String> data) {
+//        System.out.println("data is : \n" + data);
+        String ip = data.getFirst("ip");
+        String port = data.getFirst("port");
+        HashMap<String, Object> map = new HashMap<>();
+        if (ip == null || port == null) {
+            map.put("status", "error");
+            map.put("msg", "ip or port is null");
+            return map;
+        }
 
+        Train train = trainMapper.selectOne(new QueryWrapper<Train>().eq("id", Integer.parseInt(data.getFirst("trainId"))));
+        if (train == null) {
+            map.put("code", "500");
+            map.put("msg", "没有找到该训练任务");
+            return map;
+        }
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> trainParams;
+        try {
+            trainParams = objectMapper.readValue(train.getParams(), new TypeReference<Map<String, Object>>() {
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        int runStep = train.getStep();
+        trainParams.put("trainRangeL", runStep + 1);
+        trainParams.put("trainRangeR", runStep + Integer.parseInt(data.getFirst("trainIters")));
+        trainParams.put("reload", 1);
+
+        trainParams.put("trainBatchSize", data.getFirst("trainBatchSize"));
+        trainParams.put("batchSize", data.getFirst("batchSize"));
+        trainParams.put("learningRate", data.getFirst("learningRate"));
+        String selectMetricsStr = data.getFirst("selectedMetrics");
+        List<String> selectMetrics = null;
+        try {
+            selectMetrics = objectMapper.readValue(selectMetricsStr, new TypeReference<List<String>>() {
+            });
+            System.out.println("selectedMetrics : " + selectMetrics);
+            trainParams.put("selectedMetrics", selectMetrics);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 使用 ObjectMapper 将字符串解析为 List<String>
+//        start ws zhongjianjian
+
+        QueryWrapper<Examples> queryWrapperExamples = new QueryWrapper<>();
+        Examples examples = examplesMapper.selectOne(queryWrapperExamples.eq("projectname", train.getScene()));
+        String exampleId = examples.getExampleid();
+        int needEngines = Integer.parseInt(data.getFirst("needEngines"));
+        System.out.println("needEngines : " + needEngines);
+        List<EngineInfo> freeEngineList = remoteEnginesController.getFreeEngineList();
+        int usedEngines = Math.min(needEngines, freeEngineList.size());
+        System.out.println("usedEngines : " + usedEngines);
+        String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " 1234&id=0";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        ArrayList<String> useEngineIp = new ArrayList<>();
+        List<EngineInfo> selectedEngines = new ArrayList<>();
+        try {
+            for (int i = 0; i < usedEngines; i ++) {
+                String engineInfoJson = restTemplate.getForObject(startEngineUrl, String.class);
+                ObjectMapper objectMapper1 = new ObjectMapper();
+                Map<String, Object> engineInfoMap = objectMapper1.readValue(engineInfoJson, new TypeReference<Map<String, Object>>() {
+                });
+                String runIp = (String) engineInfoMap.get("data");
+                useEngineIp.add(runIp);
+                for (EngineInfo e : freeEngineList) {
+                    if (e.getIp().equals(runIp)) {
+                        selectedEngines.add(e);
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+//        trainEngines.put(tUidStr, selectedEngines);
+        trainParams.put("envAdress", useEngineIp);
+//        确实获取指标
+
+        try {
+            String params = objectMapper.writeValueAsString(trainParams); // 转换为 JSON
+            data.add("params", params);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        String url = "http://" + ip + ":" + port + "/train/continue/";
+//        if (gameNodes.containsKey(gameKey)) {
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        // 将 data 封装到 HttpEntity 中
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(data, headers);
+
+        // 发送 POST 请求，获取响应
+        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+
+        // 返回响应结果
+        return response.getBody();
+    }
     @Override
     public Map<String, String> continueTrain(MultiValueMap<String, String> data) {
         String ip = data.getFirst("ip");

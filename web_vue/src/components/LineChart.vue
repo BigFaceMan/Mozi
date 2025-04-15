@@ -3,7 +3,6 @@
     <h2>训练指标折线图</h2>
     <div v-if="dataLoaded">
       <div v-for="(chartData, key) in chartsData" :key="key">
-        <!-- 中文标题 -->
         <h3>{{ keyToLabel[key] || key }}</h3>
         <canvas :id="'chart-' + key" class="chart-canvas"></canvas>
       </div>
@@ -16,13 +15,20 @@
 
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick, defineProps } from 'vue';
-import $ from 'jquery';
 import { useStore } from 'vuex';
-import { Chart, Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement } from 'chart.js';
+import {
+  Chart,
+  Title,
+  Tooltip,
+  Legend,
+  LineElement,
+  LineController,
+  CategoryScale,
+  LinearScale,
+  PointElement
+} from 'chart.js';
 
-Chart.register(Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement);
-
-const store = useStore();
+Chart.register(Title, Tooltip, Legend, LineElement, CategoryScale, LinearScale, PointElement, LineController);
 
 const props = defineProps({
   training: {
@@ -30,6 +36,8 @@ const props = defineProps({
     required: true,
   },
 });
+
+const store = useStore();
 
 // 中英文映射表
 const keyToLabel = {
@@ -49,7 +57,7 @@ const chartsData = reactive({
   reward: null,
 });
 
-const chartOptions = reactive({
+const chartOptions = {
   responsive: true,
   scales: {
     x: {
@@ -65,25 +73,25 @@ const chartOptions = reactive({
       },
     },
   },
-});
+};
 
 let chartInstances = {};
 
 const processData = (rawData) => {
+  const steps = [];
   const accuracyData = [];
   const speedData = [];
   const stabilityData = [];
   const lossData = [];
   const rewardData = [];
-  const steps = [];
 
   rawData.forEach(item => {
-    if (item.accuracy !== -1) accuracyData.push(item.accuracy);
-    if (item.speed !== -1) speedData.push(item.speed);
-    if (item.stability !== -1) stabilityData.push(item.stability);
-    if (item.loss !== -1) lossData.push(item.loss);
-    if (item.reward !== -1) rewardData.push(item.reward);
     steps.push(item.step);
+    accuracyData.push(item.accuracy !== -1 ? item.accuracy : null);
+    speedData.push(item.speed !== -1 ? item.speed : null);
+    stabilityData.push(item.stability !== -1 ? item.stability : null);
+    lossData.push(item.loss !== -1 ? item.loss : null);
+    rewardData.push(item.reward !== -1 ? item.reward : null);
   });
 
   chartsData.accuracy = {
@@ -141,10 +149,10 @@ const processData = (rawData) => {
 
 const renderChart = () => {
   for (const key in chartsData) {
-    const ctx = document.getElementById('chart-' + key);
-    if (ctx) {
+    const canvas = document.getElementById('chart-' + key);
+    if (canvas) {
       chartInstances[key]?.destroy();
-      chartInstances[key] = new Chart(ctx, {
+      chartInstances[key] = new Chart(canvas, {
         type: 'line',
         data: chartsData[key],
         options: chartOptions,
@@ -156,28 +164,26 @@ const renderChart = () => {
 };
 
 onMounted(() => {
-  const data = ref([]);
-  $.ajax({
-    url: "http://127.0.0.1:3000/train/info/",
-    type: "get",
+  fetch(`http://127.0.0.1:3000/train/info/?trainId=${props.training.id}`, {
+    method: 'GET',
     headers: {
-      Authorization: "Bearer " + store.state.user.token,
+      Authorization: 'Bearer ' + store.state.user.token,
     },
-    data: {
-      trainId: props.training.id
-    },
-    success(resp) {
-      data.value = resp.data;
-      console.log("获取训练数据成功：", data.value);
-      processData(data.value);
-      nextTick(() => {
-        renderChart();
-      });
-    },
-    error(err) {
+  })
+    .then(res => res.json())
+    .then(resp => {
+      if (resp && resp.data) {
+        processData(resp.data);
+        nextTick(() => {
+          renderChart();
+        });
+      } else {
+        console.warn("返回数据格式异常：", resp);
+      }
+    })
+    .catch(err => {
       console.error("获取训练数据失败：", err);
-    }
-  });
+    });
 });
 
 onBeforeUnmount(() => {
@@ -242,5 +248,4 @@ p {
   font-size: 16px;
   margin-top: 40px;
 }
-
 </style>

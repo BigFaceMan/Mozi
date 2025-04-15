@@ -21,6 +21,7 @@ public interface GamesService {
     public Map<String, String> killTrain(MultiValueMap<String, String> data);
     public Map<String, String> stopTrain(MultiValueMap<String, String> data);
     public Map<String, String> continueTrain(MultiValueMap<String, String> data);
+    public Map<String, Object> continueAfFinTrain(MultiValueMap<String, String> data);
 
 
     public Map<String, String> addInfer(MultiValueMap<String, String> data) throws JsonProcessingException;

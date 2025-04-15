@@ -133,7 +133,7 @@ public class ModelOptServiceImpl implements ModelOptService {
         String fileName = UUID.randomUUID() + ".png"; // 使用 UUID 生成唯一文件名，假设图片格式为 PNG
 
         // 图片保存路径（假设保存到服务器的 /uploads 目录）
-        String uploadDir = "/uploads/"; // 你可以根据实际的文件存储路径来调整
+        String uploadDir = "uploads/"; // 你可以根据实际的文件存储路径来调整
         File dir = new File(uploadDir);
         if (!dir.exists()) {
             dir.mkdirs(); // 如果目录不存在，创建目录

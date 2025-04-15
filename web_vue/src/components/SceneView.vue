@@ -34,7 +34,7 @@
         </div>
         <p v-else class="no-data">没有相关的评估指标体系。</p>
 
-        <button class="close-btn" @click="closeDetail">关闭</button>
+        <!-- <button class="close-btn" @click="closeDetail">关闭</button> -->
       </div>
     </div>
   </div>

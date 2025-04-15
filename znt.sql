@@ -11,7 +11,7 @@
  Target Server Version : 80039 (8.0.39)
  File Encoding         : 65001
 
- Date: 07/04/2025 12:21:37
+ Date: 14/04/2025 16:32:16
 */
 
 SET NAMES utf8mb4;
@@ -48,7 +48,7 @@ CREATE TABLE `exception_log`  (
   `log` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
   `timestamp` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 235 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1048 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for gamesstatus
@@ -98,7 +98,7 @@ CREATE TABLE `infer_log`  (
   `log` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
   `timestamp` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 34 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 97 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for infer_params
@@ -156,7 +156,6 @@ CREATE TABLE `model`  (
   `ability` int NULL DEFAULT NULL,
   `structureimage` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `code` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
-  `infer_code` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
   `modelstruct` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `situationselect` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `modelselect` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
@@ -165,7 +164,7 @@ CREATE TABLE `model`  (
   `modifytime` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `name`(`name` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 48 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 50 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for model_pth
@@ -179,7 +178,7 @@ CREATE TABLE `model_pth`  (
   `model_pth` longblob NULL,
   `timestamp` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 28 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 40 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for scene_entity
@@ -242,11 +241,29 @@ CREATE TABLE `train`  (
   `trainpypath` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `params` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
   `mversion` int NULL DEFAULT NULL,
+  `step` int NULL DEFAULT NULL,
+  `type` int NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `trainingname`(`trainingname` ASC) USING BTREE,
   INDEX `train_uid`(`uid` ASC) USING BTREE,
   INDEX `train_model`(`model` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 297 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 339 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Table structure for train_info
+-- ----------------------------
+DROP TABLE IF EXISTS `train_info`;
+CREATE TABLE `train_info`  (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `trainid` int NOT NULL,
+  `step` int NULL DEFAULT NULL,
+  `accuracy` float NULL DEFAULT NULL,
+  `speed` float NULL DEFAULT NULL,
+  `stability` float NULL DEFAULT NULL,
+  `loss` float NULL DEFAULT NULL,
+  `reward` float NULL DEFAULT NULL,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 849 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for train_log
@@ -260,7 +277,7 @@ CREATE TABLE `train_log`  (
   `timestamp` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `trainname`(`trainname` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 136997 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 141744 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for train_params
@@ -335,7 +352,7 @@ CREATE TABLE `user_log`  (
   `timestamp` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `username`(`username` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 12884 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 16253 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for znt

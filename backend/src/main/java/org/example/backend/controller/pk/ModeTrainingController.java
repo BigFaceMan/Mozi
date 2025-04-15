@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -73,6 +72,10 @@ public class ModeTrainingController {
     @PostMapping("/train/continue/")
     public Map<String, String> continueTrain(@RequestParam MultiValueMap<String, String> data) {
         return gamesService.continueTrain(data);
+    }
+    @PostMapping("/train/continueAfFin/")
+    public Map<String, Object> continueAfFinTrain(@RequestParam MultiValueMap<String, String> data) {
+        return gamesService.continueAfFinTrain(data);
     }
 
     @PostMapping("/train/kill/")

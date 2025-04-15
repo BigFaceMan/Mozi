@@ -38,27 +38,37 @@
                         <span v-else-if="group.latestTraining.running === 3">外部导入模型</span>
                         </td>
                         <td>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '3' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color: coral;" v-if="group.latestTraining.running == '3'" @click="generateReport(group.latestTraining)">生成报告</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:darkseagreen;" v-if="group.latestTraining.running == '3'" @click="modelTest(group.latestTraining)">模型测试</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '3'" @click="downloadModel(group.latestTraining)">下载</button>
-                            <button class="btn btn-sm btn-danger ms-1 mb-1" v-if="group.latestTraining.running == '3'" @click="deleteTraining(group.latestTraining)">删除模型</button>
-                            <button class="btn btn-sm btn-info" v-if="group.latestTraining.running == '0'" @click="visualizeReport(group.latestTraining)">训练日志</button>
-                            <button class="btn btn-sm btn-warning ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="openTrainingDetails(group)"> 历史模型 </button>
-                            <button class="btn btn-sm btn-secondary ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewResourceUsage(group.latestTraining)">资源使用报告</button>
-                            <button class="btn btn-sm btn-success ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewSuggestions(group.latestTraining)">智能建议</button>
-                            <button class="btn btn-sm btn-warning ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="viewTrainingReplay(group.latestTraining)">训练回放</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '0'" @click="addGoodModel(group.latestTraining)">上传模型</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '1'">正在上传</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '3' && !group.latestTraining.isValidating" @click="validModel(group.latestTraining)">待验证</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:teal;" v-if="group.latestTraining.isValidating" >正在验证</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color: coral;" v-if="group.latestTraining.running == '0'" @click="generateReport(group.latestTraining)">生成报告</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color:darkseagreen;" v-if="group.latestTraining.running == '0'" @click="modelTest(group.latestTraining)">模型测试</button>
-                            <button class="btn btn-sm ms-1 mb-1" style="background-color: cornflowerblue;" v-if="group.latestTraining.running == '0'" @click="downloadModel(group.latestTraining)">下载</button>
-                            <button class="btn btn-sm btn-success ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="continueTraining(group.latestTraining)">继续训练</button>
-                            <button class="btn btn-sm btn-danger ms-1 mb-1" v-if="group.latestTraining.running == '0'" @click="deleteTraining(group.latestTraining)">删除模型</button>
+                        <div class="d-flex flex-wrap gap-1">
+                            <!-- 外部导入模型（running == 3） -->
+                            <button class="btn-soft teal" v-if="group.latestTraining.running == '3' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
+                            <button class="btn-soft primary" v-if="group.latestTraining.running == '3'" @click="generateReport(group.latestTraining)">生成报告</button>
+                            <button class="btn-soft success" v-if="group.latestTraining.running == '3'" @click="modelTest(group.latestTraining)">模型测试</button>
+                            <button class="btn-soft info" v-if="group.latestTraining.running == '3'" @click="downloadModel(group.latestTraining)">下载</button>
+                            <button class="btn-soft danger" v-if="group.latestTraining.running == '3'" @click="deleteTraining(group.latestTraining)">删除模型</button>
+
+                            <!-- 训练完成模型（running == 0） -->
+                            <button class="btn-soft success" v-if="group.latestTraining.running == '0'" @click="openTrainingDetails(group)">历史模型</button>
+                            <button class="btn-soft info" v-if="group.latestTraining.running == '0'" @click="viewTrainingReplay(group.latestTraining)">训练回放</button>
+                            <button class="btn-soft info" v-if="group.latestTraining.running == '0'" @click="visualizeReport(group.latestTraining)">训练日志</button>
+                            <button class="btn-soft info" v-if="group.latestTraining.running == '0'" @click="viewResourceUsage(group.latestTraining)">资源使用报告</button>
+                            <button class="btn-soft info" v-if="group.latestTraining.running == '0'" @click="viewSuggestions(group.latestTraining)">智能建议</button>
+
+                            <!-- 上传状态 -->
+
+                            <!-- 通用操作 -->
+                            <button class="btn-soft primary" v-if="group.latestTraining.running == '0'" @click="generateReport(group.latestTraining)">生成报告</button>
+                            <button class="btn-soft success" v-if="group.latestTraining.running == '0'" @click="modelTest(group.latestTraining)">模型测试</button>
+                            <button class="btn-soft success" v-if="group.latestTraining.running == '0'" @click="downloadModel(group.latestTraining)">下载</button>
+                            <button class="btn-soft success" v-if="group.latestTraining.running == '0'" @click="continueTraining(group.latestTraining)">继续训练</button>
+                            <button class="btn-soft danger" v-if="group.latestTraining.running == '0'" @click="deleteTraining(group.latestTraining)">删除模型</button>
+                            <button class="btn-soft warning" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '3' && !group.latestTraining.isValidating" @click="validModel(group.latestTraining)">待验证</button>
+                            <button class="btn-soft teal" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '0'" @click="addGoodModel(group.latestTraining)">上传模型</button>
+                            <button class="btn-soft teal" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '1'">正在上传</button>
+                            <button class="btn-soft teal" v-if="group.latestTraining.running == '0' && group.latestTraining.upload == '2'" @click="addGoodModel(group.latestTraining)">已上传</button>
+                            <button class="btn-soft info" v-if="group.latestTraining.isValidating">正在验证</button>
+                        </div>
                         </td>
+
                     </tr>
                     </tbody>
                 </table>
@@ -287,6 +297,135 @@
         </div>
 
 
+        <div v-if="continueTrainVisible" class="modal fade show" tabindex="-1" style="display: block;" aria-labelledby="modelTestModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">训练参数配置</h5>
+                        <button type="button" class="btn-close" @click="closeContinueTrainView" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container mt-4">
+                            <div class="form-group mb-3">
+                            <label for="model">选择计算节点:</label>
+                            <select id="gamenode" class="form-select" @change="selectGameNode">
+                                <option v-for="(gameNode, index) in gameNodes" :key="gameNode.ip + gameNode.port"
+                                :value="gameNode.ip+':'+ gameNode.port">
+                                    {{ '节点 ' + (index + 1) + (index === 0 ? ' ⭐最优节点⭐' : '') }}
+                                </option>
+                            </select>
+                            </div>
+                            <div class="form-group mb-3">
+                            <label for="enginenode">选择仿真引擎节点:</label>
+                            <div class="custom-select-container">
+                                <button type="button" class="form-select" @click="toggleDropdown">
+                                {{ selectedNodes.length ? selectedNodes.map(node => node.nodeName).join(', ') : '请选择节点' }}
+                                </button>
+                                <div v-if="dropdownVisible" class="dropdown-list">
+                                <ul>
+                                    <li v-for="(engineNode, index) in engineNodes" :key="engineNode.nodeName">
+                                    <label>
+                                        <input type="checkbox" :value="engineNode" v-model="selectedNodes" />
+                                        {{ '节点 ' + (index + 1) }}
+                                    </label>
+                                    </li>
+                                </ul>
+                                </div>
+                            </div>
+                            </div>
+                            <!-- 选择训练设备 -->
+                            <div class="form-group mb-3">
+                            <label for="trainDevice">选择训练设备:</label>
+                            <select v-model="form.trainDevice" id="trainDevice" class="form-select">
+                                <option value="cpu">CPU</option>
+                                <option value="gpu">GPU</option>
+                            </select>
+                            </div>
+
+                            <!-- 训练轮次 -->
+                            <div class="form-group mb-3">
+                            <label for="trainIterations">训练时间:</label>
+                            <input
+                                v-model="form.trainTime"
+                                id="trainIterations"
+                                type="text"
+                                class="form-control"
+                                placeholder="1600"
+                            />
+                            </div>
+                            <!-- 训练轮次 -->
+                            <div class="form-group mb-3">
+                            <label for="trainIterations">训练轮次:</label>
+                            <input
+                                v-model="form.trainIterations"
+                                id="trainIterations"
+                                type="text"
+                                class="form-control"
+                                placeholder="5000"
+                            />
+                            </div>
+
+                            <!-- 学习率 -->
+                            <div class="form-group mb-3">
+                            <label for="learningRate">学习率:</label>
+                            <input
+                                v-model="form.learningRate"
+                                id="learningRate"
+                                type="text"
+                                class="form-control"
+                                placeholder="0.001"
+                            />
+                            </div>
+
+                            <!-- batch size -->
+                            <div class="form-group mb-3">
+                            <label for="batchSize">batch size:</label>
+                            <input
+                                v-model="form.batchSize"
+                                id="batchSize"
+                                type="text"
+                                class="form-control"
+                                placeholder="32"
+                            />
+                            </div>
+
+                            <!-- 选择评估指标 -->
+                            <div class="form-group mb-3">
+                            <label for="evaluationMetrics">选择评估指标:</label>
+                            <div>
+                                <label v-for="metric in evaluationMetrics" :key="metric.value" class="form-check-label me-3">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    v-model="form.selectedMetrics"
+                                    :value="metric.value"
+                                />
+                                {{ metric.label }}
+                                </label>
+                            </div>
+                            </div>
+
+                        <div class="d-flex align-items-center gap-3 mt-3">
+                            <button class="btn btn-secondary" @click="showRewardModal = true">配置奖励目标</button>
+                            <!-- <button @click="saveConfig" class="btn btn-primary">保存配置</button> -->
+                            <button @click="continueTrainingFetch" class="btn btn-primary">启动训练</button>
+                        </div>
+                        <!-- 显示训练进度 -->
+                        <div v-if="trainingStatus" class="mt-3">
+                            <p>{{ trainingStatus }}</p>
+                        </div>
+
+                            <!-- 输出保存的配置信息 -->
+                        <div v-if="showConfig" class="alert alert-success mt-3">
+                            <h5>保存的配置信息:</h5>
+                            <pre>{{ form }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- Resource Usage Modal -->
 
@@ -411,7 +550,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import LineChart from './LineChart.vue';
 import $ from 'jquery';
 import { Chart } from 'chart.js';
@@ -419,6 +558,7 @@ import { useStore } from 'vuex';
 import { Modal } from "bootstrap";
 
 const store = useStore();
+const form = reactive({ ...store.state.train.form });
 const tempSpeedMultiplier = ref(1);
 const trainings = ref([]);
 const filteredTrainings = ref([]);
@@ -589,6 +729,46 @@ const fetchTrainings = () => {
         },
         error(err) {
             console.error("Error fetching trainings:", err);
+        }
+    });
+
+    $.ajax({
+        url: "http://127.0.0.1:3000/games/get/all/",
+        type: "get",
+        headers: {
+        Authorization: "Bearer " + store.state.user.token,
+        },
+        success(resp) {
+
+        resp.sort((a, b) => {
+            if (b.gpuMemorySize !== a.gpuMemorySize) {
+            return b.gpuMemorySize - a.gpuMemorySize; // GPU 显存越大越优先
+            }
+            if (a.memoryUsage !== b.memoryUsage) {
+            return a.memoryUsage - b.memoryUsage; // 内存使用率越小越优先
+            }
+            return a.gpuUsage - b.gpuUsage; // GPU 使用率越小越优先
+        });
+        gameNodes.value = resp;
+
+        form.ip = gameNodes.value[0].ip;
+        form.port = gameNodes.value[0].port;
+        // console.log(resp)
+        }
+    });
+    $.ajax({
+        url: "http://127.0.0.1:3000/engine/getAll",
+        type: "get",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        success(resp) {
+            engineNodes.value = resp.freeList;
+            console.log("获取仿真节点成功 : ", engineNodes.value)
+
+        },
+        error(err) {
+            console.error("获取引擎节点失败:", err);
         }
     });
 };
@@ -772,10 +952,6 @@ const deleteTraining = (training) => {
 
 const closeVisualization = () => {
     isVisualizationVisible.value = false;
-    // if (lossChart.value) {
-    //     lossChart.value.destroy();
-    //     lossChart.value = null;
-    // }
 };
 const closeModelTestVisble = () => {
     isModelTestVisible.value = false;   
@@ -847,6 +1023,65 @@ const validModel = (training) => {
         }
     });
 }
+const evaluationMetrics = ref([ { label: '精度', value: 'accuracy' },
+  { label: '速度', value: 'speed' },
+  { label: '稳定性', value: 'stability' },
+  { label: '资源消耗', value: 'resource_consumption' }
+]);
+const continueTrainVisible = ref(false);
+const selectedNodes = ref([]);
+const gameNodes = ref([]);
+const engineNodes = ref([]);
+const dropdownVisible = ref(false);
+const selectedTrain = ref(null);
+const toggleDropdown = () => {
+  dropdownVisible.value = !dropdownVisible.value
+};
+const closeContinueTrainView = () => {
+    continueTrainVisible.value = false;
+};
+const continueTraining = (training) => {
+    // console.log(training)
+    selectedTrain.value = training;
+    continueTrainVisible.value = true; 
+}
+
+const continueTrainingFetch = () => {
+    $.ajax({
+        url: "http://127.0.0.1:3000/train/continueAfFin/",  // Use the appropriate endpoint for replay data
+        type: "post",
+        headers: {
+            Authorization: "Bearer " + store.state.user.token,
+        },
+        data: {
+            trainId: selectedTrain.value.id,
+            trainTime: form.trainTime,
+            pytorchVersion: form.pytorchVersion,
+            trainIters: form.trainIterations, 
+            learningRate: form.learningRate,
+            batchSize: form.batchSize,
+            selectedMetrics: JSON.stringify(form.selectedMetrics),
+            trainDevice: form.trainDevice,
+            ip: form.ip,
+            port: form.port,
+            modelParams: JSON.stringify(form.modelParams),
+            needEngines: selectedNodes.value.length,
+        },
+        success(resp) {
+            console.log(resp)
+            fetchTrainings();
+            alert("已继续训练")
+            continueTrainVisible.value = false;
+        },
+        error(err) {
+            console.error("Error fetching replay data:", err);
+        }
+    });
+}
+
+
+
+
 const showChart = ref(false);
 const chartKey = ref(0);
 const chartTrain = ref(null)
@@ -860,32 +1095,6 @@ const colseTrainingReplay = () => {
 };
 
 
-const continueTraining = (training) => {
-    $.ajax({
-        url: "http://127.0.0.1:3000/train/continue/",  // Use the appropriate endpoint for replay data
-        type: "post",
-        headers: {
-            Authorization: "Bearer " + store.state.user.token,
-        },
-        data: {
-            trainId: training.id,
-            trainingName: training.trainingname,
-            ip: training.ip,
-            port: training.port,
-            processId: training.processid,
-            tensorboardpath: training.tensorboardpath
-        },
-        success(resp) {
-            // Process the raw training log data for replay visualization
-            console.log(resp)
-            fetchTrainings();
-            alert("已继续训练")
-        },
-        error(err) {
-            console.error("Error fetching replay data:", err);
-        }
-    });
-};
 
 const closeTrainingReplay = () => {
     isTrainingReplayVisible.value = false;
@@ -1199,4 +1408,59 @@ onMounted(fetchTrainings);
 .close-btn:hover {
   background-color: darkred;
 }
+
+.btn-soft {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  color: #333;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-soft:hover {
+  background-color: #e2e6ea;
+  color: #000;
+}
+
+/* 语义辅助样式 */
+.btn-soft.success {
+  border-color: #b5e5cc;
+  background-color: #e6fff1;
+  color: #0f5132;
+}
+
+.btn-soft.warning {
+  border-color: #ffeeba;
+  background-color: #fff8e1;
+  color: #664d03;
+}
+
+.btn-soft.info {
+  border-color: #b8daff;
+  background-color: #e9f5ff;
+  color: #084298;
+}
+
+.btn-soft.danger {
+  border-color: #f5c6cb;
+  background-color: #fff0f0;
+  color: #842029;
+}
+
+.btn-soft.primary {
+  border-color: #cfe2ff;
+  background-color: #edf4ff;
+  color: #084298;
+}
+
+.btn-soft.teal {
+  border-color: #b2dfdb;
+  background-color: #e0f2f1;
+  color: #004d40;
+}
+
+
 </style>

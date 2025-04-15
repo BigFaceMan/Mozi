@@ -716,10 +716,9 @@ public class TrainServiceImpl implements TrainService {
                 }
             });
 //            errorDbThread.setDaemon(true);
-            String tUid = data.getFirst("tUid");
             errorDbThread.start();
             UpdateWrapper<Train> objectUpdateWrapper = new UpdateWrapper<>();
-            objectUpdateWrapper.eq("id", trainId).set("running", 1).set("processid", processId).set("t_Uid", tUid).set("params", params);
+            objectUpdateWrapper.eq("id", trainId).set("running", 1).set("processid", processId).set("params", params);
             boolean isUpdated = trainMapper.update(null, objectUpdateWrapper) > 0;
             if (isUpdated) {
                 System.out.println("Exception : 成功更新继续训练进程状态");
@@ -782,6 +781,10 @@ public class TrainServiceImpl implements TrainService {
                             throw new RuntimeException(e);
                         }
                     }
+                    dbThread.interrupt();
+                    infoDbThread.interrupt();
+                    errorDbThread.interrupt();
+
                     logQueueMap.remove(processId);
                     errorQueueMap.remove(processId);
                     System.out.println("删除队列成功!!!!!!!!!!!");

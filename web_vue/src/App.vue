@@ -1,3 +1,11 @@
+<!--
+ * @Author: ssp 71054301+BigFaceMan@users.noreply.github.com
+ * @Date: 2025-03-05 20:25:05
+ * @LastEditors: ssp 71054301+BigFaceMan@users.noreply.github.com
+ * @LastEditTime: 2025-04-14 10:23:59
+ * @FilePath: \web_vue\src\App.vue
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+-->
 <template>
   <div :style="backgroundStyle">
     <div v-if="$store.state.themeSet.useTopNav">

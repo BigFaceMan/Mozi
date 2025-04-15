@@ -304,6 +304,7 @@ const fetchModels = () => {
     },
     success(resp) {
       engineNodes.value = resp.freeList;
+      console.log("所有的引擎节点：", engineNodes.value);
     },
     error(err) {
       console.error("获取引擎节点失败:", err);
