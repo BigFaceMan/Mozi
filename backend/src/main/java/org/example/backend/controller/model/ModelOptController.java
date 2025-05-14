@@ -1,5 +1,6 @@
 package org.example.backend.controller.model;
 
+import org.example.backend.pojo.AlgParams;
 import org.example.backend.pojo.Model;
 import org.example.backend.service.model.ModelOptService;
 import org.example.backend.utils.Result;
@@ -71,5 +72,10 @@ public class ModelOptController {
     @GetMapping("/model/trainPth/")
     public byte[] getModelPth(@RequestParam(defaultValue = "-1") Integer trainId) {
         return modelOptService.getModelPth(trainId);
+    }
+
+    @GetMapping("/model/params/all")
+    public List<AlgParams> getModelParams() {
+        return modelOptService.getModelParamsAll();
     }
 }

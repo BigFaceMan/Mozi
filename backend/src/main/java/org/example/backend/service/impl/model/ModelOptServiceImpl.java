@@ -2,14 +2,12 @@ package org.example.backend.service.impl.model;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import org.apache.logging.log4j.message.ReusableMessage;
+import org.example.backend.pojo.AlgParams;
 import org.example.backend.mapper.ModelMapper;
+import org.example.backend.mapper.AlgParamsMapper;
 import org.example.backend.mapper.ModelPthMapper;
 import org.example.backend.mapper.TrainMapper;
-import org.example.backend.pojo.Model;
-import org.example.backend.pojo.ModelPth;
-import org.example.backend.pojo.Train;
-import org.example.backend.pojo.User;
+import org.example.backend.pojo.*;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.model.ModelOptService;
 import org.example.backend.utils.Result;
@@ -35,7 +33,10 @@ public class ModelOptServiceImpl implements ModelOptService {
     private ModelPthMapper modelPthMapper;
     @Autowired
     private TrainMapper trainMapper;
+    @Autowired
+    private AlgParamsMapper algParamsMapper;
 
+    @Transactional
     @Override
     public Map<String, String> add(Map<String, Object> data) throws IOException {
         UsernamePasswordAuthenticationToken authentication =
@@ -90,10 +91,6 @@ public class ModelOptServiceImpl implements ModelOptService {
             return map;
         }
 
-//        if (code == null || code.trim().isEmpty()) {
-//            map.put("error_message", "代码不能为空");
-//            return map;
-//        }
         if (code == null) {
             System.out.println("using modelstruct generate code !!!");
             code =
@@ -133,7 +130,7 @@ public class ModelOptServiceImpl implements ModelOptService {
         String fileName = UUID.randomUUID() + ".png"; // 使用 UUID 生成唯一文件名，假设图片格式为 PNG
 
         // 图片保存路径（假设保存到服务器的 /uploads 目录）
-        String uploadDir = "uploads/"; // 你可以根据实际的文件存储路径来调整
+        String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator; // 你可以根据实际的文件存储路径来调整
         File dir = new File(uploadDir);
         if (!dir.exists()) {
             dir.mkdirs(); // 如果目录不存在，创建目录
@@ -159,25 +156,21 @@ public class ModelOptServiceImpl implements ModelOptService {
         Model model = new Model(null, name, summary, environment, ability, structureimagePath, code, modelstruct, situationselect, modelselect, user.getId(), now, now);
         modelMapper.insert(model);
 
-
-
         if (data.get("modelPth") != null) {
             MultipartFile modelPth = (MultipartFile) data.get("modelPth");
             String modelPthName = name + "_loadModel";
             byte[] modelBytes = modelPth.getBytes();
 
-//        Train train = new Train(null, modelPthName,  environment, situationselect,  name, "1", "1",  3, "1", user.getId(), 3, "1", "1", "1", "1", "1", 1);
-//        trainMapper.insert(train);
+            Train train = new Train(null, modelPthName,  environment, situationselect,  name,  "1", "1",  3, "1", user.getId(), 3, "1", "1", "1", "1", "1", 1, 0, 0);
+            trainMapper.insert(train);
             Train trainQuery = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", modelPthName));
             int trainId = Math.toIntExact(trainQuery.getId());
             modelPthMapper.insert(new ModelPth(null, trainId, modelPthName, situationselect, modelBytes, new Date()));
         }
 
-        // 获取原始文件名
-//        String originalFilename = modelPth.getOriginalFilename();
-//        System.out.println("上传的文件名 !!!!!!!!!!!!!!!!: " + originalFilename);
-        // 读取二进制数据
-
+        Model newModel = modelMapper.selectOne(new QueryWrapper<Model>().eq("name", name));
+        int modelId = model.getId();
+        algParamsMapper.insert(new AlgParams(null, modelId, 1600, 1000, 0.01, 32));
 
         map.put("success_message", "success");
         return map;
@@ -365,5 +358,10 @@ public class ModelOptServiceImpl implements ModelOptService {
             return null;
         }
         return modelPth.getModelPth();
+    }
+
+    @Override
+    public List<AlgParams> getModelParamsAll() {
+        return algParamsMapper.selectList(null);
     }
 }

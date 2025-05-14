@@ -114,7 +114,7 @@
                     <thead>
                         <tr>
                         <th>模型名称</th>
-                        <th>方法</th>
+                        <th>算法</th>
                         <th>操作</th>
                         </tr>
                     </thead>

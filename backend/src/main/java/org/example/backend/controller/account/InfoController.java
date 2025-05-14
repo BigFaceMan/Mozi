@@ -1,8 +1,5 @@
 package org.example.backend.controller.account;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
 import org.example.backend.pojo.User;
 import org.example.backend.service.impl.utils.UserDetailsImpl;
 import org.example.backend.service.account.InfoService;
@@ -18,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@Api(tags = "用户信息相关接口")
+
 public class InfoController {
     @Autowired
     private InfoService infoService;
@@ -31,13 +28,13 @@ public class InfoController {
         User user = loginUser.getUser();
         return user.getUrank();
     }
-    @ApiOperation(value = "获取用户信息")
+
     @GetMapping("/user/account/info/")
     public Map<String, Object> getinfo() {
         return infoService.getinfo();
     }
 
-    @ApiOperation(value = "得到用户List")
+
     @GetMapping("/user/getlist/")
     public List<User> getlist() {
         if (this.get_urank().equals('0'))

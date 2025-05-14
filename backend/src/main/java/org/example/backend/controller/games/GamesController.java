@@ -1,6 +1,7 @@
 package org.example.backend.controller.games;
 
 
+import org.apache.ibatis.annotations.Param;
 import org.example.backend.pojo.ResourceInfo;
 import org.example.backend.service.games.GamesService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,18 @@ public class GamesController {
     @PostMapping("/games/sign/")
     public Map<String, String> gamesSign(@RequestBody ResourceInfo resourceInfo) {
         return gamesService.signGame(resourceInfo);
+    }
+
+    @GetMapping("/games/testWs/")
+    public Map<String, Object> testWs() {
+        return gamesService.trainWs();
+    }
+    @PostMapping("/games/stopEngine/")
+    public Map<String, Object> stopEngine(@RequestBody Map<String, Object> data) {
+        System.out.println("stopEngine receive : " + data);
+        List<String> zjjId = (List<String>) data.get("zzjId");
+        List<String> engineAddr = (List<String>) data.get("engineAddr");
+        return gamesService.stopEngine(zjjId, engineAddr);
     }
 
     @PostMapping("/games/removeEngineBytUid/")

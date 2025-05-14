@@ -2,14 +2,21 @@ package com.games.games.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.games.games.mapper.*;
 import com.games.games.pojo.*;
 import com.games.games.utils.FileUtils;
 import com.games.games.service.TrainService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -32,6 +39,9 @@ public class TrainServiceImpl implements TrainService {
     private static final Map<String, BlockingQueue<String>> infoQueueMap = new ConcurrentHashMap<>();
     private static final Map<String, BlockingQueue<String>> errorQueueMap = new ConcurrentHashMap<>();
     private final Lock lock = new ReentrantLock();
+
+    @Autowired
+    private RestTemplate restTemplate;
     @Autowired
     private TrainMapper trainMapper;
     @Autowired
@@ -46,10 +56,17 @@ public class TrainServiceImpl implements TrainService {
     private ExceptionLogMapper exceptionLogMapper;
     @Autowired
     private ModelPthMapper modelPthMapper;
+    @Value("${trainLogPrint}")
+    private static int trainLogPrint;
     @Value("${server.env}")
     private String  envName;
-    private int runStatus = 1;
+    @Value("${enginePlatformUrl}")
+    private String enginePlatformUrl;// 服务平台的URL
+    @Value("${servicePlatformUrl}")
+    private String serviceAddr;
+    private int runStatus = 0;
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
+
 
 
     private static String getPythonProcessId(String processId) throws IOException {
@@ -70,10 +87,10 @@ public class TrainServiceImpl implements TrainService {
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+                printTrainLog(line);
                 // 检查是否包含 processId
                 if (line.contains(processId)) {
-                    System.out.println(line);
+                    printTrainLog(line);
                     // Windows: WMIC 输出格式 -> 获取最后一列的 PID
                     if (os.contains("win")) {
                         String[] columns = line.trim().split("\\s+");
@@ -128,23 +145,23 @@ public class TrainServiceImpl implements TrainService {
 
         File projectPath = new File(System.getProperty("user.dir"), "/python");
         if (!projectPath.exists() && projectPath.mkdirs()) {
-            System.out.println("目录创建成功：" + projectPath.getAbsolutePath());
+            printTrainLog("目录创建成功：" + projectPath.getAbsolutePath());
         }
 
         File tensorboardDir = new File(projectPath.getPath(), "/logs");
         File checkpointDir = new File(projectPath.getPath(), "/checkpoint");
         if (!tensorboardDir.exists()) {
             if (tensorboardDir.mkdirs()) {
-                System.out.println("目录创建成功：" + tensorboardDir.getAbsolutePath());
+                printTrainLog("目录创建成功：" + tensorboardDir.getAbsolutePath());
             } else {
-                System.err.println("目录创建失败！");
+                printTrainLog("目录创建失败！");
             }
         }
         if (!checkpointDir.exists()) {
             if (checkpointDir.mkdirs()) {
-                System.out.println("目录创建成功：" + checkpointDir.getAbsolutePath());
+                printTrainLog("目录创建成功：" + checkpointDir.getAbsolutePath());
             } else {
-                System.err.println("目录创建失败！");
+                printTrainLog("目录创建失败！");
             }
         }
 
@@ -161,13 +178,13 @@ public class TrainServiceImpl implements TrainService {
                 try (FileOutputStream fos = new FileOutputStream(checkpointFile)) {
                     fos.write(modelPthData);
                     fos.flush();
-                    System.out.println("模型文件已保存至：" + checkpointFile.getAbsolutePath());
+                    printTrainLog("模型文件已保存至：" + checkpointFile.getAbsolutePath());
                 } catch (IOException e) {
                     e.printStackTrace();
                     throw new RuntimeException("保存模型失败", e);
                 }
             } else {
-                System.out.println("未找到对应的模型数据");
+                printTrainLog("未找到对应的模型数据");
             }
         }
 
@@ -192,25 +209,33 @@ public class TrainServiceImpl implements TrainService {
 
         // 处理参数
         String params = data.getFirst("params");
+
+        Map<String, Object> paramsMap;
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            paramsMap = objectMapper.readValue(params, new TypeReference<Map<String, Object>>() {
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
         String paramsJson = isWindows ? params.replace("\"", "\\\"") : params.replace("'", "\\'");
         String quote = isWindows ? "\"" : "'";
-        System.out.println("GameNode Got ParamsJson: " + paramsJson);
-        System.out.println("Conda Env Name: " + envName);
+        printTrainLog("GameNode Got ParamsJson: " + paramsJson);
+        printTrainLog("Conda Env Name: " + envName);
         try {
             String[] command;
             if (isWindows) {
                 command = new String[]{
                         "cmd.exe", "/c",
-                        "conda activate " + envName + " && python -u " + trainFile.getPath() + " --checkpointpath " + checkpointPath +
-                                " --tensorboardpath " + tensorboardPath + " --params " + quote + paramsJson + quote
+                        "conda activate " + envName + " && python -u " + trainFile.getPath() + " --checkpointpath " + checkpointPath + " --params " + quote + paramsJson + quote
                 };
             } else {
                 command = new String[]{
                         "/bin/bash", "-c",
                         "source ~/anaconda3/etc/profile.d/conda.sh && conda activate " + envName +
-                                " && python -u " + trainFile.getPath() + " --checkpointpath " + checkpointPath +
-                                " --tensorboardpath " + tensorboardPath + " --params " + quote + paramsJson + quote
+                                " && python -u " + trainFile.getPath() + " --checkpointpath " + checkpointPath + " --params " + quote + paramsJson + quote
                 };
             }
 
@@ -218,7 +243,7 @@ public class TrainServiceImpl implements TrainService {
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             Process pythonProcess = processBuilder.start();
 
-            System.out.println("Python 训练进程启动，等待 PID 输出...");
+            printTrainLog("Python 训练进程启动，等待 PID 输出...");
 
             final String[] processIdHolder = {null};
 
@@ -227,14 +252,14 @@ public class TrainServiceImpl implements TrainService {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        System.out.println("Python 输出: " + line);
+                        printTrainLog("Python 输出: " + line);
                         System.out.flush();
                         // 获取 PID
                         if (line.startsWith("PID :")) {
                             synchronized (processIdHolder) {
-                                System.out.println("want get pid !!!!!");
+                                printTrainLog("want get pid !!!!!");
                                 processIdHolder[0] = line.replace("PID :", "").trim();
-                                System.out.println("PID : " + processIdHolder[0]);
+                                printTrainLog("PID : " + processIdHolder[0]);
                             }
                         }
                         synchronized (processIdHolder) {
@@ -249,7 +274,7 @@ public class TrainServiceImpl implements TrainService {
                         }
                     }
                 } catch (IOException e) {
-                    System.err.println("读取标准输出时出错: " + e.getMessage());
+                    printTrainLog("读取标准输出时出错: " + e.getMessage());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -260,7 +285,7 @@ public class TrainServiceImpl implements TrainService {
                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
                     String line;
                     while ((line = errorReader.readLine()) != null) {
-                        System.err.println("Python 错误: " + line);
+                        printTrainLog("Python 错误: " + line);
                         System.out.flush();
                         synchronized (processIdHolder) {
                             if (processIdHolder[0] != null && errorQueueMap.containsKey(processIdHolder[0])) {
@@ -269,7 +294,7 @@ public class TrainServiceImpl implements TrainService {
                         }
                     }
                 } catch (IOException e) {
-                    System.err.println("读取错误输出时出错: " + e.getMessage());
+                    printTrainLog("读取错误输出时出错: " + e.getMessage());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -279,7 +304,7 @@ public class TrainServiceImpl implements TrainService {
             stderrThread.start();
             // 等待最多 5 秒获取 PID
             long startTime = System.currentTimeMillis();
-            long timeout = 10000; // 5 秒
+            long timeout = 100000; // 5 秒
             while (processIdHolder[0] == null && (System.currentTimeMillis() - startTime) < timeout) {
                 Thread.sleep(100);
             }
@@ -294,7 +319,7 @@ public class TrainServiceImpl implements TrainService {
             logQueueMap.put(processId, new LinkedBlockingQueue<>());
             errorQueueMap.put(processId, new LinkedBlockingQueue<>());
             infoQueueMap.put(processId, new LinkedBlockingQueue<>());
-            System.out.println("Python 进程 PID 获取成功: " + processId);
+            printTrainLog("Python 进程 PID 获取成功: " + processId);
 
             Thread dbThread = new Thread(() -> {
                 try {
@@ -310,7 +335,7 @@ public class TrainServiceImpl implements TrainService {
                         }
                     }
                 } catch (InterruptedException e) {
-                    System.err.println("数据库写入线程被中断: " + e.getMessage());
+                    printTrainLog("数据库写入线程被中断: " + e.getMessage());
                 }
             });
             dbThread.start();
@@ -324,7 +349,7 @@ public class TrainServiceImpl implements TrainService {
                         exceptionLogMapper.insert(exceptionLog);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println("数据库写入线程被中断: " + e.getMessage());
+                    printTrainLog("数据库写入线程被中断: " + e.getMessage());
                 }
             });
 //            errorDbThread.setDaemon(true);
@@ -364,7 +389,7 @@ public class TrainServiceImpl implements TrainService {
                         trainInfoMapper.insert(trainInfo);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println("loss写入线程被中断: " + e.getMessage());
+                    printTrainLog("loss写入线程被中断: " + e.getMessage());
                 }
             });
             infoDbThread.start();
@@ -373,16 +398,39 @@ public class TrainServiceImpl implements TrainService {
             Thread trainingThread = new Thread(() -> {
                 try {
                     int exitCode = pythonProcess.waitFor();
-                    System.out.println("Python 进程退出，代码: " + exitCode);
+                    printTrainLog("Python 进程退出，代码: " + exitCode);
                     UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
+
                     updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : runStatus).set("step", runStep.get());
+
+
+                    String url = serviceAddr + "/games/stopEngine/";
+//                    head
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setContentType(MediaType.APPLICATION_JSON);
+//                    body
+                    Map<String, Object> requestBody = new HashMap<>();
+                    requestBody.put("engineAddr", paramsMap.get("envAdress"));
+                    requestBody.put("zzjId", paramsMap.get("envsId"));
+                    printTrainLog("train want stop : " + requestBody);
+//                    httpEntity
+                    HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+                    String respJson = restTemplate.postForObject(url, requestBody, String.class);
+                    Map<String, Object> resp = objectMapper.readValue(respJson, new TypeReference<Map<String, Object>>() {});
+                    String respCode = (String) resp.get("code");
+                    String respMsg = (String) resp.get("msg");
+                    if (respCode.equals("200")) {
+                        printTrainLog("关闭中间件和引擎成功!!!");
+                        printTrainLog(respMsg);
+                    }
+//                    update datbase
                     if (trainMapper.update(null, updateWrapper) > 0 && type == 0) {
                         Train train1 = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", trainingName));
                         byte[] modelCheckpoint = FileUtils.readFileToByteArray(checkpointPath);
                         saveCheckpoint(trainingName, scene, train1.getId(), modelCheckpoint);
-                        System.out.println("保存 checkpoint 文件...");
+                        printTrainLog("保存 checkpoint 文件...");
 //                        }
-                        System.out.println("成功更新训练进程状态");
+                        printTrainLog("成功更新训练进程状态");
                         runStatus = 0;
                     }
                 } catch (Exception e) {
@@ -400,7 +448,7 @@ public class TrainServiceImpl implements TrainService {
                     errorDbThread.interrupt();
                     logQueueMap.remove(processId);
                     errorQueueMap.remove(processId);
-                    System.out.println("删除队列成功!!!!!!!!!!!");
+                    printTrainLog("删除队列成功!!!!!!!!!!!");
                     processMap.remove(processId);
                 }
             });
@@ -421,6 +469,13 @@ public class TrainServiceImpl implements TrainService {
             return response;
         }
     }
+
+    public static void printTrainLog(String msg) {
+        if (trainLogPrint == 1) {
+            printTrainLog(msg);
+        }
+    }
+
     public boolean terminateProcess(String pid) {
         try {
             String os = System.getProperty("os.name").toLowerCase();
@@ -433,7 +488,7 @@ public class TrainServiceImpl implements TrainService {
             process.waitFor();
             return process.exitValue() == 0;
         } catch (Exception e) {
-            System.err.println("终止进程失败: " + e.getMessage());
+            printTrainLog("终止进程失败: " + e.getMessage());
             return false;
         }
     }
@@ -447,16 +502,16 @@ public class TrainServiceImpl implements TrainService {
             updateWrapper.eq("trainingname", trainingName).set("running", 0);
             boolean isUpdated = trainMapper.update(null, updateWrapper) > 0;
             if (isUpdated) {
-                System.out.println("Exception : 成功更新训练进程状态");
+                printTrainLog("Exception : 成功更新训练进程状态");
             } else {
-                System.out.println("Exception : 未成功更新训练进程状态");
+                printTrainLog("Exception : 未成功更新训练进程状态");
             }
             response.put("status", "error");
             response.put("message", "Invalid processId");
             return response;
         }
 
-        System.out.println("In Kill Train processId : " + processId);
+        printTrainLog("In Kill Train processId : " + processId);
 
         // 获取存储的进程
         Thread thread = processMap.get(processId);
@@ -470,9 +525,9 @@ public class TrainServiceImpl implements TrainService {
                 return response;
             }
 
-            System.out.println("等待训练线程执行完数据库更新...");
+            printTrainLog("等待训练线程执行完数据库更新...");
             thread.join();  // **等待该线程执行完毕**
-            System.out.println("训练线程已结束，数据库更新完成");
+            printTrainLog("训练线程已结束，数据库更新完成");
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
@@ -504,9 +559,9 @@ public class TrainServiceImpl implements TrainService {
                 return response;
             }
             // **等待 `addTrain` 里的线程执行完毕**
-            System.out.println("等待训练线程执行完数据库更新...");
+            printTrainLog("等待训练线程执行完数据库更新...");
             thread.join();  // **等待该线程执行完毕**
-            System.out.println("训练线程已结束，数据库更新完成");
+            printTrainLog("训练线程已结束，数据库更新完成");
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } finally {
@@ -526,23 +581,23 @@ public class TrainServiceImpl implements TrainService {
 
         File projectPath = new File(System.getProperty("user.dir"), "/python");
         if (!projectPath.exists() && projectPath.mkdirs()) {
-            System.out.println("目录创建成功：" + projectPath.getAbsolutePath());
+            printTrainLog("目录创建成功：" + projectPath.getAbsolutePath());
         }
 
         File tensorboardDir = new File(projectPath.getPath(), "/logs");
         File checkpointDir = new File(projectPath.getPath(), "/checkpoint");
         if (!tensorboardDir.exists()) {
             if (tensorboardDir.mkdirs()) {
-                System.out.println("目录创建成功：" + tensorboardDir.getAbsolutePath());
+                printTrainLog("目录创建成功：" + tensorboardDir.getAbsolutePath());
             } else {
-                System.err.println("目录创建失败！");
+                printTrainLog("目录创建失败！");
             }
         }
         if (!checkpointDir.exists()) {
             if (checkpointDir.mkdirs()) {
-                System.out.println("目录创建成功：" + checkpointDir.getAbsolutePath());
+                printTrainLog("目录创建成功：" + checkpointDir.getAbsolutePath());
             } else {
-                System.err.println("目录创建失败！");
+                printTrainLog("目录创建失败！");
             }
         }
 
@@ -558,13 +613,13 @@ public class TrainServiceImpl implements TrainService {
             try (FileOutputStream fos = new FileOutputStream(checkpointFile)) {
                 fos.write(modelPthData);
                 fos.flush();
-                System.out.println("模型文件已保存至：" + checkpointFile.getAbsolutePath());
+                printTrainLog("模型文件已保存至：" + checkpointFile.getAbsolutePath());
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new RuntimeException("保存模型失败", e);
             }
         } else {
-            System.out.println("未找到对应的模型数据");
+            printTrainLog("未找到对应的模型数据");
         }
 
 
@@ -588,8 +643,8 @@ public class TrainServiceImpl implements TrainService {
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
         String paramsJson = isWindows ? params.replace("\"", "\\\"") : params.replace("'", "\\'");
         String quote = isWindows ? "\"" : "'";
-        System.out.println("GameNode Got ParamsJson: " + paramsJson);
-        System.out.println("Conda Env Name: " + envName);
+        printTrainLog("GameNode Got ParamsJson: " + paramsJson);
+        printTrainLog("Conda Env Name: " + envName);
         try {
             String[] command;
             if (isWindows) {
@@ -611,7 +666,7 @@ public class TrainServiceImpl implements TrainService {
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             Process pythonProcess = processBuilder.start();
 
-            System.out.println("Python 训练进程启动，等待 PID 输出...");
+            printTrainLog("Python 训练进程启动，等待 PID 输出...");
 
             final String[] processIdHolder = {null};
 
@@ -620,14 +675,14 @@ public class TrainServiceImpl implements TrainService {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        System.out.println("Python 输出: " + line);
+                        printTrainLog("Python 输出: " + line);
                         System.out.flush();
                         // 获取 PID
                         if (line.startsWith("PID :")) {
                             synchronized (processIdHolder) {
-                                System.out.println("want get pid !!!!!");
+                                printTrainLog("want get pid !!!!!");
                                 processIdHolder[0] = line.replace("PID :", "").trim();
-                                System.out.println("PID : " + processIdHolder[0]);
+                                printTrainLog("PID : " + processIdHolder[0]);
                             }
                         }
                         synchronized (processIdHolder) {
@@ -636,13 +691,13 @@ public class TrainServiceImpl implements TrainService {
                                     infoQueueMap.get(processIdHolder[0]).put(line);
                                     runStep.getAndIncrement();
                                 } else {
-                                    logQueueMap.get(processIdHolder[0]).put(line);
+                                    logQueueMap.get(processIdHolder[0]).put(trainingName + " " + line);
                                 }
                             }
                         }
                     }
                 } catch (IOException e) {
-                    System.err.println("读取标准输出时出错: " + e.getMessage());
+                    printTrainLog("读取标准输出时出错: " + e.getMessage());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -653,7 +708,7 @@ public class TrainServiceImpl implements TrainService {
                 try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
                     String line;
                     while ((line = errorReader.readLine()) != null) {
-                        System.err.println("Python 错误: " + line);
+                        printTrainLog("Python 错误: " + line);
                         System.out.flush();
                         synchronized (processIdHolder) {
                             if (processIdHolder[0] != null && errorQueueMap.containsKey(processIdHolder[0])) {
@@ -662,7 +717,7 @@ public class TrainServiceImpl implements TrainService {
                         }
                     }
                 } catch (IOException e) {
-                    System.err.println("读取错误输出时出错: " + e.getMessage());
+                    printTrainLog("读取错误输出时出错: " + e.getMessage());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -686,7 +741,7 @@ public class TrainServiceImpl implements TrainService {
             logQueueMap.put(processId, new LinkedBlockingQueue<>());
             errorQueueMap.put(processId, new LinkedBlockingQueue<>());
             infoQueueMap.put(processId, new LinkedBlockingQueue<>());
-            System.out.println("Python 进程 PID 获取成功: " + processId);
+            printTrainLog("Python 进程 PID 获取成功: " + processId);
 
             Thread dbThread = new Thread(() -> {
                 try {
@@ -697,7 +752,7 @@ public class TrainServiceImpl implements TrainService {
                         trainLogMapper.insert(trainLog);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println("数据库写入线程被中断: " + e.getMessage());
+                    printTrainLog("数据库写入线程被中断: " + e.getMessage());
                 }
             });
 //            dbThread.setDaemon(true);
@@ -712,7 +767,7 @@ public class TrainServiceImpl implements TrainService {
                         exceptionLogMapper.insert(exceptionLog);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println("数据库写入线程被中断: " + e.getMessage());
+                    printTrainLog("数据库写入线程被中断: " + e.getMessage());
                 }
             });
 //            errorDbThread.setDaemon(true);
@@ -721,9 +776,9 @@ public class TrainServiceImpl implements TrainService {
             objectUpdateWrapper.eq("id", trainId).set("running", 1).set("processid", processId).set("params", params);
             boolean isUpdated = trainMapper.update(null, objectUpdateWrapper) > 0;
             if (isUpdated) {
-                System.out.println("Exception : 成功更新继续训练进程状态");
+                printTrainLog("Exception : 成功更新继续训练进程状态");
             } else {
-                System.out.println("Exception : 未成功继续更新训练进程状态");
+                printTrainLog("Exception : 未成功继续更新训练进程状态");
             }
 
 //            loss... info
@@ -748,7 +803,7 @@ public class TrainServiceImpl implements TrainService {
                         trainInfoMapper.insert(trainInfo);
                     }
                 } catch (InterruptedException e) {
-                    System.err.println("loss写入线程被中断: " + e.getMessage());
+                    printTrainLog("loss写入线程被中断: " + e.getMessage());
                 }
             });
             infoDbThread.start();
@@ -757,7 +812,7 @@ public class TrainServiceImpl implements TrainService {
             Thread trainingThread = new Thread(() -> {
                 try {
                     int exitCode = pythonProcess.waitFor();
-                    System.out.println("Python 进程退出，代码: " + exitCode);
+                    printTrainLog("Python 进程退出，代码: " + exitCode);
                     UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
                     updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : runStatus).set("step", runStep.get());
                     if (trainMapper.update(null, updateWrapper) > 0) {
@@ -765,9 +820,9 @@ public class TrainServiceImpl implements TrainService {
                         Train train1 = trainMapper.selectOne(new QueryWrapper<Train>().eq("trainingname", trainingName));
                         byte[] modelCheckpoint = FileUtils.readFileToByteArray(checkpointPath);
                         saveCheckpoint(trainingName, scene, train1.getId(), modelCheckpoint);
-                        System.out.println("保存 checkpoint 文件...");
+                        printTrainLog("保存 checkpoint 文件...");
 //                        }
-                        System.out.println("成功更新训练进程状态");
+                        printTrainLog("成功更新训练进程状态");
                     }
                     runStatus = 0;
                     // 训练完成后删除队列，避免占用内存
@@ -787,7 +842,7 @@ public class TrainServiceImpl implements TrainService {
 
                     logQueueMap.remove(processId);
                     errorQueueMap.remove(processId);
-                    System.out.println("删除队列成功!!!!!!!!!!!");
+                    printTrainLog("删除队列成功!!!!!!!!!!!");
                     processMap.remove(processId);
                 }
             });
@@ -837,7 +892,7 @@ public class TrainServiceImpl implements TrainService {
 //            ProcessBuilder processBuilder = new ProcessBuilder(command);
 //            Process pythonProcess = processBuilder.start();
 //
-//            System.out.println("Python 训练进程启动，等待 PID 输出...");
+//            printTrainLog("Python 训练进程启动，等待 PID 输出...");
 //
 //            final String[] processIdHolder = {null};
 //            // 读取 stdout 和 PID
@@ -845,7 +900,7 @@ public class TrainServiceImpl implements TrainService {
 //                try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
 //                    String line;
 //                    while ((line = reader.readLine()) != null) {
-//                        System.out.println("Python 输出: " + line);
+//                        printTrainLog("Python 输出: " + line);
 //
 //                        // 获取 PID
 //                        if (line.startsWith("PID :")) {
@@ -855,7 +910,7 @@ public class TrainServiceImpl implements TrainService {
 //                        }
 //                    }
 //                } catch (IOException e) {
-//                    System.err.println("读取标准输出时出错: " + e.getMessage());
+//                    printTrainLog("读取标准输出时出错: " + e.getMessage());
 //                }
 //            });
 //
@@ -864,10 +919,10 @@ public class TrainServiceImpl implements TrainService {
 //                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
 //                    String line;
 //                    while ((line = errorReader.readLine()) != null) {
-//                        System.err.println("Python 错误: " + line);
+//                        printTrainLog("Python 错误: " + line);
 //                    }
 //                } catch (IOException e) {
-//                    System.err.println("读取错误输出时出错: " + e.getMessage());
+//                    printTrainLog("读取错误输出时出错: " + e.getMessage());
 //                }
 //            });
 //
@@ -887,25 +942,25 @@ public class TrainServiceImpl implements TrainService {
 //            }
 //
 //            processId = processIdHolder[0];
-//            System.out.println("Python 进程 PID 获取成功: " + processId);
+//            printTrainLog("Python 进程 PID 获取成功: " + processId);
 //            UpdateWrapper<Train> updateWrapper = new UpdateWrapper<>();
 //            updateWrapper.eq("trainingname", trainingName).set("running", 1).set("processid", processId);
 //            AtomicBoolean isUpdated = new AtomicBoolean(trainMapper.update(null, updateWrapper) > 0);
 //            if (isUpdated.get()) {
-//                System.out.println("Exception : 成功更新训练进程状态");
+//                printTrainLog("Exception : 成功更新训练进程状态");
 //            } else {
-//                System.out.println("Exception : 未成功更新训练进程状态");
+//                printTrainLog("Exception : 未成功更新训练进程状态");
 //            }
 //            // 监听进程状态
 //            String finalProcessId = processId;
 //            Thread trainingThread = new Thread(() -> {
 //                try {
 //                    int exitCode = pythonProcess.waitFor();
-//                    System.out.println("Python 进程退出，代码: " + exitCode);
+//                    printTrainLog("Python 进程退出，代码: " + exitCode);
 //
 //                    updateWrapper.eq("trainingname", trainingName).set("running", exitCode == 0 ? 0 : runStatus);
 //                    if (trainMapper.update(null, updateWrapper) > 0) {
-//                        System.out.println("成功更新训练进程状态");
+//                        printTrainLog("成功更新训练进程状态");
 //                    }
 //                } catch (Exception e) {
 //                    e.printStackTrace();
@@ -934,7 +989,7 @@ public class TrainServiceImpl implements TrainService {
     public Map<String, String> addTensorboard(MultiValueMap<String, String> data) {
         Map<String, String> result = new HashMap<>();
         String tensorboardpath = data.getFirst("tensorboardpath");
-        System.out.println("tensorboardpath : " + tensorboardpath);
+        printTrainLog("tensorboardpath : " + tensorboardpath);
         int port = 6001;
         synchronized (this) {
             for (int i = 0; i < 10; i ++) {
@@ -949,7 +1004,7 @@ public class TrainServiceImpl implements TrainService {
         // 启动一个线程来执行 TensorBoard 命令
 
         int finalPort = port;
-        System.out.println("tensorboard port : " + finalPort);
+        printTrainLog("tensorboard port : " + finalPort);
         new Thread(() -> {
             try {
                 // 构建 TensorBoard 命令
@@ -1014,7 +1069,7 @@ public class TrainServiceImpl implements TrainService {
     @Override
     public Map<String, String> deleteTensorboard(MultiValueMap<String, String> data) {
         int port = Integer.parseInt(data.getFirst("tPort"));
-        System.out.println("want to kill port : " + port);
+        printTrainLog("want to kill port : " + port);
         killProcessByPort(port);
         HashMap<String, String> result = new HashMap<>();
         result.put("status", "success");
@@ -1040,7 +1095,7 @@ public class TrainServiceImpl implements TrainService {
             String line;
             String pid = null;
             while ((line = reader.readLine()) != null) {
-                System.out.println("line is: " + line);
+                printTrainLog("line is: " + line);
                 if (line.contains("6001")) {  // 只处理包含 6001 端口的行
                     String[] parts = line.trim().split("\\s+");
                     pid = parts[parts.length - 1]; // PID 在最后一列
@@ -1055,9 +1110,9 @@ public class TrainServiceImpl implements TrainService {
                     Process killProcess = killProcessBuilder.start();
                     int exitCode = killProcess.waitFor();
                     if (exitCode == 0) {
-                        System.out.println("Successfully killed process with PID " + pid);
+                        printTrainLog("Successfully killed process with PID " + pid);
                     } else {
-                        System.out.println("Failed to kill process with PID " + pid);
+                        printTrainLog("Failed to kill process with PID " + pid);
                     }
 //                    break;
                 }

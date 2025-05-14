@@ -1,37 +1,35 @@
 <!--
  * @Author: ssp
  * @Date: 2025-01-06 21:58:24
- * @LastEditTime: 2025-04-13 17:05:22
+ * @LastEditTime: 2025-05-13 13:03:56
 -->
 <template>
     <div class="container mt-4">
         <!-- Search and Add Model Button -->
         <div class="d-flex justify-content-between mb-3">
             <div class="input-group" style="width: 300px;">
-                <input type="text" class="form-control" placeholder="查找方法..." v-model="searchQuery" @input="filterModels">
+                <input type="text" class="form-control" placeholder="查找算法..." v-model="searchQuery" @input="filterModels">
                 <button class="btn btn-outline-secondary" type="button" @click="resetSearch">重置</button>
             </div>
 
-            <!-- <button class="btn btn-primary d-inline-block" @click="openAddModelAddModal">创建方法</button>
-            <button class="btn btn-primary d-inline-block" @click="openAddModelModal">添加方法</button> -->
             <div class="btn-group" role="group">
-                <button class="btn btn-primary" @click="openAddModelAddModal">创建方法</button>
-                <button class="btn btn-success" @click="openAddModelModal">添加方法</button>
+                <button class="btn btn-primary" @click="openAddModelAddModal">创建算法</button>
+                <button class="btn btn-success" @click="openAddModelModal">添加算法</button>
             </div>
         </div>
 
         <!-- Model Table -->
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">方法列表</h5>
+                <h5 class="card-title">算法列表</h5>
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th scope="col">方法名</th>
-                            <th scope="col">方法简介</th>
+                            <th scope="col">算法名</th>
+                            <th scope="col">算法简介</th>
                             <th scope="col">运行场景</th>
                             <th scope="col">深度学习环境</th>
-                            <th scope="col">方法能力</th>
+                            <th scope="col">算法能力</th>
                             <th scope="col">操作</th>
                         </tr>
                     </thead>
@@ -74,17 +72,17 @@
                 <div class="modal-content border-0 shadow-lg rounded-4">
                     <div class="modal-header bg-primary text-white rounded-top-4">
                         <h5 class="modal-title" id="modelModalLabel">
-                            {{ isEditing ? '编辑方法' : '新增方法' }}
+                            {{ isEditing ? '编辑算法' : '新增算法' }}
                         </h5>
                         <button type="button" class="btn-close btn-close-white" @click="closeModal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body px-4 py-3">
                         <form>
                             <div class="row g-3">
-                                <!-- 方法名 -->
+                                <!-- 算法名 -->
                                 <div class="col-md-6">
-                                    <label for="name" class="form-label fw-semibold">方法名</label>
-                                    <input type="text" class="form-control" id="name" v-model="form.name" placeholder="请输入方法名称">
+                                    <label for="name" class="form-label fw-semibold">算法名</label>
+                                    <input type="text" class="form-control" id="name" v-model="form.name" placeholder="请输入算法名称">
                                 </div>
 
                                 <!-- 深度学习环境 -->
@@ -93,7 +91,7 @@
                                     <input type="text" class="form-control" id="environment" v-model="form.environment" placeholder="如 PyTorch 1.12, CUDA 11.3">
                                 </div>
 
-                                <!-- 选择方法文件 -->
+                                <!-- 选择算法文件 -->
                                 <div class="col-md-6">
                                     <label for="modelSelection" class="form-label fw-semibold">上传模型文件</label>
                                     <input type="file" class="form-control" id="modelSelection" @change="handleFileChange">
@@ -110,19 +108,19 @@
                                     </select>
                                 </div>
 
-                                <!-- 方法能力 -->
+                                <!-- 算法能力 -->
                                 <div class="col-12">
-                                    <label for="ability" class="form-label fw-semibold">方法能力</label>
+                                    <label for="ability" class="form-label fw-semibold">算法能力</label>
                                     <input type="text" class="form-control" id="ability" v-model="form.ability" placeholder="例如：异常检测、图像识别等">
                                 </div>
 
-                                <!-- 方法简介 -->
+                                <!-- 算法简介 -->
                                 <div class="col-12">
-                                    <label for="summary" class="form-label fw-semibold">方法简介</label>
-                                    <textarea class="form-control" id="summary" v-model="form.summary" rows="3" placeholder="请输入方法的功能、用途、实现方式等"></textarea>
+                                    <label for="summary" class="form-label fw-semibold">算法简介</label>
+                                    <textarea class="form-control" id="summary" v-model="form.summary" rows="3" placeholder="请输入算法的功能、用途、实现方式等"></textarea>
                                 </div>
 
-                                <!-- 方法结构图片 -->
+                                <!-- 算法结构图片 -->
                                 <div class="col-12">
                                     <label for="structureimage" class="form-label fw-semibold">结构图片</label>
                                     <input type="file" class="form-control" id="structureimage" @change="handleImageUpload">
@@ -131,9 +129,9 @@
                                     </div>
                                 </div>
 
-                                <!-- 方法代码 -->
+                                <!-- 算法代码 -->
                                 <div class="col-12">
-                                    <label for="code" class="form-label fw-semibold">方法代码</label>
+                                    <label for="code" class="form-label fw-semibold">算法代码</label>
                                     <VAceEditor
                                         v-model:value="form.code"
                                         lang="python"
@@ -148,7 +146,7 @@
                     <div class="modal-footer bg-light border-top-0 px-4 py-3">
                         <button type="button" class="btn btn-outline-secondary" @click="closeModal">取消</button>
                         <button type="button" class="btn btn-primary" @click="saveModel">
-                            {{ isEditing ? '保存更改' : '新增方法' }}
+                            {{ isEditing ? '保存更改' : '新增算法' }}
                         </button>
                     </div>
                 </div>
@@ -161,13 +159,13 @@
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="modelModalLabel">创建方法</h5>
+                        <h5 class="modal-title" id="modelModalLabel">创建算法</h5>
                         <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form>
                             <div class="mb-3">
-                                <label for="code" class="form-label">方法代码</label>
+                                <label for="code" class="form-label">算法代码</label>
                                 <VAceEditor
                                     v-model:value="form.code"
                                     lang="python"
@@ -182,7 +180,7 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" @click="closeModalAdd">取消</button>
                         <button v-if="isEditing" type="button" class="btn btn-primary" @click="saveModelAdd">保存更改</button>
-                        <button v-else type="button" class="btn btn-primary" @click="saveModelAdd">创建方法</button>
+                        <button v-else type="button" class="btn btn-primary" @click="saveModelAdd">创建算法</button>
                     </div>
                 </div>
             </div>
@@ -193,7 +191,7 @@
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content shadow-lg rounded-4 border-0">
             <div class="modal-header bg-primary text-white rounded-top-4">
-                <h5 class="modal-title" id="modelModalLabel">添加方法</h5>
+                <h5 class="modal-title" id="modelModalLabel">添加算法</h5>
                 <button type="button" class="btn-close btn-close-white" @click="closeModal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -202,12 +200,12 @@
                     <!-- 左半部分 -->
                     <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="name" class="form-label">方法名</label>
+                        <label for="name" class="form-label">算法名</label>
                         <input type="text" class="form-control" id="name" v-model="form.name">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">选择方法文件</label>
+                        <label class="form-label">选择算法文件</label>
                         <input type="file" class="form-control" @change="handleFileChange" />
                     </div>
 
@@ -222,7 +220,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">方法能力</label>
+                        <label class="form-label">算法能力</label>
                         <input type="text" class="form-control" v-model="form.ability">
                     </div>
 
@@ -249,12 +247,12 @@
                     <!-- 右半部分 -->
                     <div class="col-md-6">
                     <div class="mb-3">
-                        <label class="form-label">方法简介</label>
-                        <textarea class="form-control" v-model="form.summary" rows="9" placeholder="简要描述该方法的核心思路和应用场景..."></textarea>
+                        <label class="form-label">算法简介</label>
+                        <textarea class="form-control" v-model="form.summary" rows="9" placeholder="简要描述该算法的核心思路和应用场景..."></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">方法结构图片</label>
+                        <label class="form-label">算法结构图片</label>
                         <input type="file" class="form-control" @change="handleImageUpload">
                         <div v-if="form.structureimage" class="mt-2">
                         <img :src="form.structureimage" alt="模型结构图片" style="max-width: 100%; max-height: 200px; border: 1px solid #ddd; border-radius: 6px;">
@@ -268,7 +266,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" @click="closeModal">取消</button>
                 <button v-if="isEditing" type="button" class="btn btn-success" @click="saveModel">保存更改</button>
-                <button v-else type="button" class="btn btn-primary" @click="saveModel">新增方法</button>
+                <button v-else type="button" class="btn btn-primary" @click="saveModel">新增算法</button>
             </div>
             </div>
         </div>
@@ -280,7 +278,7 @@
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">方法可视化</h5>
+                        <h5 class="modal-title">算法可视化</h5>
                         <button type="button" class="btn-close" @click="closeVisualization" aria-label="Close"></button>
                     </div>
                     <div class="modal-body d-flex justify-content-center">
@@ -404,7 +402,7 @@ export default {
                 '3': require('@/assets/images/CNN.jpg'),
             };
 
-            // 根据选中的方法获取对应的图片路径
+            // 根据选中的算法获取对应的图片路径
             const imagePath = imagePaths[form.methodSelection] || null;
 
             if (imagePath) {
@@ -443,13 +441,13 @@ export default {
         //     console.log("修改imagpath");
         //     switch (form.methodSelection) {
         //         case '1':
-        //             form.structureimage = '../../assets/images/DQN.png'; // 方法 1 对应的图片
+        //             form.structureimage = '../../assets/images/DQN.png'; // 算法 1 对应的图片
         //             break;
         //         case '2':
-        //             form.structureimage = '../../assets/images/DDPG.png'; // 方法 2 对应的图片
+        //             form.structureimage = '../../assets/images/DDPG.png'; // 算法 2 对应的图片
         //             break;
         //         case '3':
-        //             form.structureimage = '../../assets/images/CNN.jpg'; // 方法 3 对应的图片
+        //             form.structureimage = '../../assets/images/CNN.jpg'; // 算法 3 对应的图片
         //             break;
         //         default:
         //             form.structureimage = null; // 清空图片
@@ -607,11 +605,7 @@ export default {
         };
 
         const saveModelAdd = () => {
-            // if (isEditing.value) {
-                // updateModel();
-            // } else {
-            //     addModel();
-            // }
+     
             addModelAdd()
         };
         const addModelAdd = () => {
@@ -624,43 +618,6 @@ export default {
             isModalAddVisible.value = false
         }
 
-        // const addModel = () => {
-        //     const formData = new FormData();
-        //     formData.append("name", form.name);
-        //     formData.append("summary", form.summary);
-        //     formData.append("environment", form.environment);
-        //     formData.append("ability", form.ability);
-        //     formData.append("structureimage", form.structureimage);
-        //     formData.append("code", form.code);
-        //     // formData.append("inferCode", form.inferCode);
-        //     if (form.modelPth) {
-        //         formData.append("modelPth", form.modelPth); // 这里是 File 对象
-        //     }
-        //     // formData.append("modelPth", form.modelPth); // 这里是 File 对象
-        //     formData.append("modelstruct", JSON.stringify(newLayers.value));
-        //     formData.append("modelselect", form.methodSelection);
-        //     formData.append("situationselect", form.situationSelection);
-
-        //     $.ajax({
-        //         url: "http://127.0.0.1:3000/model/add/",
-        //         type: "post",
-        //         headers: {
-        //             Authorization: "Bearer " + store.state.user.token,
-        //         },
-        //         processData: false, // 重要：不要让 jQuery 处理 FormData
-        //         contentType: false, // 重要：让浏览器自动设置 Content-Type
-        //         data: formData,
-        //         success(resp) {
-        //             console.log(resp);
-        //             fetchModels();
-        //         },
-        //         error(resp) {
-        //             console.log(resp);
-        //         }
-        //     });
-        //     form.modelPth = null; // 清空 File 对象
-        //     isModalVisible.value = false;
-        // };
         const addModel = () => {
             // 简单校验逻辑
             if (!form.name) {
@@ -800,7 +757,7 @@ export default {
         };
 
         const closeModalAdd = () => {
-            console.log("关闭添加方法");
+            console.log("关闭添加算法");
             isEditing.value = false;
             isModalAddVisible.value = false;
         };

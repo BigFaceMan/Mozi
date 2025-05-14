@@ -1,7 +1,7 @@
 <!--
  * @Author: ssp
  * @Date: 2025-03-05 20:25:31
- * @LastEditTime: 2025-03-24 12:08:04
+ * @LastEditTime: 2025-05-13 13:02:24
 -->
 <template>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -13,7 +13,7 @@
           <router-link :class="route_name == 'envconduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'envconduct_index'}">场景管理</router-link>
         </li>
         <li class="nav-item" v-if="hasPermission('modelconduct_index', 'view')">
-          <router-link :class="route_name == 'modelconduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'modelconduct_index'}">方法管理</router-link>
+          <router-link :class="route_name == 'modelconduct_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'modelconduct_index'}">算法管理</router-link>
         </li>
         <li class="nav-item" v-if="hasPermission('modeltrain_index', 'view')">
           <router-link :class="route_name == 'modeltrain_index' ? 'nav-link active' : 'nav-link'" :to="{name: 'modeltrain_index'}">模型管理</router-link>

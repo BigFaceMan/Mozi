@@ -1,3 +1,4 @@
+
 export default {
   state: {
     socket: null,
@@ -24,6 +25,7 @@ export default {
       state.trainingStatus = status;
     },
     updateForm(state, formData) {
+      console.log("In updateForm change formData : ", formData)
       state.form = { ...state.form, ...formData };
     }
   },

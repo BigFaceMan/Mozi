@@ -859,21 +859,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 模态框背景 */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* 半透明背景 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow-y: auto; /* 允许在模态框内滚动 */
-}
-
-/* .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -881,95 +867,55 @@ onMounted(() => {
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 1050;
-} */
+    justify-content: center;
+    overflow-y: auto;
+}
 
-/* 模态框内容 */
 .modal-content {
-    /* background: white;
+    position: relative;
+    width: 90%;
+    max-width: 1200px;
+    min-width: 800px;
+    background: white;
     border-radius: 10px;
     padding: 20px;
-    width: 90%;
-    max-width: 10000px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); */
-    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow-x: auto;
 }
 
-/* 右上角关闭按钮 */
-.close-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #333;
-    transition: 0.3s;
-}
-
-.close-btn:hover {
-    color: #ff0000;
-}
-
-/* 卡片样式 */
-.card {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-}
-
-/* 表格行悬停效果 */
-.table-hover tbody tr {
-    cursor: pointer;
-    transition: 0.2s;
-}
-
-.table-hover tbody tr:hover {
-    background-color: #f8f9fa;
-}
-
-/* 选中的表格行 */
-.table-active {
-    background-color: #007bff !important;
-    color: white !important;
-    font-weight: bold;
-}
-.stylish-input {
-    width: 60%; /* 让输入框更宽 */
-    padding: 10px;
-    font-size: 16px;
-    border-radius: 8px; /* 圆角 */
-    border: 1px solid #ccc;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1); /* 轻微阴影 */
-    transition: all 0.3s ease-in-out;
-}
-
-.stylish-input:focus {
-    border-color: #007bff; /* 聚焦时边框变蓝 */
-    box-shadow: 0px 3px 7px rgba(0, 123, 255, 0.3);
-    outline: none;
-}
-.stylish-search {
-    border-radius: 8px;
-    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+.table th, .table td {
+    min-width: 120px;
+    white-space: nowrap;
     overflow: hidden;
-}
-
-.stylish-search .form-control {
-    border: none;
-    border-radius: 0 8px 8px 0;
+    text-overflow: ellipsis;
     padding: 10px;
-    font-size: 16px;
 }
 
-.stylish-search .input-group-text {
-    background-color: #f8f9fa;
-    border: none;
-    border-radius: 8px 0 0 8px;
-    padding: 10px 15px;
-    font-size: 16px;
-    color: #6c757d;
+.table-hover tbody tr:hover td {
+    white-space: normal;
+    overflow: visible;
+}
+
+@media (max-width: 1200px) {
+    .modal-content {
+        width: 95%;
+        max-width: none;
+    }
+    
+    .table th, .table td {
+        padding: 8px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 100%;
+    }
+    
+    .table {
+        font-size: 12px;
+    }
 }
 </style>

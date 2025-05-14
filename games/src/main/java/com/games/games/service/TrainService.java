@@ -6,7 +6,6 @@ import org.springframework.util.MultiValueMap;
 
 public interface TrainService {
     public Map<String, String> addTrain(MultiValueMap<String, String> data);
-
     public boolean terminateProcess(String pid);
     public Map<String, String> killTrain(MultiValueMap<String, String> data) throws IOException;
     public Map<String, String> stopTrain(MultiValueMap<String, String> data) throws IOException;

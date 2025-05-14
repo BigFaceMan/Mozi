@@ -6,7 +6,31 @@
                 <input type="text" class="form-control" placeholder="查找模型..." v-model="searchQuery" @input="filterTrainings">
                 <button class="btn btn-outline-secondary" type="button" @click="resetSearch">重置</button>
             </div>
+            <div>
+                <button
+                v-if="!isComparing"
+                class="btn btn-outline-primary"
+                @click="openComparison"
+                >
+                <i class="bi bi-bar-chart-steps me-1"></i> 模型对比
+                </button>
 
+                <!-- <button
+                v-if="isComparing"
+                class="btn btn-success"
+                @click="startComparison"
+                >
+                <i class="bi bi-play-circle me-1"></i> 开始对比
+                </button>
+
+                <button
+                v-if="isComparing"
+                class="btn btn-outline-secondary"
+                @click="toggleComparison"
+                >
+                <i class="bi bi-x-circle me-1"></i> 取消对比
+                </button >  -->
+            </div>
         </div>
         <!-- Training Records Table -->
         <div class="card">
@@ -17,7 +41,7 @@
                     <tr>
                         <th scope="col">模型名</th>
                         <th scope="col">场景</th>
-                        <th scope="col">方法</th>
+                        <th scope="col">算法</th>
                         <th scope="col">强化学习环境</th>
                         <th scope="col">训练状态</th>
                         <th scope="col">操作</th>
@@ -53,7 +77,6 @@
                             <button class="btn-soft info" v-if="group.latestTraining.running == '0'" @click="viewResourceUsage(group.latestTraining)">资源使用报告</button>
                             <button class="btn-soft info" v-if="group.latestTraining.running == '0'" @click="viewSuggestions(group.latestTraining)">智能建议</button>
 
-                            <!-- 上传状态 -->
 
                             <!-- 通用操作 -->
                             <button class="btn-soft primary" v-if="group.latestTraining.running == '0'" @click="generateReport(group.latestTraining)">生成报告</button>
@@ -139,29 +162,7 @@
                 <i class="bi bi-x-circle me-1"></i> 取消
                 </button>
 
-                <button
-                v-if="!isComparing"
-                class="btn btn-outline-primary"
-                @click="openComparison"
-                >
-                <i class="bi bi-bar-chart-steps me-1"></i> 模型对比
-                </button>
-
-                <button
-                v-if="isComparing"
-                class="btn btn-success"
-                @click="startComparison"
-                >
-                <i class="bi bi-play-circle me-1"></i> 开始对比
-                </button>
-
-                <button
-                v-if="isComparing"
-                class="btn btn-outline-secondary"
-                @click="toggleComparison"
-                >
-                <i class="bi bi-x-circle me-1"></i> 取消对比
-                </button>
+              
             </div>
 
             <!-- 模型列表表格 -->
@@ -222,6 +223,7 @@
         </div>
 
         </div>
+
         <div class="modal fade" id="speedModal" tabindex="-1" aria-labelledby="speedModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -240,37 +242,100 @@
                 </div>
             </div>
         </div>
+
+    <div 
+      v-if="isComparing" 
+      class="modal fade show" 
+      tabindex="-1" 
+      aria-labelledby="visualizationModalLabel" 
+      aria-hidden="true" 
+      style="display: block;"
+    >
+      <div class="modal-dialog" style="max-width: 95vw; max-height: 90vh;">
+        <div class="modal-content shadow-lg rounded-4" style="height: 85vh;">
+          <div class="modal-header">
+            <h5 class="modal-title" id="visualizationModalLabel">训练任务比较</h5>
+            <button 
+              type="button" 
+              class="btn-close" 
+              @click="closeComparisonModal"
+              aria-label="Close"
+            ></button>
+          </div>
+          
+          <div class="modal-body p-0">
+            <div class="table-responsive">
+              <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-light">
+                  <tr>
+                    <th v-if="isComparing">选择</th>
+                    <th>训练名称</th>
+                    <th>场景</th>
+                    <th>模型</th>
+                    <th>PyTorch 版本</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="training in trainings" :key="training.id">
+                    <td v-if="isComparing || isBatch">
+                      <input
+                        type="checkbox"
+                        v-model="selectedModels"
+                        :value="training"
+                        :disabled="selectedModels.length >= 2 && !selectedModels.includes(training)"
+                      />
+                    </td>
+                    <td>{{ training.trainingname }}</td>
+                    <td>{{ training.scene }}</td>
+                    <td>{{ training.model }}</td>
+                    <td>{{ training.pytorchversion }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button 
+              type="button" 
+              class="btn btn-secondary" 
+              @click="closeComparisonModal"
+            >
+              关闭
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              @click="startComparison"
+              :disabled="selectedModels.length < 2"
+            >
+              比较选中项
+            </button>
+          </div>
+        </div>
+      </div>
+      </div>
+
+
         <!-- Visualization Modal -->
         <div v-if="isVisualizationVisible" class="modal fade show" tabindex="-1" aria-labelledby="visualizationModalLabel" aria-hidden="true" style="display: block;">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
+            <div class="modal-dialog" style="max-width: 95vw; max-height: 90vh;">
+                <div class="modal-content shadow-lg rounded-4" style="height: 85vh;">
+                    <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title">训练日志</h5>
-                        <button type="button" class="btn-close" @click="closeVisualization" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white" @click="closeVisualization" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <!-- Training Logs -->
-                        <div class="training-logs" style="height: 400px; overflow-y: auto; font-family: monospace; background-color: #f8f9fa; padding: 10px; border: 1px solid #dee2e6;">
-                            <p>[INFO] Starting training process...</p>
-                            <p>[INFO] Model initialized with 2,301,827 parameters.</p>
-                            <p>[INFO] Using Adam optimizer with learning rate = 0.001.</p>
-                            <p>[INFO] Loading training dataset: 50,000 samples, batch size = 32.</p>
-                            <p>[INFO] Epoch 1/1000: Training started.</p>
-                            <p>[INFO] Epoch 1, Batch 50/1562: Loss = 0.876, Accuracy = 72.5%</p>
-                            <p>[INFO] Epoch 1, Batch 100/1562: Loss = 0.654, Accuracy = 80.1%</p>
-                            <p>[INFO] Epoch 1 complete: Loss = 0.512, Accuracy = 85.3%.</p>
-                            <p>[INFO] Validation started: 10,000 samples.</p>
-                            <p>[INFO] Validation complete: Loss = 0.432, Accuracy = 87.6%.</p>
-                            <p>[INFO] Epoch 2/1000: Training started.</p>
-                            <p>[INFO] Epoch 2, Batch 50/1562: Loss = 0.412, Accuracy = 88.2%</p>
-                            <p>[WARNING] Learning rate scheduler updated: new learning rate = 0.0008.</p>
-                            <p>[INFO] Epoch 2 complete: Loss = 0.378, Accuracy = 89.9%.</p>
-                            <p>[INFO] Validation started: 10,000 samples.</p>
-                            <p>[INFO] Validation complete: Loss = 0.324, Accuracy = 90.8%.</p>
-                            <p>[INFO] Epoch 3/1000: Training started.</p>
-                            <p>[INFO] Epoch 3, Batch 50/1562: Loss = 0.328, Accuracy = 91.2%</p>
-                            <p>[INFO] Epoch 3 complete: Loss = 0.300, Accuracy = 92.4%.</p>
-                            <p>[INFO] Validation complete: Loss = 0.280, Accuracy = 93.1%.</p>
+                    <div class="modal-body" style="padding: 20px; height: calc(100% - 60px); overflow: hidden;">
+                        <!-- 动态训练日志展示 -->
+                        <div class="training-logs"
+                            style="height: 100%; overflow-y: auto; font-family: 'Courier New', monospace; background-color: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 12px; border: 1px solid #343a40; box-shadow: inset 0 0 12px rgba(0,0,0,0.3);">
+
+                            <p v-for="(log, index) in trainingLogs" :key="index" style="margin-bottom: 10px; font-size: 15px;">
+                                <span style="color: #6a9955;">[{{ log.timestamp }}]</span>
+                                <span style="color: #569cd6;">{{ log.trainname }}</span>:
+                                <span>{{ log.log }}</span>
+                            </p>
+
                         </div>
                     </div>
                 </div>
@@ -550,7 +615,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted} from 'vue';
 import LineChart from './LineChart.vue';
 import $ from 'jquery';
 import { Chart } from 'chart.js';
@@ -559,7 +624,7 @@ import { Modal } from "bootstrap";
 
 const store = useStore();
 const form = reactive({ ...store.state.train.form });
-const tempSpeedMultiplier = ref(1);
+const tempSpeedMultiplier = ref(150);
 const trainings = ref([]);
 const filteredTrainings = ref([]);
 const paginatedTrainings = ref([]);
@@ -650,23 +715,16 @@ const rollBack = (training) => {
 };
 
 
-
-
-// 更新最新模型
-// const updateLatest = (group, newLatest) => {
-//     group.trainings.forEach(training => {
-//         training.latest = training.id === newLatest.id;
-//     });
-//     group.latestTraining = newLatest;
-// };
-
-
 const openBatch = () => {
     isBatch.value = true;
 }
 const openComparison = () => {
     isComparing.value = true;
 }
+const closeComparisonModal = () => {
+    isComparing.value = false;
+    selectedModels.value = [];
+};
 const toggleComparison = () => {
     isComparing.value = false;
     isBatch.value = false;
@@ -811,8 +869,8 @@ const isSuggestionsVisible = ref(false);
 const isTrainingReplayVisible = ref(false);
 const resourceUsageData = ref({});
 const suggestionsData = ref('');
-const lossChart = ref(null);
 const isModelTestVisible = ref(false);
+const trainingLogs = ref([]); // 用来存放从后端拿到的日志数组
 
 const deleteSelectedModels = () => {
   if (confirm(`确定要删除选中的 ${selectedModels.value.length} 个模型吗？`)) {
@@ -845,13 +903,7 @@ const deleteSelectedModels = () => {
 
 const visualizeReport = (training) => {
     isVisualizationVisible.value = true;
-
-    nextTick(() => {
-        const canvasElement = lossChart.value;
-        if (!canvasElement) {
-          console.error('Canvas element not found');
-          return;
-        }
+    console.log("fetch trian log : ", training.trainingname)
 
         $.ajax({
             url: "http://127.0.0.1:3000/trainlog/getlist/",
@@ -863,37 +915,12 @@ const visualizeReport = (training) => {
                 trainingname: training.trainingname,
             },
             success(resp) {
-                const lossData = resp.map(log => log.loss);
-                const timestamps = resp.map(log => new Date(log.timestamp).toLocaleString());
-
-                const ctx = canvasElement.getContext('2d');
-                lossChart.value = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: timestamps,
-                        datasets: [{
-                            label: '损失值',
-                            data: lossData,
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            fill: true,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { title: { display: true, text: '时间' } },
-                            y: { title: { display: true, text: '损失' } }
-                        }
-                    }
-                });
+                trainingLogs.value = resp; 
             },
             error(err) {
                 console.error("Error fetching training log:", err);
             }
         });
-    });
 };
 
 const addGoodModel = (training) => {

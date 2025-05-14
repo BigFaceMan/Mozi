@@ -1,5 +1,6 @@
 package org.example.backend.service.model;
 
+import org.example.backend.pojo.AlgParams;
 import org.example.backend.pojo.Model;
 import org.example.backend.utils.Result;
 
@@ -13,7 +14,7 @@ public interface ModelOptService {
     List<Model> getList();
 
     Map<String, String> remove(Map<String, String> data);
-
+    List<AlgParams> getModelParamsAll();
     Map<String, String> update(Map<String, String> data);
     Result<String> rollback(Map<String, String> data);
 

@@ -70,11 +70,11 @@ public class ModeTrainingController {
     }
 
     @PostMapping("/train/continue/")
-    public Map<String, String> continueTrain(@RequestParam MultiValueMap<String, String> data) {
+    public Map<String, String> continueTrain(@RequestParam MultiValueMap<String, String> data) throws JsonProcessingException {
         return gamesService.continueTrain(data);
     }
     @PostMapping("/train/continueAfFin/")
-    public Map<String, Object> continueAfFinTrain(@RequestParam MultiValueMap<String, String> data) {
+    public Map<String, Object> continueAfFinTrain(@RequestParam MultiValueMap<String, String> data) throws JsonProcessingException {
         return gamesService.continueAfFinTrain(data);
     }
 

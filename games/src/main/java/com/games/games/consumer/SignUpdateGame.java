@@ -1,6 +1,7 @@
 package com.games.games.consumer;
 
 import com.games.games.pojo.ResourceInfo;
+import jdk.jfr.events.ExceptionThrownEvent;
 import org.springframework.beans.factory.annotation.Value;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
@@ -34,8 +35,15 @@ public class SignUpdateGame {
     public void sendResourceInfo() {
         ResourceInfo resourceInfo = getResourceInfo();
 //        System.out.println("DI serviceUrl : " + servicePlatformUrl);
+
         String url = servicePlatformUrl + "/games/sign/";
-        restTemplate.postForObject(url, resourceInfo, String.class);
+        try {
+            restTemplate.postForObject(url, resourceInfo, String.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     public ResourceInfo getResourceInfo() {

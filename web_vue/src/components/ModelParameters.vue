@@ -25,8 +25,8 @@
 
     <!-- 选择模型 -->
     <div class="form-group mb-3">
-      <label for="model">选择方法:</label>
-      <select v-model="form.model" id="model" class="form-select">
+      <label for="model">选择算法:</label>
+      <select v-model="form.model" id="model" class="form-select" @change="onModelChange">
         <option v-for="model in filteredModels" :key="model.id" :value="model.name">
           {{ model.name }}
         </option>
@@ -105,15 +105,6 @@
       </select>
     </div>
 
-    <!-- <div class="form-group mb-3">
-      <label for="pytorchVersion">选择 PyTorch 版本:</label>
-      <select v-model="form.pytorchVersion" id="pytorchVersion" class="form-select">
-        <option value="1.6">1.6</option>
-        <option value="1.8">1.8</option>
-        <option value="1.9">1.9</option>
-        <option value="1.10">1.10</option>
-      </select>
-    </div> -->
 
     <!-- 训练轮次 -->
     <div class="form-group mb-3">
@@ -212,6 +203,7 @@ const trainingStatus = ref(null); // 用来存储训练状态
 const showRewardModal = ref(false);
 const selectedNodes = ref([]);
 const dropdownVisible = ref(false);
+const modelParamsAll = ref([]);
 
 // 从 Vuex 获取表单数据
 const form = reactive({ ...store.state.train.form });
@@ -227,15 +219,15 @@ const filteredModels = computed(() => {
 });
 const pytorchVersions = computed(() => {
   const model = filteredModels.value.find(item => item.name === form.model);
-  console.log('当前模型:', model);
+  // console.log('当前模型:', model);
   if (model && model.environment) {
-	const currentVersionS = model.environment.replace('torch', '');
+	// const currentVersionS = model.environment.replace('torch', '');
     const currentVersion = parseFloat(model.environment.replace('torch1.', ''));
-	console.log('当前版本String:', currentVersionS);
-	console.log('当前版本float:', currentVersion);
+	// console.log('当前版本String:', currentVersionS);
+	// console.log('当前版本float:', currentVersion);
     const versions = [];
     for (let i = currentVersion - 2; i <= currentVersion + 2; i++) {
-		console.log('当前版本:', i);
+		// console.log('当前版本:', i);
     //   if (i >= 1.2 && i <= 1.10) { // 只显示在允许的版本范围内
         versions.push(`torch1.${i}`);
     //   }
@@ -248,6 +240,25 @@ const pytorchVersions = computed(() => {
 const toggleDropdown = () => {
   dropdownVisible.value = !dropdownVisible.value
 };
+const onModelChange = () => {
+    // console.log('选中的模型 ID:', form.model);
+    
+    const selectModel = models.value.filter(models => models.name == form.model);
+    console.log("选中的模型ID: ", selectModel[0].id);
+    const modelParams = modelParamsAll.value.filter(params => params.modelId == selectModel[0].id);
+    console.log("选中的params: ", modelParams[0]);
+    store.commit("updateForm", modelParams[0]);
+    form.trainIterations = modelParams[0].trainIterations;
+    form.learningRate = modelParams[0].learningRate;
+    form.batchSize = modelParams[0].batchSize;
+    form.trainTime = modelParams[0].trainTime;
+
+  
+    // console.log("选中的模型 : ", selectModel);
+
+    form.pytorchVersion = selectModel[0].environment;
+
+}
 // 从后端获取模型列表
 const fetchModels = () => {
   $.ajax({
@@ -258,8 +269,21 @@ const fetchModels = () => {
     },
     success(resp) {
       models.value = resp;
-      console.log("所有的方法：")
+      console.log("所有的算法：")
       console.log(models.value)
+    }
+  });
+
+  $.ajax({
+    url: "http://127.0.0.1:3000/model/params/all",
+    type: "get",
+    headers: {
+      Authorization: "Bearer " + store.state.user.token,
+    },
+    success(resp) {
+      modelParamsAll.value = resp;
+      console.log("所有训练参数：")
+      console.log(modelParamsAll.value)
     }
   });
   $.ajax({
@@ -311,6 +335,9 @@ const fetchModels = () => {
     }
   });
 };
+
+
+
 const selectGameNode = (event) => {
   const selectedValue = event.target.value; // 获取 "ip:port" 格式的字符串
   const [ip, port] = selectedValue.split(':'); // 拆分出 ip 和 port
@@ -372,6 +399,7 @@ const startTraining = () => {
       trainingName: form.trainingName,
       scene: form.scene,
       model: form.model,
+      modelId: form.modelId,
       trainTime: form.trainTime,
       pytorchVersion: form.pytorchVersion,
       trainIters: form.trainIterations, 

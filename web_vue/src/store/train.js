@@ -7,6 +7,7 @@ export default {
       trainingName: 'CNNTrain',
       scene: "墨子1",
       model: 'ddpg',
+      modelId: -1,
       pytorchVersion: '1.8',
       trainIterations: 1000,
       trainTime: 1600,

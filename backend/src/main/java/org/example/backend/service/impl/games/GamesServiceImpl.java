@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.apache.ibatis.javassist.CodeConverter;
 import org.example.backend.consumer.WebSocketClient;
 import org.example.backend.controller.situation.RemoteEnginesController;
+import org.example.backend.mapper.AlgParamsMapper;
 import org.example.backend.mapper.ExamplesMapper;
 import org.example.backend.mapper.SceneEntityMapper;
 import org.example.backend.mapper.TrainMapper;
@@ -16,15 +18,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.sql.Array;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class GamesServiceImpl implements GamesService {
@@ -35,24 +37,106 @@ public class GamesServiceImpl implements GamesService {
     @Autowired
     private TrainMapper trainMapper;
     @Autowired
+    private AlgParamsMapper algParamsMapper;
+    @Autowired
     private SceneEntityMapper sceneEntityMapper;
     @Autowired
     private WebSocketClient webSocketClient;
     @Autowired
     private RemoteEnginesController remoteEnginesController;
+    @Value("${url5}")
+    private String url5;
     @Value("${enginePlatformUrl}")
     private String enginePlatformUrl;// 服务平台的URL
-
+    @Value("${xtUrl}")
+    private String xtUrl;// 服务平台的URL
+    @Value("${engineQTime}")
+    private Integer engineQTime;// 服务平台的URL
     Map<String, ResourceInfo> gameNodes = new ConcurrentHashMap<>();
-//    Map<String, List<EngineInfo>> trainEngines = new ConcurrentHashMap<>();
-
-    public void removeTrainEngines(String tUid) {
-//        List<EngineInfo> engineInfos = trainEngines.get(tUid);
-//        if (engineInfos != null) {
-//            trainEngines.remove(tUid);
-//        }
+    ReentrantLock gameLock = new ReentrantLock();
+    static Queue<Integer> freePorts = new LinkedList<>();
+    {
+        for (int i = 0; i < 8000; i ++) {
+            freePorts.offer(1234 + i);
+        }
     }
-    public void trainWs() {
+    ReentrantLock portQLock = new ReentrantLock();
+    public void removeTrainEngines(String tUid) {
+
+    }
+    public List<Map<String, Object>> getLeafIndicator(Map<String, Object> node) {
+        System.out.println(node.get("isLeaf").toString());
+        if (node.get("isLeaf").toString().equals("1")) {
+            List<Map<String, Object>> res = new ArrayList<>();
+            res.add(node);
+            return res;
+        }
+        List<Map<String, Object>> children = (List<Map<String, Object>>) node.get("children");
+        List<Map<String, Object>> res = new ArrayList<>();
+        for (int i = 0; i < children.size(); i ++) {
+            List<Map<String, Object>> leaf = getLeafIndicator(children.get(i));
+            res.addAll(leaf);
+        }
+        return res;
+    }
+
+    List<Map<String, Object>> getEvalIndicator(String exampleId) {
+        System.out.println("In getEvalIndicator !!!! " + exampleId);
+
+        String url = url5 + "/assess/task/findTaskByConfigId?configId="+exampleId+"&eModel=3";
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+            // 尝试发送请求并获取响应
+            String situationJson = restTemplate.getForObject(url, String.class);
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> map = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> dataMap = (Map<String, Object>) map.get("data");
+            String systemId = dataMap.get("systemId").toString();
+            System.out.println("getExampleIndicator Get systemId : " + systemId);
+            String url1 = url5 + "/assess/system/case/findSystemByIdAsTree";
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+            requestBody.add("systemId", systemId);
+
+            // 设置请求头
+            HttpHeaders headersPost = new HttpHeaders();
+            headersPost.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            // 组装请求体
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headersPost);
+
+            try {
+                // 发送 POST 请求
+                String situationJsonPost = restTemplate.postForObject(url1, requestEntity, String.class);
+
+                // 解析 JSON
+                Map<String, Object> resultMap = objectMapper.readValue(situationJsonPost, new TypeReference<Map<String, Object>>() {});
+                List<Map<String, Object>> dataList = (List<Map<String, Object>>) ((Map<String, Object>)((List<Map<String, Object>>) resultMap.get("data")).get(0)).get("children");
+
+                List<Map<String, Object>> leafData = new ArrayList<>();
+                for (int i = 0; i < dataList.size(); i ++) {
+                    List<Map<String, Object>> leaf = getLeafIndicator(dataList.get(i));
+                    leafData.addAll(leaf);
+                }
+                System.out.println("leaf data is : " + leafData);
+                return leafData;
+                // 将返回的结果放入 response
+            } catch (Exception e) {
+
+            }
+        } catch (Exception e) {
+            // 如果请求失败，返回自定义数据
+            e.printStackTrace();
+            List<Map<String, Object>> leafData = new ArrayList<>();
+        }
+        List<Map<String, Object>> leafData = new ArrayList<>();
+        return  leafData;
+    }
+
+    public Map<String, Object> trainWs() {
+        HashMap<String, Object> resp = new HashMap<>();
         try {
             webSocketClient.connect("ws://localhost:8765");
             HashMap<String, String> map = new HashMap<>();
@@ -65,10 +149,77 @@ public class GamesServiceImpl implements GamesService {
             ObjectMapper objectMapper = new ObjectMapper();
             String message = objectMapper.writeValueAsString(messageMap);
             webSocketClient.sendMessage(message);
+            resp.put("code", "200");
+            resp.put("msg", "success");
         } catch (Exception e) {
             System.out.println("WebSocket 连接失败");
             e.printStackTrace();
+            resp.put("code", "600");
+            resp.put("msg", "fail");
         }
+        System.out.println("离开 websocket Exception !!!");
+        return resp;
+    }
+
+    @Override
+    public Map<String, Object> stopEngine(List<String> zjjId, List<String> engineAddr) {
+
+        System.out.println("want stop zzjId " + zjjId);
+        System.out.println("want stop engineAddr " + engineAddr);
+        ObjectMapper objectMapper = new ObjectMapper();
+        StringBuilder sb = new StringBuilder();
+        if (engineAddr != null) {
+            for (int i = 0; i < engineAddr.size(); i++) {
+                try {
+                    String wsUrli = engineAddr.get(i);
+                    System.out.println("websocket stop envAddress : " + wsUrli);
+                    webSocketClient.connect(wsUrli);
+                    HashMap<String, String> map = new HashMap<>();
+                    map.put("Type", "SimCtrl");
+                    map.put("Msg", "Stop");
+                    LinkedList<Object> list = new LinkedList<>();
+                    list.add(map);
+                    HashMap<String, Object> messageMap = new HashMap<>();
+                    messageMap.put("Cmds", list);
+                    String message = objectMapper.writeValueAsString(messageMap);
+                    webSocketClient.sendMessage(message);
+                    sb.append("stop : " + engineAddr.get(i) + " suc, ");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    sb.append("stop : " + engineAddr.get(i) + " fail, ");
+                } finally {
+                    String wsUrli = engineAddr.get(i);
+//                    ws://localhost:
+                    String wsPort = wsUrli.split(":")[2];
+                    putWsPort(Integer.parseInt(wsPort));
+                }
+            }
+        }
+        if (zjjId != null) {
+            for (int i = 0; i < zjjId.size(); i++) {
+                try {
+                    String xtKillEngineURL = enginePlatformUrl + "/demo/stopEngineList?engineId=" + zjjId.get(i);
+                    String runEngineJson = restTemplate.getForObject(xtKillEngineURL, String.class);
+                    Map<String, Object> remoteMap = new HashMap<>();
+                    String rCode = null;
+                    try {
+                        remoteMap = objectMapper.readValue(runEngineJson, new TypeReference<Map<String, Object>>() {
+                        });
+                        rCode = (String) remoteMap.get("code");
+                        sb.append("stop : " + zjjId.get(i) + " suc, ");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } catch (Exception e) {
+                    sb.append("stop : " + zjjId.get(i) + " fail, ");
+                    e.printStackTrace();
+                }
+            }
+        }
+        HashMap<String, Object> resp = new HashMap<>();
+        resp.put("code", "200");
+        resp.put("msg", sb.toString());
+        return resp;
     }
 
     @Override
@@ -86,28 +237,30 @@ public class GamesServiceImpl implements GamesService {
         }
 
         List<String> engineInfos = (List<String>) trainParams.get("envAdress");
-        try {
+
             for (int i = 0; i < engineInfos.size(); i ++) {
-                String wsUrli = "ws://" + engineInfos.get(i) + ":1234";
-                webSocketClient.connect(wsUrli);
-                HashMap<String, Object> map = new HashMap<>();
-                map.put("Type", "SimCtrl");
-                map.put("Msg", "Speed");
-                map.put("Speed", speed);
-                LinkedList<Object> list = new LinkedList<>();
-                list.add(map);
-                HashMap<String, Object> messageMap = new HashMap<>();
-                messageMap.put("Cmds", list);
-                String message = objectMapper.writeValueAsString(messageMap);
-                webSocketClient.sendMessage(message);
+                String wsUrli = engineInfos.get(i);
+                try {
+                    webSocketClient.connect(wsUrli);
+                    HashMap<String, Object> map = new HashMap<>();
+                    map.put("Type", "SimCtrl");
+                    map.put("Msg", "Speed");
+                    map.put("Speed", speed);
+                    LinkedList<Object> list = new LinkedList<>();
+                    list.add(map);
+                    HashMap<String, Object> messageMap = new HashMap<>();
+                    messageMap.put("Cmds", list);
+                    String message = objectMapper.writeValueAsString(messageMap);
+                    webSocketClient.sendMessage(message);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+
 
         Map<String, String> res = new HashMap<>();
         res.put("msg", "success");
@@ -117,8 +270,11 @@ public class GamesServiceImpl implements GamesService {
 
     @Override
     public Map<String, String> signGame(ResourceInfo resourceInfo) {
+
         String gameKey = resourceInfo.getIp() + resourceInfo.getPort();
+        gameLock.lock();
         gameNodes.put(gameKey, resourceInfo);
+        gameLock.unlock();
 //        System.out.println("sign Node : " + resourceInfo);
         Map<String, String> res = new HashMap<>();
         res.put("status", "success");
@@ -131,6 +287,7 @@ public class GamesServiceImpl implements GamesService {
 //        System.out.println("total gameNode : " + gameNodes.size());
 
         // 使用 Iterator 遍历并安全删除
+        gameLock.lock();
         Iterator<Map.Entry<String, ResourceInfo>> iterator = gameNodes.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, ResourceInfo> entry = iterator.next();
@@ -148,11 +305,17 @@ public class GamesServiceImpl implements GamesService {
                 System.err.println("解析时间失败: " + resourceInfo.getUpdateTime());
             }
         }
+        gameLock.unlock();
     }
+
+
 
     @Override
     public List<ResourceInfo> getAllGameNode() {
-        return new ArrayList<>(gameNodes.values());
+        gameLock.lock();
+        List<ResourceInfo> resp = new ArrayList<>(gameNodes.values());
+        gameLock.unlock();
+        return resp;
     }
     @Override
     public Map<String, Object> addTrain(MultiValueMap<String, String> data) throws JsonProcessingException {
@@ -164,6 +327,16 @@ public class GamesServiceImpl implements GamesService {
             map.put("status", "error");
             map.put("msg", "ip or port is null");
             return map;
+        }
+
+        if (!data.getFirst("modelId").equals("-1")) {
+            AlgParams nAlgParams = new AlgParams();
+            nAlgParams.setModelId(Integer.parseInt(data.getFirst("modelId")));
+            nAlgParams.setTrainIterations(Integer.parseInt(data.getFirst("trainIters")));
+            nAlgParams.setBatchSize(Integer.parseInt(data.getFirst("batchSize")));
+            nAlgParams.setTrainTime(Integer.parseInt(data.getFirst("trainTime")));
+            nAlgParams.setLearningRate(Double.parseDouble(data.getFirst("learningRate")));
+            algParamsMapper.update(nAlgParams, new QueryWrapper<AlgParams>().eq("model_id", nAlgParams.getModelId()));
         }
 
         String scene = data.getFirst("scene");
@@ -191,30 +364,66 @@ public class GamesServiceImpl implements GamesService {
         int needEngines = Integer.parseInt(data.getFirst("needEngines"));
         System.out.println("needEngines : " + needEngines);
         List<EngineInfo> freeEngineList = remoteEnginesController.getFreeEngineList();
+        System.out.println("freeEngineList : " + freeEngineList.size());
         int usedEngines = Math.min(needEngines, freeEngineList.size());
         System.out.println("usedEngines : " + usedEngines);
-        String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " 1234&id=0";
+
+        HashMap<String, Object> resp = new HashMap<>();
+
+        if (usedEngines < 1) {
+            resp.put("code", "400");
+            resp.put("msg", "无可用引擎");
+            return resp;
+        }
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         ArrayList<String> useEngineIp = new ArrayList<>();
-        List<EngineInfo> selectedEngines = new ArrayList<>();
+        List<String> selectedEnginesId = new ArrayList<>();
         for (int i = 0; i < usedEngines; i ++) {
+            int wsPort = getWsPort();
+            String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " " + Integer.toString(wsPort) + "&id=0";
             String engineInfoJson = restTemplate.getForObject(startEngineUrl, String.class);
             ObjectMapper objectMapper1 = new ObjectMapper();
             Map<String, Object> engineInfoMap = objectMapper1.readValue(engineInfoJson, new TypeReference<Map<String, Object>>() {
             });
-            String runIp = (String) engineInfoMap.get("data");
-            useEngineIp.add(runIp);
-            for (EngineInfo e : freeEngineList) {
-                if (e.getIp().equals(runIp)) {
-                    selectedEngines.add(e);
-                    break;
+//            ws://localhost:8765
+            Map<String, Object> engineData = (Map<String, Object>)engineInfoMap.get("data");
+            String runIp = (String) engineData.get("ip");
+
+            String runWs = "ws://" + runIp + ":" + Integer.toString(wsPort);
+//                        String runWs = "ws://" + "192.1.116.29" + ":8765";
+            useEngineIp.add(runWs);
+            selectedEnginesId.add((String)engineData.get("id"));
+
+            if (engineQTime > 0) {
+                try {
+                    System.out.println(Thread.currentThread().getName() + " sleep " + engineQTime);
+                    Thread.sleep(engineQTime * 1000);
+                    System.out.println(Thread.currentThread().getName() + " wake up ");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
+//            for (EngineInfo e : freeEngineList) {
+//                if (e.getIp().equals(runIp)) {
+//                    selectedEnginesId.add(e.getEngineId());
+//                    break;
+//                }
+//            }
         }
-//        trainEngines.put(tUidStr, selectedEngines);
+//        trainEngines.put(tUidStr, selectedEngines); envAdress
         paramsMap.put("envAdress", useEngineIp);
+        paramsMap.put("envsId", selectedEnginesId);
+
 //        确实获取指标
+        List<Map<String, Object>> IndecatorList = getEvalIndicator(exampleId);
+        Map<Integer, Object> indicators = new HashMap<>();
+        for (int i = 0; i <IndecatorList.size(); i ++) {
+            Map<String, Object> obji = IndecatorList.get(i);
+            indicators.put((Integer) obji.get("id"), obji.get("weight"));
+        }
+        paramsMap.put("indicators", indicators);
 
         List<String> selectMetrics = null;
 
@@ -249,7 +458,7 @@ public class GamesServiceImpl implements GamesService {
         // 发送 POST 请求，获取响应
         ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
         Map<String, String> responseBody = response.getBody();
-        HashMap<String, Object> resp = new HashMap<>();
+        System.out.println("add train : responseBody : " + responseBody);
         if (responseBody.get("code").equals("200")) {
             resp.put("code", "200");
             resp.put("msg", "训练开始，分配了" + usedEngines + "个节点");
@@ -273,30 +482,60 @@ public class GamesServiceImpl implements GamesService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+
         List<String> engineInfos = (List<String>) trainParams.get("envAdress");
-        if (engineInfos != null) {
-            try {
-                for (int i = 0; i < engineInfos.size(); i++) {
-                    String wsUrli = "ws://" + engineInfos.get(i) + ":1234";
-                    webSocketClient.connect(wsUrli);
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("Type", "SimCtrl");
-                    map.put("Msg", "Stop");
-                    LinkedList<Object> list = new LinkedList<>();
-                    list.add(map);
-                    HashMap<String, Object> messageMap = new HashMap<>();
-                    messageMap.put("Cmds", list);
-                    String message = objectMapper.writeValueAsString(messageMap);
-                    webSocketClient.sendMessage(message);
-                }
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+        List<String> envsId = (List<String>) trainParams.get("envsId");
+        Map<String, Object> stopData = stopEngine(envsId, engineInfos);
+        System.out.println(stopData.get("msg"));
+//        if (engineInfos != null) {
+//            for (int i = 0; i < engineInfos.size(); i++) {
+//                try {
+//                    String wsUrli = engineInfos.get(i);
+//                    System.out.println("websocket stop envAddress : " + wsUrli);
+//                    webSocketClient.connect(wsUrli);
+//                    HashMap<String, String> map = new HashMap<>();
+//                    map.put("Type", "SimCtrl");
+//                    map.put("Msg", "Stop");
+//                    LinkedList<Object> list = new LinkedList<>();
+//                    list.add(map);
+//                    HashMap<String, Object> messageMap = new HashMap<>();
+//                    messageMap.put("Cmds", list);
+//                    String message = objectMapper.writeValueAsString(messageMap);
+//                    webSocketClient.sendMessage(message);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//
+//        }
+//
+//        System.out.println("离开stop 区域!!!!");
+
+//        if (envsId != null) {
+//            for (int i = 0; i < envsId.size(); i++) {
+//                try {
+//                    String xtKillEngineURL = enginePlatformUrl + "/demo/stopEngineList?engineId=" + envsId.get(i);
+//                    String runEngineJson = restTemplate.getForObject(xtKillEngineURL, String.class);
+//                    Map<String, Object> remoteMap = new HashMap<>();
+//                    String rCode = null;
+//                    try {
+//                        remoteMap = objectMapper.readValue(runEngineJson, new TypeReference<Map<String, Object>>() {
+//                        });
+//                        rCode = (String) remoteMap.get("code");
+//                        System.out.println("kilkl : " + envsId.get(i) + " " + rCode);
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                } catch (Exception e) {
+//                    System.out.println("kill train fail");
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+
+
+
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
         HashMap<String, String> map = new HashMap<>();
@@ -335,29 +574,56 @@ public class GamesServiceImpl implements GamesService {
         }
 
         List<String> engineInfos = (List<String>) trainParams.get("envAdress");
-        if (engineInfos != null) {
-            try {
-                for (int i = 0; i < engineInfos.size(); i ++) {
-                    String wsUrli = "ws://" + engineInfos.get(i) + ":1234";
-                    webSocketClient.connect(wsUrli);
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("Type", "SimCtrl");
-                    map.put("Msg", "Stop");
-                    LinkedList<Object> list = new LinkedList<>();
-                    list.add(map);
-                    HashMap<String, Object> messageMap = new HashMap<>();
-                    messageMap.put("Cmds", list);
-                    String message = objectMapper.writeValueAsString(messageMap);
-                    webSocketClient.sendMessage(message);
-                }
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+        List<String> envsId = (List<String>) trainParams.get("envsId");
+        Map<String, Object> stopData = stopEngine(envsId, engineInfos);
+        System.out.println(stopData.get("msg"));
+
+//        if (engineInfos != null) {
+//            for (int i = 0; i < engineInfos.size(); i++) {
+//                try {
+//                    String wsUrli = engineInfos.get(i);
+//                    System.out.println("websocket stop envAddress : " + wsUrli);
+//                    webSocketClient.connect(wsUrli);
+//                    HashMap<String, String> map = new HashMap<>();
+//                    map.put("Type", "SimCtrl");
+//                    map.put("Msg", "Stop");
+//                    LinkedList<Object> list = new LinkedList<>();
+//                    list.add(map);
+//                    HashMap<String, Object> messageMap = new HashMap<>();
+//                    messageMap.put("Cmds", list);
+//                    String message = objectMapper.writeValueAsString(messageMap);
+//                    webSocketClient.sendMessage(message);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//
+//        }
+//
+//        System.out.println("离开stop 区域!!!!");
+
+//        if (envsId != null) {
+//            for (int i = 0; i < envsId.size(); i++) {
+//                try {
+//                    String xtKillEngineURL = enginePlatformUrl + "/demo/stopEngineList?engineId=" + envsId.get(i);
+//                    String runEngineJson = restTemplate.getForObject(xtKillEngineURL, String.class);
+//                    Map<String, Object> remoteMap = new HashMap<>();
+//                    String rCode = null;
+//                    try {
+//                        remoteMap = objectMapper.readValue(runEngineJson, new TypeReference<Map<String, Object>>() {
+//                        });
+//                        rCode = (String) remoteMap.get("code");
+//                        System.out.println("kilkl : " + envsId.get(i) + " " + rCode);
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//                } catch (Exception e) {
+//                    System.out.println("kill train fail");
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+
 
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
@@ -383,7 +649,7 @@ public class GamesServiceImpl implements GamesService {
         return response.getBody();
     }
     @Override
-    public Map<String, Object> continueAfFinTrain(MultiValueMap<String, String> data) {
+    public Map<String, Object> continueAfFinTrain(MultiValueMap<String, String> data) throws JsonProcessingException {
 //        System.out.println("data is : \n" + data);
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
@@ -439,31 +705,35 @@ public class GamesServiceImpl implements GamesService {
         List<EngineInfo> freeEngineList = remoteEnginesController.getFreeEngineList();
         int usedEngines = Math.min(needEngines, freeEngineList.size());
         System.out.println("usedEngines : " + usedEngines);
-        String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " 1234&id=0";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        ArrayList<String> useEngineIp = new ArrayList<>();
-        List<EngineInfo> selectedEngines = new ArrayList<>();
-        try {
-            for (int i = 0; i < usedEngines; i ++) {
-                String engineInfoJson = restTemplate.getForObject(startEngineUrl, String.class);
-                ObjectMapper objectMapper1 = new ObjectMapper();
-                Map<String, Object> engineInfoMap = objectMapper1.readValue(engineInfoJson, new TypeReference<Map<String, Object>>() {
-                });
-                String runIp = (String) engineInfoMap.get("data");
-                useEngineIp.add(runIp);
-                for (EngineInfo e : freeEngineList) {
-                    if (e.getIp().equals(runIp)) {
-                        selectedEngines.add(e);
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        List<String> useEngineIp = new ArrayList<>();
+        List<String> selectedEnginesId = new ArrayList<>();
+        for (int i = 0; i < usedEngines; i ++) {
+            int wsPort = getWsPort();
+            String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " " + Integer.toString(wsPort) + "&id=0";
+            String engineInfoJson = restTemplate.getForObject(startEngineUrl, String.class);
+            ObjectMapper objectMapper1 = new ObjectMapper();
+            Map<String, Object> engineInfoMap = objectMapper1.readValue(engineInfoJson, new TypeReference<Map<String, Object>>() {
+            });
+//            ws://localhost:8765
+            Map<String, Object> engineData = (Map<String, Object>)engineInfoMap.get("data");
+            String runIp = (String) engineData.get("ip");
+
+            String runWs = "ws://" + runIp + ":" + Integer.toString(wsPort);
+//                        String runWs = "ws://" + "192.1.116.29" + ":8765";
+            useEngineIp.add(runWs);
+            selectedEnginesId.add((String)engineData.get("id"));
+//            for (EngineInfo e : freeEngineList) {
+//                if (e.getIp().equals(runIp)) {
+//                    selectedEnginesId.add(e.getEngineId());
+//                    break;
+//                }
+//            }
         }
 //        trainEngines.put(tUidStr, selectedEngines);
         trainParams.put("envAdress", useEngineIp);
+        trainParams.put("envsId", selectedEnginesId);
 //        确实获取指标
 
         try {
@@ -486,8 +756,26 @@ public class GamesServiceImpl implements GamesService {
         // 返回响应结果
         return response.getBody();
     }
+
     @Override
-    public Map<String, String> continueTrain(MultiValueMap<String, String> data) {
+    public int getWsPort() {
+        portQLock.lock();
+        int wsPort = freePorts.poll();
+        portQLock.unlock();
+        System.out.println("get wsPort : " + wsPort);
+        return wsPort;
+    }
+
+    @Override
+    public void putWsPort(int wsPort) {
+        portQLock.lock();
+        freePorts.offer(wsPort);
+        portQLock.unlock();
+        System.out.println("put wsPort : " + wsPort);
+    }
+
+    @Override
+    public Map<String, String> continueTrain(MultiValueMap<String, String> data) throws JsonProcessingException {
         String ip = data.getFirst("ip");
         String port = data.getFirst("port");
         HashMap<String, String> map = new HashMap<>();
@@ -526,30 +814,38 @@ public class GamesServiceImpl implements GamesService {
         List<EngineInfo> freeEngineList = remoteEnginesController.getFreeEngineList();
         int usedEngines = Math.min(needEngines, freeEngineList.size());
         System.out.println("usedEngines : " + usedEngines);
-        String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " 1234&id=0";
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         ArrayList<String> useEngineIp = new ArrayList<>();
-        List<EngineInfo> selectedEngines = new ArrayList<>();
-        try {
-            for (int i = 0; i < usedEngines; i ++) {
-                String engineInfoJson = restTemplate.getForObject(startEngineUrl, String.class);
-                ObjectMapper objectMapper1 = new ObjectMapper();
-                Map<String, Object> engineInfoMap = objectMapper1.readValue(engineInfoJson, new TypeReference<Map<String, Object>>() {
-                });
-                String runIp = (String) engineInfoMap.get("data");
-                useEngineIp.add(runIp);
-                for (EngineInfo e : freeEngineList) {
-                    if (e.getIp().equals(runIp)) {
-                        selectedEngines.add(e);
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+
+        List<String> selectedEnginesId = new ArrayList<>();
+
+        for (int i = 0; i < usedEngines; i ++) {
+            int wsPort = getWsPort();
+            String startEngineUrl = enginePlatformUrl + "/node/startOneNode?cmd=" + exampleId + " " + Integer.toString(wsPort) + "&id=0";
+            String engineInfoJson = restTemplate.getForObject(startEngineUrl, String.class);
+            ObjectMapper objectMapper1 = new ObjectMapper();
+            Map<String, Object> engineInfoMap = objectMapper1.readValue(engineInfoJson, new TypeReference<Map<String, Object>>() {
+            });
+//            ws://localhost:8765
+            Map<String, Object> engineData = (Map<String, Object>)engineInfoMap.get("data");
+            String runIp = (String) engineData.get("ip");
+
+            String runWs = "ws://" + runIp + ":" + Integer.toString(wsPort);
+//                        String runWs = "ws://" + "192.1.116.29" + ":8765";
+            useEngineIp.add(runWs);
+            selectedEnginesId.add((String)engineData.get("id"));
+//            for (EngineInfo e : freeEngineList) {
+//                if (e.getIp().equals(runIp)) {
+//                    selectedEnginesId.add(e.getEngineId());
+//                    break;
+//                }
+//            }
         }
+
         trainParams.put("envAdress", useEngineIp);
+        trainParams.put("envsId", selectedEnginesId);
 
         try {
             String params = objectMapper.writeValueAsString(trainParams); // 转换为 JSON
@@ -589,6 +885,10 @@ public class GamesServiceImpl implements GamesService {
             map.put("msg", "没有找到该训练任务");
             return map;
         }
+
+
+
+
         data.put("model", Collections.singletonList(train.getModel()));
         data.put("modelParams", Collections.singletonList(train.getModelparams()));
         data.put("pytorchVersion", Collections.singletonList(train.getPytorchversion()));
@@ -617,7 +917,7 @@ public class GamesServiceImpl implements GamesService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         ArrayList<String> useEngineIp = new ArrayList<>();
-        List<EngineInfo> selectedEngines = new ArrayList<>();
+        List<Integer> selectedEnginesId = new ArrayList<>();
         try {
             for (int i = 0; i < usedEngines; i ++) {
                 String engineInfoJson = restTemplate.getForObject(startEngineUrl, String.class);
@@ -625,10 +925,12 @@ public class GamesServiceImpl implements GamesService {
                 Map<String, Object> engineInfoMap = objectMapper1.readValue(engineInfoJson, new TypeReference<Map<String, Object>>() {
                 });
                 String runIp = (String) engineInfoMap.get("data");
-                useEngineIp.add(runIp);
+                String runWs = "ws://" + (String) engineInfoMap.get("data") + ":1234";
+
+                useEngineIp.add(runWs);
                 for (EngineInfo e : freeEngineList) {
                     if (e.getIp().equals(runIp)) {
-                        selectedEngines.add(e);
+                        selectedEnginesId.add(Integer.parseInt(e.getEngineId()));
                         break;
                     }
                 }
@@ -637,6 +939,7 @@ public class GamesServiceImpl implements GamesService {
             throw new RuntimeException(e);
         }
         trainParams.put("envAdress", useEngineIp);
+        trainParams.put("envsId", selectedEnginesId);
         trainParams.put("reload", 1);
         try {
             String params = objectMapper.writeValueAsString(trainParams); // 转换为 JSON
@@ -669,28 +972,26 @@ public class GamesServiceImpl implements GamesService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        List<String> engineInfos = (List<String>) trainParams.get("envAdress");
-        if (engineInfos != null) {
+//        List<String> engineInfos = (List<String>) trainParams.get("envAdress");
+        List<Integer> envsId = (List<Integer>) trainParams.get("envsId");
+        if (envsId != null) {
             try {
-                for (int i = 0; i < engineInfos.size(); i++) {
-                    String wsUrli = "ws://" + engineInfos.get(i) + ":1234";
-                    webSocketClient.connect(wsUrli);
-                    HashMap<String, String> map = new HashMap<>();
-                    map.put("Type", "SimCtrl");
-                    map.put("Msg", "Stop");
-                    LinkedList<Object> list = new LinkedList<>();
-                    list.add(map);
-                    HashMap<String, Object> messageMap = new HashMap<>();
-                    messageMap.put("Cmds", list);
-                    String message = objectMapper.writeValueAsString(messageMap);
-                    webSocketClient.sendMessage(message);
+                for (int i = 0; i < envsId.size(); i++) {
+                    String xtKillEngineURL = enginePlatformUrl + "/demo/stopEngineList?engineId="+envsId.get(i);
+                    String runEngineJson = restTemplate.getForObject(xtKillEngineURL, String.class);
+                    Map<String, Object> remoteMap = new HashMap<>();
+                    String rCode = null;
+                    try {
+                        remoteMap = objectMapper.readValue(runEngineJson, new TypeReference<Map<String, Object>>() {});
+                        rCode = (String) remoteMap.get("code");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
                 }
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                System.out.println("kill train fail");
+                e.printStackTrace();
             }
         }
         String ip = data.getFirst("ip");

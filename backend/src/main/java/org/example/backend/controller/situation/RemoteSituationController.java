@@ -1,5 +1,6 @@
 package org.example.backend.controller.situation;
 
+
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -7,7 +8,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.backend.mapper.ExamplesMapper;
 import org.example.backend.mapper.SceneEntityMapper;
 import org.example.backend.mapper.UserMapper;
-import org.example.backend.pojo.EngineInfo;
 import org.example.backend.pojo.Examples;
 import org.example.backend.pojo.SceneEntity;
 import org.example.backend.pojo.User;
@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.LinkedMultiValueMap;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
 public class RemoteSituationController {
@@ -57,8 +59,11 @@ public class RemoteSituationController {
 //    private String url3 = "http://192.1.116.100:8081";
 //    private String url4 = "http://192.1.116.100:8002";
 //    private String url5 = "http://127.0.0.1:4001";
+
     private Map<String, List<Object>> situationCache = new HashMap<>();
+    private ReentrantLock situationLock = new ReentrantLock();
     public List<Map<String, Object>> getLeafIndicator(Map<String, Object> node) {
+        System.out.println(node.get("isLeaf").toString());
         if (node.get("isLeaf").toString().equals("1")) {
             List<Map<String, Object>> res = new ArrayList<>();
             res.add(node);
@@ -80,62 +85,65 @@ public class RemoteSituationController {
         response.put("msg", "成功得到指标");
         System.out.println("In getEvalIndicator !!!! " + exampleId);
 
-        String url = url5 + "/esserver/assess/system/taskData/findDataByDeduceAsTree";
-
-        // 构造请求参数
-        int simTime = 0;
-        MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
-        requestBody.add("deduceId", exampleId);
-        requestBody.add("simTime", String.valueOf(simTime));
-
-        // 设置请求头
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        // 组装请求体
-        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headers);
-
+        String url = url5 + "/assess/task/findTaskByConfigId?configId="+exampleId+"&eModel=3";
         try {
-            // 发送 POST 请求
-            String situationJson = restTemplate.postForObject(url, requestEntity, String.class);
-
-            // 解析 JSON
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> dataTrans = new LinkedMultiValueMap<>();
+            HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(dataTrans, headers);
+            // 尝试发送请求并获取响应
+            String situationJson = restTemplate.getForObject(url, String.class);
             ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> resultMap = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
-            List<Map<String, Object>> dataList = (List<Map<String, Object>>) ((Map<String, Object>) resultMap.get("data")).get("list");
-            List<Map<String, Object>> leafData = new ArrayList<>();
-            for (int i = 0; i < dataList.size(); i ++) {
-                List<Map<String, Object>> leaf = getLeafIndicator(dataList.get(i));
-                leafData.addAll(leaf);
-            }
+            Map<String, Object> map = objectMapper.readValue(situationJson, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> dataMap = (Map<String, Object>) map.get("data");
+            String systemId = dataMap.get("systemId").toString();
+            System.out.println("getExampleIndicator Get systemId : " + systemId);
+            String url1 = url5 + "/assess/system/case/findSystemByIdAsTree";
+            MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+            requestBody.add("systemId", systemId);
 
-            // 将返回的结果放入 response
-            response.put("data", leafData);
+            // 设置请求头
+            HttpHeaders headersPost = new HttpHeaders();
+            headersPost.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            // 组装请求体
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(requestBody, headersPost);
+
+            try {
+                // 发送 POST 请求
+                String situationJsonPost = restTemplate.postForObject(url1, requestEntity, String.class);
+
+                // 解析 JSON
+                Map<String, Object> resultMap = objectMapper.readValue(situationJsonPost, new TypeReference<Map<String, Object>>() {});
+                List<Map<String, Object>> dataList = (List<Map<String, Object>>) ((Map<String, Object>)((List<Map<String, Object>>) resultMap.get("data")).get(0)).get("children");
+
+                List<Map<String, Object>> leafData = new ArrayList<>();
+                for (int i = 0; i < dataList.size(); i ++) {
+                    List<Map<String, Object>> leaf = getLeafIndicator(dataList.get(i));
+                    leafData.addAll(leaf);
+                }
+                System.out.println("leaf data is : " + leafData);
+                // 将返回的结果放入 response
+                response.put("data", leafData);
+            } catch (Exception e) {
+                e.printStackTrace();
+                response.put("code", 500);
+                response.put("msg", "请求失败：" + e.getMessage());
+            }
         } catch (Exception e) {
+            // 如果请求失败，返回自定义数据
             e.printStackTrace();
-            response.put("code", 500);
-            response.put("msg", "请求失败：" + e.getMessage());
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("code", 200);
+            map.put("success", true);
+            map.put("message", "indicator error");
         }
 
         return response;
     }
-    @PostMapping("/remote/getSituations/")
-    public Map<String, Object> getSituatioes(@RequestParam Map<String, String> data) {
-//        True
-//        String url = "http://192.1.116.100:7210/wwe/task/page";
-//        Fake
+    @Scheduled(fixedRate = 40000) // 每40秒检查一次
+    public void getSituationsScheduled() {
         String cacheKey = "situationRecords"; // 缓存数据的键
-        List<Object> recordsCache = situationCache.get(cacheKey); // 尝试从缓存中获取数据
-
-        if (recordsCache != null) {
-            // 如果缓存中有数据，直接返回缓存的数据
-            Map<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("success", true);
-            resMap.put("message", "success");
-            resMap.put("data", recordsCache);
-            return resMap;
-        }
         String url = url1 + "/wwe/task/page?pageIndex=1";
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -150,7 +158,7 @@ public class RemoteSituationController {
             List<Object> records = (List<Object>) dataMap.get("records");
             int total = (int) dataMap.get("pages");
             for (int i = 1; i < total; i++) {
-                System.out.println("request Situation Page : " + Integer.toString(i));
+//                System.out.println("request Situation Page : " + Integer.toString(i));
                 String urli = url1 + "/wwe/task/page?pageIndex=" + Integer.toString(i + 1);
                 String situationIJson = restTemplate.getForObject(urli, String.class);
                 Map<String, Object> mapI = objectMapper.readValue(situationIJson, new TypeReference<Map<String, Object>>() {});
@@ -158,17 +166,34 @@ public class RemoteSituationController {
                 List<Object> recordsI = (List<Object>) dataIMap.get("records");
                 records.addAll(recordsI);
             }
+            situationLock.lock();
             situationCache.put(cacheKey, records);
+            situationLock.unlock();
+        } catch (Exception e) {
+            // 如果请求失败，返回自定义数据
+            e.printStackTrace();
+        }
+    }
 
+    @PostMapping("/remote/getSituations/")
+    public Map<String, Object> getSituatioes(@RequestParam Map<String, String> data) {
+//        True
+//        String url = "http://192.1.116.100:7210/wwe/task/page";
+//        Fake
+        String cacheKey = "situationRecords"; // 缓存数据的键
+        situationLock.lock();
+        List<Object> recordsCache = situationCache.get(cacheKey); // 尝试从缓存中获取数据
+        situationLock.unlock();
+
+        if (recordsCache != null) {
+            // 如果缓存中有数据，直接返回缓存的数据
             Map<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("success", true);
             resMap.put("message", "success");
-            resMap.put("data", records);
+            resMap.put("data", recordsCache);
             return resMap;
-        } catch (Exception e) {
-            // 如果请求失败，返回自定义数据
-            e.printStackTrace();
+        } else {
             HashMap<String, Object> map = new HashMap<>();
             map.put("code", 200);
             map.put("success", true);

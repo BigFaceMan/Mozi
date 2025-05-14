@@ -43,7 +43,7 @@
                             <th scope="col" v-if="isComparing">选择</th> <!-- 选择列 -->
                             <th scope="col">模型名</th>
                             <th scope="col">场景</th>
-                            <th scope="col">方法</th>
+                            <th scope="col">算法</th>
                             <th scope="col">强化学习环境</th>
                             <th scope="col">训练状态</th>
                             <th scope="col">操作</th>
@@ -280,25 +280,6 @@
                 </div>
             </div>
         </div>
-
-
-        <!-- Training Replay Modal -->
-        <!-- <div v-if="isTrainingReplayVisible" class="modal fade show" tabindex="-1" aria-labelledby="trainingReplayModalLabel" aria-hidden="true" style="display: block;">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">训练回放</h5>
-                        <button type="button" class="btn-close" @click="closeTrainingReplay" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="card-body">
-                            <h5 class="title">训练可视化</h5>
-                            <iframe src="http://127.0.0.1:6006" width="100%" height="800px" frameborder="0"></iframe>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> -->
         <div v-if="isTrainingReplayVisible" class="modal fade show" tabindex="-1" aria-labelledby="trainingReplayModalLabel" aria-hidden="true" style="display: block;">
             <div class="modal-dialog modal-lg" style="max-width: 90%; height: 80vh; margin: auto; margin-top: 5%;">
                 <div class="modal-content" style="height: 100%; border: none;">

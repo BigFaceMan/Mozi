@@ -25,9 +25,7 @@ time.sleep(1)
 print("checkpointPaht is : ", args.checkpointpath)
 
 # 解析参数
-print(f"Get process params: {args.params}")
 params = json.loads(args.params)
-print("params dict:", params)
 trainIters = int(params.get("trainIters", 1000))  # 默认训练迭代次数
 
 continueTrain = int(params["reload"])
@@ -58,11 +56,10 @@ trainRangeR = int(params["trainRangeR"])
 
 # 训练模拟过程
 for i in range(trainRangeL, trainRangeR):
-    print("Itera:", i)
+    print("轮次:", i)
     print("trainInfo", i, i, i, i, i, i)
     if i == 2:
         sys.stderr.write("This is an error message\n")
-    # writer.add_scalar("Iteration Value", i, i)  # 记录 TensorBoard 数据
     # 每 5 轮保存一次模型
     if i % 5 == 0 or i == 99:
         print(f"Checkpoint saved: {args.checkpointpath}")

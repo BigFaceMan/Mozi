@@ -45,7 +45,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         "/train/**",
                         "/trainlog/add/",
                         "/games/sign/",
-                        "/games/get/all/",
+                        "/games/**",
                         "/testConnection",
                         "/remote/**",
                         "/model/**",

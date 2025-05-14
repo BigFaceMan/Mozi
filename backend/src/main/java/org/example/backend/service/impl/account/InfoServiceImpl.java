@@ -126,7 +126,8 @@ public class InfoServiceImpl implements InfoService {
     @Override
     public List<User> getlist() {
         List<User> users = userMapper.selectList(null);
-        System.out.println("get all users");
+//        System.out.println("getlist :　" + users);
+//        System.out.println("get all users");
         return users;
     }
 
