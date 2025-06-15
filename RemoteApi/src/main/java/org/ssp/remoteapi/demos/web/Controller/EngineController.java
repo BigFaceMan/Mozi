@@ -74,7 +74,10 @@ public class EngineController {
     public String startOneNode() {
         Map<String, Object> response = new HashMap<>();
         response.put("code", 200);
-        response.put("data", "127.0.0.1");
+        HashMap<String, Object> dataMap = new HashMap<>();
+        dataMap.put("ip", "127.0.0.1");
+        dataMap.put("id", "1");
+        response.put("data", dataMap);
         return toJsonString(response);
     }
     @PostMapping("/esserver/assess/system/taskData/findDataByDeduceAsTree")
