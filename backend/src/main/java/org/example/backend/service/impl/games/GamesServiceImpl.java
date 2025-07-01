@@ -15,6 +15,7 @@ import org.example.backend.pojo.*;
 import org.example.backend.service.games.GamesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -22,8 +23,10 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import javax.rmi.CORBA.ValueHandler;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -54,6 +57,9 @@ public class GamesServiceImpl implements GamesService {
     private Integer engineQTime;// 服务平台的URL
     Map<String, ResourceInfo> gameNodes = new ConcurrentHashMap<>();
     ReentrantLock gameLock = new ReentrantLock();
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     static Queue<Integer> freePorts = new LinkedList<>();
     {
         for (int i = 0; i < 8000; i ++) {
@@ -280,35 +286,116 @@ public class GamesServiceImpl implements GamesService {
         res.put("status", "success");
         return res;
     }
+//    服务节点中心化 V
     // 定期检查节点是否超时
-    @Scheduled(fixedRate = 2000) // 每40秒检查一次
-    public void checkGameNode() {
-        long now = System.currentTimeMillis();
-//        System.out.println("total gameNode : " + gameNodes.size());
+//    @Scheduled(fixedRate = 2000) // 每40秒检查一次
+//    public void checkGameNode() {
+//        long now = System.currentTimeMillis();
+////        System.out.println("total gameNode : " + gameNodes.size());
+//
+//        // 使用 Iterator 遍历并安全删除
+//        gameLock.lock();
+//        Iterator<Map.Entry<String, ResourceInfo>> iterator = gameNodes.entrySet().iterator();
+//        while (iterator.hasNext()) {
+//            Map.Entry<String, ResourceInfo> entry = iterator.next();
+//            String nodeId = entry.getKey();
+//            ResourceInfo resourceInfo = entry.getValue();
+//            try {
+//                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+//                Date date = sdf.parse(resourceInfo.getUpdateTime());
+//                long lastUpdateTime = date.getTime();
+//                if (now - lastUpdateTime > 3000) { // 15秒未更新心跳，认为死亡
+//                    System.out.println("节点 " + nodeId + " 可能已死亡");
+//                    iterator.remove(); // 使用迭代器删除，避免并发修改异常
+//                }
+//            } catch (Exception e) {
+//                System.err.println("解析时间失败: " + resourceInfo.getUpdateTime());
+//            }
+//        }
+//        gameLock.unlock();
+//    }
 
-        // 使用 Iterator 遍历并安全删除
-        gameLock.lock();
-        Iterator<Map.Entry<String, ResourceInfo>> iterator = gameNodes.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, ResourceInfo> entry = iterator.next();
-            String nodeId = entry.getKey();
-            ResourceInfo resourceInfo = entry.getValue();
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
-                Date date = sdf.parse(resourceInfo.getUpdateTime());
-                long lastUpdateTime = date.getTime();
-                if (now - lastUpdateTime > 3000) { // 15秒未更新心跳，认为死亡
-                    System.out.println("节点 " + nodeId + " 可能已死亡");
-                    iterator.remove(); // 使用迭代器删除，避免并发修改异常
-                }
-            } catch (Exception e) {
-                System.err.println("解析时间失败: " + resourceInfo.getUpdateTime());
-            }
+    /*
+        redis 去中心化版本
+    * */
+
+    public String selectBestNode() {
+        // 获取得分最高的前1个节点（ZREVRANGE）
+        Set<String> best = stringRedisTemplate.opsForZSet()
+                .reverseRange("game:node-score", 0, 0);
+
+        if (best != null && !best.isEmpty()) {
+            return best.iterator().next(); // 返回最优节点 IP:PORT
         }
-        gameLock.unlock();
+        return null;
     }
 
+    @Scheduled(fixedRate = 2000)
+    public void checkGameNode() {
+        String key = "leader-lock";
+        String nodeId = "service-node-01"; // 当前服务节点标识
+        Boolean isLeader = stringRedisTemplate.opsForValue().setIfAbsent(key, nodeId, Duration.ofSeconds(10));
+        if (!Boolean.TRUE.equals(isLeader)) {
+            return; // 不是Leader节点，不执行清理
+        }
 
+        long now = System.currentTimeMillis();
+        long expireBefore = now - 10000;
+
+        Set<String> expiredNodes = stringRedisTemplate.opsForZSet()
+                .rangeByScore("game:active-nodes", 0, expireBefore);
+//        System.out.println("最优节点为 : " + selectBestNode());
+
+        if (expiredNodes != null && !expiredNodes.isEmpty()) {
+            for (String node : expiredNodes) {
+                stringRedisTemplate.opsForZSet().remove("game:active-nodes", node);
+                stringRedisTemplate.delete("game:node-info:" + node);
+                stringRedisTemplate.opsForZSet().remove("game:node-score", node);
+            }
+        }
+    }
+
+    /*
+        偷个懒，直接从redis中把node拿到map中，对齐原来的写法（后续再改成实时获取版本
+    * */
+    @Scheduled(fixedRate = 2000)
+    public void getGameNode() {
+        long now = System.currentTimeMillis();
+        long expireBefore = now - 10000;
+
+        // 查询所有未过期节点
+        Set<String> validNodes = stringRedisTemplate.opsForZSet()
+                .rangeByScore("game:active-nodes", expireBefore + 1, now);
+
+        if (validNodes == null || validNodes.isEmpty()) {
+            gameNodes.clear(); // 没有活跃节点，清空 map
+            return;
+        }
+
+        Map<String, ResourceInfo> tempMap = new HashMap<>();
+        for (String nodeKey : validNodes) {
+            String redisKey = "game:node-info:" + nodeKey;
+            String json = stringRedisTemplate.opsForValue().get(redisKey);
+            if (json != null) {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    ResourceInfo info = objectMapper.readValue(json, ResourceInfo.class);
+                    tempMap.put(nodeKey, info);
+                } catch (Exception e) {
+                    System.err.println("解析节点失败: " + nodeKey);
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // 原子替换旧 map
+        synchronized (gameNodes) {
+            gameNodes.clear();
+            gameNodes.putAll(tempMap);
+        }
+
+//        System.out.println("已刷新节点数量: " + gameNodes.size());
+    }
 
     @Override
     public List<ResourceInfo> getAllGameNode() {
