@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.games.games.handler.KillPythonOnRejectPolicy;
+import com.games.games.handler.TrainTask;
 import com.games.games.mapper.*;
 import com.games.games.pojo.*;
 import com.games.games.utils.FileUtils;
@@ -25,7 +27,11 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -72,6 +78,20 @@ public class TrainServiceImpl implements TrainService {
     private int runStatus = 0;
     private List<Integer> allowPorts = new ArrayList<>(Collections.nCopies(10, 0));
 
+    private final ExecutorService trainPool = new ThreadPoolExecutor(
+            10, // 核心线程数
+            50, // 最大线程数
+            60L, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(100), // 队列容量
+            new ThreadFactory() {
+                private final AtomicInteger count = new AtomicInteger(1);
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "TrainThread-" + count.getAndIncrement());
+                }
+            },
+            new KillPythonOnRejectPolicy()
+    );
 
     // 将队列替换为发送到Kafka
     private void sendLogToKafka(String processId, String type, String content, String userName, String trainingName, int trainId) {
@@ -271,75 +291,111 @@ public class TrainServiceImpl implements TrainService {
 
             final String[] processIdHolder = {null};
             final Integer[] trainId = {-1};
+            // ✅ FIX: 全局共享 stdout/stderr reader（只打开一次）
+            BufferedReader stdoutReader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()));
+            BufferedReader stderrReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()));
+
+            // ✅ FIX: 先从 stdoutReader 读取 PID（不要关闭 reader）
+
+
+            // 2. 当前线程直接读取 stdout 的首行 PID（不给线程池）
+            try {
+                String line;
+                long startTime = System.currentTimeMillis();
+                long timeout = 5000; // 5秒
+                while ((line = stdoutReader.readLine()) != null && System.currentTimeMillis() - startTime < timeout) {
+                    printTrainLog("Python 输出: " + line);
+                    if (line.startsWith("PID :")) {
+                        processIdHolder[0] = line.replace("PID :", "").trim();
+                        break;
+                    }
+                }
+
+                if (processIdHolder[0] == null) {
+                    Map<String, String> response = new HashMap<>();
+                    response.put("message", "无法获取 Python 进程 PID");
+                    response.put("code", "500");
+                    return response;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("读取 PID 过程失败", e);
+            }
+
+            String processId = processIdHolder[0];
+            printTrainLog("Python 进程 PID 获取成功: " + processId);
+
             // 读取 stdout 和 PID
             Thread stdoutThread = new Thread(() -> {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(pythonProcess.getInputStream()))) {
                     String line;
-                    while ((line = reader.readLine()) != null) {
-                        printTrainLog("Python 输出: " + line);
-                        System.out.flush();
-                        // 获取 PID
-                        if (line.startsWith("PID :")) {
-                            synchronized (processIdHolder) {
-                                printTrainLog("want get pid !!!!!");
-                                processIdHolder[0] = line.replace("PID :", "").trim();
-                                printTrainLog("PID : " + processIdHolder[0]);
+                    try {
+                        while ((line = stdoutReader.readLine()) != null) {
+                            printTrainLog("Python 输出: " + line);
+                            System.out.flush();
+                            // 获取 PID
+                            if (line.startsWith("PID :")) {
+                                synchronized (processIdHolder) {
+                                    printTrainLog("want get pid !!!!!");
+                                    processIdHolder[0] = line.replace("PID :", "").trim();
+                                    printTrainLog("PID : " + processIdHolder[0]);
+                                }
                             }
-                        }
-                        synchronized (processIdHolder) {
-                            if (processIdHolder[0] != null) {
-                                if (line.startsWith("trainInfo")) {
+                            synchronized (processIdHolder) {
+                                if (processIdHolder[0] != null) {
+                                    if (line.startsWith("trainInfo")) {
 //                                    infoQueueMap.get(processIdHolder[0]).put(line);
-                                    sendLogToKafka(processIdHolder[0], "info", line, userName, trainingName, trainId[0]);
-                                    runStep.getAndIncrement();
-                                } else {
+                                        sendLogToKafka(processIdHolder[0], "info", line, userName, trainingName, trainId[0]);
+                                        runStep.getAndIncrement();
+                                    } else {
 //                                    logQueueMap.get(processIdHolder[0]).put(line);
-                                    sendLogToKafka(processIdHolder[0], "log", line, userName, trainingName, trainId[0]);
+                                        sendLogToKafka(processIdHolder[0], "log", line, userName, trainingName, trainId[0]);
+                                    }
                                 }
                             }
                         }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
-                } catch (IOException e) {
-                    printTrainLog("读取标准输出时出错: " + e.getMessage());
-                }
             });
 
             // 读取 stderr
             Thread stderrThread = new Thread(() -> {
-                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(pythonProcess.getErrorStream()))) {
                     String line;
-                    while ((line = errorReader.readLine()) != null) {
-                        printTrainLog("Python 错误: " + line);
-                        System.out.flush();
-                        synchronized (processIdHolder) {
-                            if (processIdHolder[0] != null) {
-//                                errorQueueMap.get(processIdHolder[0]).put(line);
-                                sendLogToKafka(processIdHolder[0], "error", line, userName, trainingName, trainId[0]);
+                    try {
+                        while ((line = stderrReader.readLine()) != null) {
+                            printTrainLog("Python 错误: " + line);
+                            System.out.flush();
+                            synchronized (processIdHolder) {
+                                if (processIdHolder[0] != null) {
+                                    //                                errorQueueMap.get(processIdHolder[0]).put(line);
+                                    sendLogToKafka(processIdHolder[0], "error", line, userName, trainingName, trainId[0]);
+                                }
                             }
                         }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
-                } catch (IOException e) {
-                    printTrainLog("读取错误输出时出错: " + e.getMessage());
-                }
             });
 
-            stdoutThread.start();
-            stderrThread.start();
+//            stdoutThread.start();
+//            stderrThread.start();
+//            ThreadPool version
+
+            trainPool.execute(new TrainTask(processId, stdoutThread));
+            trainPool.execute(new TrainTask(processId, stderrThread));
+
             // 等待最多 5 秒获取 PID
-            long startTime = System.currentTimeMillis();
-            long timeout = 100000; // 5 秒
-            while (processIdHolder[0] == null && (System.currentTimeMillis() - startTime) < timeout) {
-                Thread.sleep(100);
-            }
+//            long startTime = System.currentTimeMillis();
+//            long timeout = 100000; // 5 秒
+//            while (processIdHolder[0] == null && (System.currentTimeMillis() - startTime) < timeout) {
+//                Thread.sleep(100);
+//            }
 
             // 确保 PID 获取成功
-            if (processIdHolder[0] == null) {
-                Map<String, String> response = new HashMap<>();
-                response.put("message", "保存代码文件失败: " + "无法获取 Python 进程的 PID");
-                return response;
-            }
-            String processId = processIdHolder[0];
-            printTrainLog("Python 进程 PID 获取成功: " + processId);
+//            if (processIdHolder[0] == null) {
+//                Map<String, String> response = new HashMap<>();
+//                response.put("message", "保存代码文件失败: " + "无法获取 Python 进程的 PID");
+//                return response;
+//            }
 
             QueryWrapper<Train> trainQueryWrapper = new QueryWrapper<>();
             trainQueryWrapper.eq("scene", scene).eq("model", model);
@@ -396,8 +452,11 @@ public class TrainServiceImpl implements TrainService {
                 }
             });
 
+//            trainingThread.start();
+//            ThreadPool version
+            trainPool.execute(new TrainTask(processId, trainingThread));
             processMap.put(processId, trainingThread);
-            trainingThread.start();
+
 
             Map<String, String> response = new HashMap<>();
             response.put("message", "success");
@@ -405,7 +464,7 @@ public class TrainServiceImpl implements TrainService {
             response.put("processId", processId);
             response.put("trainingName", trainingName);
             return response;
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
             Map<String, String> response = new HashMap<>();
             response.put("message", "启动 Python 进程失败: " + e.getMessage());
